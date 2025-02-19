@@ -518,10 +518,10 @@ export default function TeacherChat() {
     }
   };
 
-    return (
+  return (
       <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 overflow-auto">
         {/* ... LessonCanvas JSX ... */}
-      </div>
+            </div>
     );
   };
 
@@ -536,14 +536,14 @@ export default function TeacherChat() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {actionCommands.map((command, index) => (
-                  <button
+                <button
                     key={index}
                     onClick={() => handleAction(command.type)}
                     className="w-full p-6 bg-white hover:bg-gray-50 rounded-2xl border 
                       border-gray-200 transition-all group text-left"
                   >
                     <div className="flex items-start gap-4">
-                      {command.icon}
+                    {command.icon}
                       <div>
                         <h3 className="text-lg font-medium text-black">
                           {command.title}
@@ -553,10 +553,10 @@ export default function TeacherChat() {
                         </p>
                       </div>
                     </div>
-                  </button>
-                ))}
-              </div>
+                </button>
+              ))}
             </div>
+          </div>
           ) : (
             <div className="absolute inset-0 flex flex-col">
               <div 
