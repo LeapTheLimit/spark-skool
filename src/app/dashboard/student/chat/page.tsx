@@ -195,25 +195,23 @@ export default function ChatPage() {
 
   // Send message function
   const handleSendMessage = async () => {
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() && !isListening) return;
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: message.trim()
+      content: message
     };
 
-    try {
-      setIsLoading(true);
-      setMessages(prev => [...prev, userMessage]);
-      setMessage('');
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsLoading(true);
 
-      // Use the imported sendChatMessage function
+    try {
+      // Updated to match the new function signature
       const response = await sendChatMessage(
-        messages,
-        null,
-        {}
+        [...messages, userMessage]  // Just pass messages array
       );
-      
+
       const aiMessage: ChatMessage = {
         role: 'assistant',
         content: response
@@ -221,9 +219,8 @@ export default function ChatPage() {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('Failed to send message:', error);
       toast.error('Failed to send message');
-      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }

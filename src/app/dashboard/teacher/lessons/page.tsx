@@ -1,18 +1,25 @@
+'use client';
+
+import { useLanguage } from '@/contexts/LanguageContext';
+
 export default function LessonsPage() {
+  const { language, t } = useLanguage();
+  const isRTL = language === 'ar' || language === 'he';
+
   const lessonCards = [
     {
-      title: 'Physics - Forces',
-      status: 'In Progress',
+      title: t('physicsForces'),
+      status: t('inProgress'),
       progress: 68,
-      dueDate: 'Sep 15, 2024',
+      dueDate: t('dueDate', { date: 'Sep 15, 2024' }),
       students: 24,
       color: 'bg-blue-600'
     },
     {
-      title: 'Chemistry Lab',
-      status: 'Completed',
+      title: t('chemistryLab'),
+      status: t('completed'),
       progress: 100,
-      dueDate: 'Sep 12, 2024',
+      dueDate: t('dueDate', { date: 'Sep 12, 2024' }),
       students: 22,
       color: 'bg-green-600'
     },
@@ -20,15 +27,15 @@ export default function LessonsPage() {
   ];
 
   return (
-    <div className="flex h-full gap-6 p-6">
+    <div className={`flex h-full gap-6 p-6 ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Lessons</h1>
-            <p className="text-gray-500">Create and manage your lesson plans</p>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('lessons')}</h1>
+            <p className="text-gray-500">{t('createAndManageLessons')}</p>
           </div>
           <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-            New Lesson
+            {t('newLesson')}
           </button>
         </div>
 
@@ -61,16 +68,16 @@ export default function LessonsPage() {
 
       <div className="w-80 flex flex-col">
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6">
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('quickActions')}</h2>
           <div className="space-y-2">
             <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
-              Import Lesson Plan
+              {t('importLessonPlan')}
             </button>
             <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
-              Generate with AI
+              {t('generateWithAI')}
             </button>
             <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
-              Lesson Templates
+              {t('lessonTemplates')}
             </button>
           </div>
         </div>

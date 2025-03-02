@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { type Route } from 'next';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SparkLogoProps {
   className?: string;
@@ -39,14 +40,33 @@ interface TeacherSidebarProps {
   };
 }
 
-export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
+export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarProps) {
+  const { t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [teacher, setTeacher] = useState(propTeacher);
+
+  // Load teacher data from localStorage
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem('currentUser');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setTeacher({
+          name: user.name || 'Teacher',
+          subject: user.subject || 'Subject',
+          avatar: user.avatar
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load teacher data:', error);
+    }
+  }, []);
 
   const menuItems = [
     {
       id: 'dashboard',
-      title: 'Dashboard',
+      title: t('dashboard'),
       href: '/dashboard/teacher',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -56,7 +76,7 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
     },
     {
       id: 'chat',
-      title: 'Chat',
+      title: t('chat'),
       href: '/dashboard/teacher/chat',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -66,7 +86,7 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
     },
     { 
       id: 'lessons', 
-      title: 'Lessons', 
+      title: t('lessons'), 
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -76,7 +96,7 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
     },
     { 
       id: 'materials',
-      title: 'Materials',
+      title: t('materials'),
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -86,7 +106,7 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
     },
     { 
       id: 'students',
-      title: 'Students',
+      title: t('students'),
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -95,44 +115,26 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
       href: '/dashboard/teacher/students' as Route 
     },
     {
-      id: 'search',
-      title: 'Search',
-      href: '/dashboard/teacher/chat/history',
+      id: 'tools',
+      title: t('tools'),
+      href: '/dashboard/teacher/tools',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
         </svg>
       )
     },
     {
       id: 'settings',
-      title: 'Settings',
+      title: t('settings'),
+      href: '/dashboard/teacher/settings',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-      ),
-      href: '/dashboard/teacher/settings' as Route 
-    },
-    {
-      id: 'tools',
-      title: 'Tools',
-      href: '/dashboard/teacher/tools' as Route,
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-    },
-  ];
-
-  const lists = [
-    { title: 'Active Classes', count: 48, color: 'bg-gray-400' },
-    { title: 'Current Lessons', count: 16, color: 'bg-purple-400' },
-    { title: 'Favorites', count: 8, color: 'bg-blue-400' },
-    { title: 'Archived', count: 128, color: 'bg-orange-400' },
+      )
+    }
   ];
 
   return (
@@ -189,30 +191,9 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
         ))}
       </nav>
 
-      {!isCollapsed && (
-        <div className="mt-8">
-          <div className="text-gray-400 text-sm px-4 mb-2">Lists</div>
-          <div className="space-y-1">
-            {lists.map((list) => (
-              <Link
-                key={list.title}
-                href="#"
-                className="flex items-center justify-between px-4 py-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1a1a]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 ${list.color} rounded-sm`} />
-                  <span>{list.title}</span>
-                </div>
-                <span className="text-gray-500 text-sm">{list.count}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="mt-auto">
         {isCollapsed ? (
-          <div className="p-2 bg-[#1a1a1a] rounded-xl flex justify-center">
+          <div className="p-2 bg-[#1a1a1a] rounded-xl flex justify-center mx-2 mb-2">
             <Image
               src={teacher?.avatar || "/avatars/default-teacher.jpg"}
               alt={teacher?.name || "Teacher"}
@@ -222,7 +203,7 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
             />
           </div>
         ) : (
-          <div className="p-4 bg-[#1a1a1a] rounded-xl">
+          <div className="p-4 bg-[#1a1a1a] rounded-xl mx-2 mb-2">
             <div className="flex items-center gap-3">
               <Image
                 src={teacher?.avatar || "/avatars/default-teacher.jpg"}
@@ -232,11 +213,11 @@ export default function TeacherSidebar({ teacher }: TeacherSidebarProps) {
                 className="rounded-full"
               />
               <div>
-                <div className="text-white font-medium">
-                  {teacher?.name || "Teacher Name"}
+                <div className="text-white font-medium truncate">
+                  {teacher?.name}
                 </div>
-                <div className="text-gray-400 text-sm">
-                  {teacher?.subject || "Subject"} Teacher
+                <div className="text-gray-400 text-sm truncate">
+                  {teacher?.subject} Teacher
                 </div>
               </div>
             </div>

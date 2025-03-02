@@ -181,10 +181,10 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-black">
-                {t('welcomeMessage', { name: teacher.name })}
+                {t('welcome')}, {teacher.name}! 👋
               </h1>
               <p className="text-black">
-                {t('teacherAt', { subject: teacher.subject, school: teacher.school })}
+                {teacher.subject} {t('teacherAt')} {teacher.school}
               </p>
             </div>
             <div className="flex gap-3">
@@ -207,7 +207,7 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
                   <div className={`text-${color}-600`}>{icon}</div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-black">{key}</p>
+                  <p className="text-sm font-medium text-black">{t(key)}</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-black">{value}</span>
                     <span className={`text-sm font-medium ${
@@ -227,10 +227,10 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
           {/* Recent Chat History */}
           <div className="bg-white/30 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/20">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-black">Recent Chats</h2>
+              <h2 className="text-lg font-semibold text-black">{t('recentChats')}</h2>
               <Link href="/dashboard/teacher/chat" 
                 className="text-sm text-blue-600 hover:text-blue-700">
-                View All
+                {t('viewAll')}
               </Link>
             </div>
             <div className="space-y-4">
@@ -258,10 +258,10 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
           {/* Saved Materials */}
           <div className="bg-white/30 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/20">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-black">Saved Materials</h2>
+              <h2 className="text-lg font-semibold text-black">{t('savedMaterials')}</h2>
               <Link href="/dashboard/teacher/materials" 
                 className="text-sm text-purple-600 hover:text-purple-700">
-                View All
+                {t('viewAll')}
               </Link>
             </div>
             <div className="space-y-4">
@@ -287,10 +287,10 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
           {/* Recent Grading */}
           <div className="bg-white/30 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/20">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-black">Recent Grading</h2>
+              <h2 className="text-lg font-semibold text-black">{t('recentGrading')}</h2>
               <Link href="/dashboard/teacher/grading" 
                 className="text-sm text-indigo-600 hover:text-indigo-700">
-                Grade More
+                {t('gradeMore')}
               </Link>
             </div>
             <div className="space-y-4">
@@ -319,4 +319,4 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
       </div>
     </div>
   );
-} 
+}

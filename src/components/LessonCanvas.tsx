@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { sendChatMessage, type ToolType } from '@/services/chatService';
+import { useState, useRef } from 'react';
+import { SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { sendChatMessage, type ToolType, type ChatMessage } from '@/services/chatService';
+import { toast } from 'react-hot-toast';
+import RichTextEditor from './RichTextEditor';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LessonCanvasProps {
   content?: string;
@@ -12,24 +15,34 @@ interface LessonCanvasProps {
 
 export default function LessonCanvas({ content = '', onClose, onSave }: LessonCanvasProps) {
   const [editedContent, setEditedContent] = useState(content);
-  const [isRequesting, setIsRequesting] = useState(false);
   const [revisionPrompt, setRevisionPrompt] = useState('');
+  const [isRequesting, setIsRequesting] = useState(false);
+  const { language } = useLanguage();
+  const editorRef = useRef<any>(null);
 
   const handleAIEdit = async () => {
     if (!revisionPrompt.trim()) return;
     
     setIsRequesting(true);
     try {
-      const messages = [
-        { role: 'assistant' as const, content: editedContent },
-        { role: 'user' as const, content: `Please revise this content: ${revisionPrompt}` }
+      const messages: ChatMessage[] = [
+        { role: 'assistant', content: editedContent },
+        { role: 'user', content: `Please revise this content: ${revisionPrompt}` }
       ];
       
-      const revisedContent = await sendChatMessage(messages, null as ToolType | null);
+      const revisedContent = await sendChatMessage(messages, undefined);
       setEditedContent(revisedContent);
+      
+      // Update the editor content directly
+      if (editorRef.current) {
+        editorRef.current.setContent(revisedContent);
+      }
+      
       setRevisionPrompt('');
+      toast.success('Content revised successfully');
     } catch (error) {
       console.error('AI revision failed:', error);
+      toast.error('Failed to revise content');
     } finally {
       setIsRequesting(false);
     }
@@ -46,11 +59,10 @@ export default function LessonCanvas({ content = '', onClose, onSave }: LessonCa
         </div>
         
         <div className="flex-1 p-4 overflow-auto">
-          <textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            className="w-full h-[calc(100%-80px)] p-4 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="Edit the AI response here..."
+          <RichTextEditor 
+            ref={editorRef}
+            content={editedContent}
+            onChange={setEditedContent}
           />
           
           <div className="mt-4 flex gap-2">

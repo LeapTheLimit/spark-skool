@@ -9,8 +9,11 @@ import {
   ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
 import { triggerDashboardUpdate, saveGrade } from '@/services/dashboardService';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function GradingPage() {
+  const { language, t } = useLanguage();
+  const isRTL = language === 'ar' || language === 'he';
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedText, setExtractedText] = useState('');
 
@@ -48,9 +51,9 @@ export default function GradingPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className={`container mx-auto p-4 ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">Auto Grading</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('autoGrading')}</h1>
         
         {/* Image Upload Section */}
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -69,16 +72,16 @@ export default function GradingPage() {
             {isProcessing ? (
               <div className="animate-pulse">
                 <DocumentTextIcon className="w-12 h-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">Processing image...</p>
+                <p className="mt-2 text-sm text-gray-500">{t('processingImage')}</p>
               </div>
             ) : (
               <>
                 <PhotoIcon className="w-12 h-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-500">
-                  Click to upload an image of student work
+                  {t('uploadInstructions')}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Supports handwritten text
+                  {t('supportedFormats')}
                 </p>
               </>
             )}

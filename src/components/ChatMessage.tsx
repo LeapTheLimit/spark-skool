@@ -17,6 +17,7 @@ import { downloadAsPDF, saveToMaterials } from '@/services/chatService';
 import { toast } from 'react-hot-toast';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
 import { triggerDashboardUpdate } from '@/services/dashboardService';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ChatMessageProps {
   message: ChatMessage;
@@ -25,6 +26,8 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ message, userId, onAIEdit }: ChatMessageProps) {
+  const { language } = useLanguage();
+  const isRTL = language === 'ar' || language === 'he';
   const [showCanvas, setShowCanvas] = useState(false);
   const [content, setContent] = useState(message.content);
   const [showActions, setShowActions] = useState(false);
@@ -47,10 +50,22 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
     return 'other';
   };
 
+  // Helper function to determine message alignment
+  const getMessageAlignment = (role: 'user' | 'assistant' | 'system') => {
+    return role === 'assistant' ? 'start' : 'end';
+  };
+
+  // Helper function to determine message style
+  const getMessageStyle = (role: 'user' | 'assistant' | 'system') => {
+    return role === 'assistant' 
+      ? 'bg-white text-black' 
+      : 'bg-blue-500 text-white';
+  };
+
   if (message.role !== 'assistant') {
     return (
-      <div className="flex justify-end mb-4">
-        <div className="bg-blue-500 text-white rounded-lg p-4 max-w-[80%]">
+      <div className={`flex justify-${getMessageAlignment(message.role)} mb-4`}>
+        <div className={`${getMessageStyle(message.role)} rounded-lg p-4 max-w-[80%] shadow-sm ${isRTL ? 'rtl' : 'ltr'}`}>
           <div className="whitespace-pre-wrap">{content}</div>
         </div>
       </div>
@@ -127,14 +142,11 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
   };
 
   return (
-    <div className="flex justify-start mb-4">
-      <div className="bg-white rounded-lg p-4 max-w-[80%] shadow-sm">
-        {/* AI Message Content - Changed to black text */}
-        <div className="whitespace-pre-wrap mb-4 text-black">{content}</div>
+    <div className={`flex justify-${getMessageAlignment(message.role)} mb-4`}>
+      <div className={`${getMessageStyle(message.role)} rounded-lg p-4 max-w-[80%] shadow-sm ${isRTL ? 'rtl' : 'ltr'}`}>
+        <div className="whitespace-pre-wrap mb-4">{content}</div>
         
-        {/* Action Buttons */}
         <div className="border-t pt-3 mt-3 flex items-center gap-3">
-          {/* Feedback Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFeedback(feedback === 'like' ? null : 'like')}
@@ -158,7 +170,6 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
             </button>
           </div>
 
-          {/* Copy Button */}
           <button
             onClick={handleCopy}
             className="flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors"
@@ -167,7 +178,6 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
             Copy
           </button>
 
-          {/* Actions Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
@@ -219,7 +229,6 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
         </div>
       </div>
 
-      {/* Canvas Editor Modal */}
       {showCanvas && (
         <LessonCanvas
           content={content}

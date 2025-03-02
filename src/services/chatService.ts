@@ -23,11 +23,24 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, backoff = 3000): 
   }
 }
 
+// Add type definitions at the top
+type Language = 'en' | 'ar' | 'he';
+type Greetings = Record<Language, string>;
+
+// Define and export the tool types
 export type ToolType = 'Lesson Planning' | 'Assessment Generator' | 'Student Feedback' | 'Activity Creator';
+type ToolInstructions = Record<ToolType, string>;
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  language?: Language;
+}
+
+export interface ChatContext {
+  subject?: string;
+  topic?: string;
+  gradeLevel?: string;
 }
 
 const CHAT_PROMPTS: Record<ToolType, string> = {
@@ -153,28 +166,17 @@ Example activity format:
 **Extensions:** [Advanced options]`
 };
 
-// Add a context manager to help AI remember previous interactions
-export interface ChatContext {
-  subject?: string;
-  topic?: string;
-  gradeLevel?: string;
-  previousAssessments?: {
-    subject: string;
-    topic: string;
-    date: string;
-  }[];
-}
-
 // Add new type for material categories
 export type MaterialCategory = 'lesson' | 'quiz' | 'other';
 
 export interface SavedMaterial {
   id: string;
+  title: string;
   content: string;
   category: MaterialCategory;
-  title: string;
   createdAt: string;
   userId: string;
+  fileType?: string; // Add this to track file types
 }
 
 export interface ChatPreferences {
@@ -184,51 +186,105 @@ export interface ChatPreferences {
   complexity: string;
 }
 
-export async function sendChatMessage(
-  messages: ChatMessage[], 
-  selectedTool: ToolType | null,
-  context?: ChatContext
-) {
+export const sendChatMessage = async (messages: ChatMessage[], tool?: ToolType) => {
   try {
-    const systemPrompt = selectedTool ? getToolPrompt(selectedTool) : 
-      "You are a helpful AI assistant. Provide clear, direct responses without using markdown formatting.";
+    const savedSettings = localStorage.getItem('appSettings');
+    const currentUser = localStorage.getItem('currentUser');
+    const settings = savedSettings ? JSON.parse(savedSettings) : { language: 'en' };
+    const user = currentUser ? JSON.parse(currentUser) : null;
+    const subject = user?.subject || '';
 
-    // Add context to the system prompt if available
-    const contextPrompt = context ? 
-      `\n\nPrevious context: User has worked on ${context.subject} - ${context.topic}. Grade level: ${context.gradeLevel}` : 
-      '';
+    const messageLanguage = (messages[messages.length - 1]?.language || settings.language) as 'en' | 'ar' | 'he';
 
-    const completion = await withRetry(() => 
-      groq.chat.completions.create({
-        messages: [
-          { 
-            role: 'system', 
-            content: systemPrompt + contextPrompt 
-          },
-          ...messages
-        ],
-        model: 'mixtral-8x7b-32768',
-        temperature: 0.7,
-        max_tokens: 4096,
-        top_p: 1,
-        stream: false
-      })
-    );
+    // Language-specific system instructions
+    const languageInstructions: Record<'en' | 'ar' | 'he', string> = {
+      en: `You are a teaching assistant for ${subject}. Please respond in English.`,
+      ar: `أنت مساعد تعليمي لمادة ${subject}. الرجاء الرد باللغة العربية.`,
+      he: `אתה עוזר הוראה ל${subject}. אנא השב בעברית.`
+    };
 
-    const response = completion.choices[0]?.message?.content || 'No response generated';
-    
-    // If response is long, format it for the canvas
-    if (response.length > 500) {
-      return `Let me prepare that content in the canvas editor for better readability...
+    // Remove language property from messages before sending to API
+    const cleanedMessages = messages.map(({ role, content }) => ({
+      role,
+      content
+    }));
 
-${response}`;
-    }
+    // Create completion with GROQ
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: languageInstructions[messageLanguage]
+        },
+        ...cleanedMessages
+      ],
+      model: 'mixtral-8x7b-32768',
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
 
-    return response;
+    return completion.choices[0]?.message?.content || '';
   } catch (error) {
-    console.error('Error in sendChatMessage:', error);
+    console.error('Chat error:', error);
     throw error;
   }
+};
+
+// Add translated prompts with subject placeholder
+export const getTranslatedPrompts = (language: 'en' | 'ar' | 'he', subject: string) => {
+  const prompts = {
+    en: {
+      lessonPlan: `Create a lesson plan for ${subject} class`,
+      quiz: `Generate a quiz about ${subject}`,
+      feedback: `Write feedback for a ${subject} student`,
+      activity: `Design a ${subject} classroom activity`
+    },
+    ar: {
+      lessonPlan: `قم بإنشاء خطة درس لمادة ${subject}`,
+      quiz: `قم بإنشاء اختبار في مادة ${subject}`,
+      feedback: `اكتب تقييماً لطالب في مادة ${subject}`,
+      activity: `صمم نشاطاً صفياً لمادة ${subject}`
+    },
+    he: {
+      lessonPlan: `צור מערך שיעור עבור שיעור ${subject}`,
+      quiz: `צור מבחן בנושא ${subject}`,
+      feedback: `כתוב משוב לתלמיד ב${subject}`,
+      activity: `תכנן פעילות כיתתית ב${subject}`
+    }
+  };
+
+  return prompts[language];
+};
+
+// Helper function to get tool-specific instructions
+function getToolSpecificInstructions(tool: ToolType, preferences: any): string {
+  const toolInstructions: Record<ToolType, string> = {
+    'Lesson Planning': `
+      - Detailed ${preferences.gradeLevel || 'grade-appropriate'} lesson plans
+      - Activities suited for ${preferences.classSize || 'your'} class size
+      - Integration with ${preferences.preferredTools?.join(', ') || 'standard'} tools
+      - ${preferences.curriculum || 'Standard'} curriculum alignment`,
+    
+    'Assessment Generator': `
+      - ${preferences.gradeLevel || 'Level'}-appropriate assessments
+      - Mix of question types
+      - Clear grading rubrics
+      - Progress tracking tools`,
+    
+    'Student Feedback': `
+      - Personalized feedback templates
+      - Growth-focused comments
+      - Parent communication drafts
+      - Progress reports`,
+    
+    'Activity Creator': `
+      - Interactive ${preferences.teachingStyle || 'engaging'} activities
+      - Group size: ${preferences.classSize || 'flexible'}
+      - Subject: ${preferences.subject || 'curriculum'}-focused
+      - Tool integration: ${preferences.preferredTools?.join(', ') || 'various'}`
+  };
+
+  return toolInstructions[tool] || '';
 }
 
 function getToolPrompt(tool: ToolType, preferences?: ChatPreferences): string {

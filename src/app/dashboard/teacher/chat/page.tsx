@@ -2,7 +2,7 @@
 
 import PreviewPanel from '@/components/layout/PreviewPanel';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { sendChatMessage, type ChatMessage, type ToolType } from '@/services/chatService';
+import { sendChatMessage, type ChatMessage, type ToolType, getTranslatedPrompts } from '@/services/chatService';
 import { generateLessonPlan, processUploadedFiles } from '@/services/lessonService';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import SaveMaterialButton from '@/components/SaveMaterialButton';
@@ -10,6 +10,8 @@ import AIEditorModal from '@/components/AIEditorModal';
 import ChatMessageComponent from '@/components/ChatMessage';
 import { toast } from 'react-hot-toast';
 import { triggerDashboardUpdate } from '@/services/dashboardService';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { DocumentIcon, ClipboardIcon, ChatBubbleLeftIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 
 interface TeacherPreferences {
   teachingStyle?: string;
@@ -18,14 +20,23 @@ interface TeacherPreferences {
   languagePreference?: string;
   specialNeeds?: boolean;
   preferredTools?: string[];
+  classDetails?: {
+    size: number;
+    level: string;
+    subjects: string[];
+    specialConsiderations?: string[];
+  };
   lastOnboarding?: string;
 }
 
 export default function TeacherChat() {
+  const { language, t } = useLanguage();
+  const isRTL = language === 'ar' || language === 'he';
+
   // All state declarations
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
-  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolType | undefined>(undefined);
   const [hasStartedConversation, setHasStartedConversation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [teacher, setTeacher] = useState<any>(null);
@@ -58,6 +69,43 @@ export default function TeacherChat() {
   const [showAIEditor, setShowAIEditor] = useState(false);
   const [draftContent, setDraftContent] = useState('');
 
+  // Add translations for chat interface
+  const chatTranslations = {
+    en: {
+      startPrompt: "How can I help you today?",
+      lessonPlanning: "Lesson Planning",
+      assessmentGenerator: "Assessment Generator",
+      studentFeedback: "Student Feedback",
+      activityCreator: "Activity Creator",
+      typeMessage: "Type a message...",
+      sending: "Sending...",
+      uploadFile: "Upload File",
+      newChat: "New Chat"
+    },
+    ar: {
+      startPrompt: "كيف يمكنني مساعدتك اليوم؟",
+      lessonPlanning: "تخطيط الدرس",
+      assessmentGenerator: "إنشاء التقييم",
+      studentFeedback: "تقييم الطلاب",
+      activityCreator: "إنشاء النشاط",
+      typeMessage: "اكتب رسالة...",
+      sending: "جاري الإرسال...",
+      uploadFile: "رفع ملف",
+      newChat: "محادثة جديدة"
+    },
+    he: {
+      startPrompt: "כיצד אוכל לעזור לך היום?",
+      lessonPlanning: "תכנון שיעור",
+      assessmentGenerator: "יצירת הערכה",
+      studentFeedback: "משוב לתלמידים",
+      activityCreator: "יצירת פעילות",
+      typeMessage: "הקלד הודעה...",
+      sending: "שולח...",
+      uploadFile: "העלאת קובץ",
+      newChat: "צ'אט חדש"
+    }
+  };
+
   // Simplify the action handling
   const handleAction = (type: string) => {
     console.log('Action clicked:', type);
@@ -75,57 +123,37 @@ export default function TeacherChat() {
     ]);
   };
 
-  // Simplify action commands
-  const actionCommands = [
-    {
-      title: `${teacher?.subject || 'Subject'} Lesson Planning`,
-      description: `Create ${preferences?.teachingStyle || 'customized'} lesson plans`,
-      type: 'Lesson Planning',
-      icon: (
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
-      )
-    },
-    {
-      title: 'Assessment Generator',
-      description: `Create ${teacher?.subject || 'subject'}-specific assessments`,
-      type: 'Assessment Generator',
-      icon: (
-        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-        </div>
-      )
-    },
-    {
-      title: 'Student Feedback',
-      description: 'Generate personalized feedback',
-      type: 'Student Feedback',
-      icon: (
-        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-          </svg>
-        </div>
-      )
-    },
-    {
-      title: 'Activity Creator',
-      description: 'Design classroom activities',
-      type: 'Activity Creator',
-      icon: (
-        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-      )
-    }
-  ];
+  // Create dynamic action commands that include the subject
+  const actionCommands = useMemo(() => {
+    const subject = teacher?.subject || '';
+    
+    return [
+      {
+        title: t('lessonPlanning'),
+        description: t('lessonPlanningDesc', { subject }),
+        type: 'Lesson Planning' as ToolType,
+        icon: <DocumentIcon className="w-6 h-6 text-blue-600" />
+      },
+      {
+        title: t('assessmentGenerator'),
+        description: t('assessmentDesc', { subject }),
+        type: 'Assessment Generator' as ToolType,
+        icon: <ClipboardIcon className="w-6 h-6 text-purple-600" />
+      },
+      {
+        title: t('studentFeedback'),
+        description: t('feedbackDesc', { subject }),
+        type: 'Student Feedback' as ToolType,
+        icon: <ChatBubbleLeftIcon className="w-6 h-6 text-green-600" />
+      },
+      {
+        title: t('activityCreator'),
+        description: t('activityDesc', { subject }),
+        type: 'Activity Creator' as ToolType,
+        icon: <PuzzlePieceIcon className="w-6 h-6 text-orange-600" />
+      }
+    ];
+  }, [t, teacher, language]);
 
   // All useEffects
   useEffect(() => {
@@ -173,36 +201,73 @@ export default function TeacherChat() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-      </div>
+        </div>
     );
   }
 
   // Onboarding questions with teacher data
   const onboardingQuestions = [
     {
-      question: `As a ${teacher.subject} teacher, what's your preferred teaching style?`,
-      options: ['Interactive', 'Lecture-based', 'Project-based', 'Blended'],
-      field: 'teachingStyle'
+      question: "What's your preferred teaching style?",
+      options: ['Interactive', 'Lecture-based', 'Project-based', 'Blended', 'Differentiated'],
+      field: 'teachingStyle',
+      description: 'This helps AI adapt its suggestions to your teaching approach'
     },
     {
-      question: `What curriculum or standards do you follow for ${teacher.subject}?`,
+      question: "What grade level do you teach?",
+      options: ['Elementary', 'Middle School', 'High School', 'Multiple Levels'],
+      field: 'gradeLevel',
+      description: 'AI will adjust content complexity accordingly'
+    },
+    {
+      question: "What curriculum do you follow?",
       options: ['Common Core', 'IB', 'National Standards', 'State-specific', 'Custom'],
       field: 'curriculum'
     },
     {
-      question: 'Do you have students with special educational needs?',
+      question: "What's your preferred language for teaching materials?",
+      options: ['English', 'Arabic', 'Hebrew', 'Bilingual'],
+      field: 'languagePreference'
+    },
+    {
+      question: "Do you have students with special educational needs?",
       options: ['Yes', 'No'],
       field: 'specialNeeds'
     },
     {
-      question: 'Which tools do you frequently use in your teaching?',
-      options: ['Presentations', 'Interactive Whiteboards', 'Digital Assessments', 'Educational Games'],
+      question: "What's your average class size?",
+      options: ['Small (1-15)', 'Medium (16-25)', 'Large (26+)'],
+      field: 'classSize'
+    },
+    {
+      question: "Which tools do you frequently use?",
+      options: ['Presentations', 'Interactive Whiteboards', 'Digital Assessments', 'Educational Games', 'Virtual Labs'],
       field: 'preferredTools',
       multiple: true
     }
   ];
 
-  // Add handleOnboardingAnswer function
+  // Add this function to save preferences
+  const saveTeacherPreferences = (preferences: TeacherPreferences) => {
+    try {
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        user.preferences = preferences;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // Also save to appSettings for language preference
+        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        appSettings.language = preferences.languagePreference?.toLowerCase() === 'arabic' ? 'ar' : 
+                             preferences.languagePreference?.toLowerCase() === 'hebrew' ? 'he' : 'en';
+        localStorage.setItem('appSettings', JSON.stringify(appSettings));
+      }
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+    }
+  };
+
+  // Update the handleOnboardingAnswer function
   const handleOnboardingAnswer = (answer: string | string[]) => {
     const currentQuestion = onboardingQuestions[onboardingStep];
     const updatedPreferences = {
@@ -215,11 +280,7 @@ export default function TeacherChat() {
       setOnboardingStep(prev => prev + 1);
       setPreferences(updatedPreferences);
     } else {
-      // Save preferences
-      localStorage.setItem(
-        `teacher_preferences_${teacher.email}`,
-        JSON.stringify(updatedPreferences)
-      );
+      saveTeacherPreferences(updatedPreferences);
       setPreferences(updatedPreferences);
       setIsOnboarding(false);
     }
@@ -237,7 +298,7 @@ export default function TeacherChat() {
   const handleNewChat = () => {
     setMessages([]);
     setHasStartedConversation(false);
-    setSelectedTool(null);
+    setSelectedTool(undefined);
     triggerDashboardUpdate();
   };
 
@@ -298,74 +359,76 @@ export default function TeacherChat() {
   };
 
   const handleSendMessage = async () => {
-    if (workflowStep > 0 && workflowStep <= lessonWorkflowSteps.length) {
-      const currentStep = lessonWorkflowSteps[workflowStep - 1];
-      
-      // Handle objectives conversion to array
-      const value = currentStep.field === 'objectives' 
-        ? message.split(',').map(obj => obj.trim())
-        : message;
-
-      setLessonData(prev => ({ 
-        ...prev, 
-        [currentStep.field]: value 
-      }));
-      
-      if (workflowStep < lessonWorkflowSteps.length) {
-        setWorkflowStep(prev => prev + 1);
-        setMessages(prev => [...prev, 
-          { role: 'user', content: message },
-          { role: 'assistant', content: lessonWorkflowSteps[workflowStep].question }
-        ]);
-      } else {
-        setIsGenerating(true);
-        if (lessonData.topic.length > 100) {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: "Please keep topic under 100 characters"
-          }]);
-          return;
-        }
-        const generatedPlan = await generateLessonPlan(lessonData)
-          .finally(() => setIsGenerating(false));
-
-        if (generatedPlan) {
-          setGeneratedPlan(generatedPlan);
-          setShowLessonCanvas(true);
-          setWorkflowStep(0);
-          setEditorContent(generatedPlan.plan);
-        }
-      }
-      setMessage('');
-      triggerDashboardUpdate();
-      return;
-    }
-    if (!message.trim() && !isLoading) return;
+    if (!message.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: message
+      content: message,
+      language: language
     };
 
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
     setIsLoading(true);
+    setHasStartedConversation(true);
 
     try {
-      const response = await sendChatMessage(
-        [...messages, userMessage],
-        selectedTool
-      );
-
-      const assistantMessage: ChatMessage = {
+      const response = await sendChatMessage([...messages, userMessage]);
+      const aiMessage: ChatMessage = {
         role: 'assistant',
-        content: response
+        content: response,
+        language: language
       };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      triggerDashboardUpdate();
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Failed to send message:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToolClick = async (tool: ToolType) => {
+    if (isLoading) return;
+    
+    const prompts = getTranslatedPrompts(language, teacher?.subject || '');
+    let prompt = '';
+    
+    switch (tool) {
+      case 'Lesson Planning':
+        prompt = prompts.lessonPlan;
+        break;
+      case 'Assessment Generator':
+        prompt = prompts.quiz;
+        break;
+      case 'Student Feedback':
+        prompt = prompts.feedback;
+        break;
+      case 'Activity Creator':
+        prompt = prompts.activity;
+        break;
+    }
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: prompt,
+      language: language
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsLoading(true);
+    setHasStartedConversation(true);
+
+    try {
+      const response = await sendChatMessage([userMessage]);
+      const aiMessage: ChatMessage = {
+        role: 'assistant',
+        content: response,
+        language: language
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
     } finally {
       setIsLoading(false);
     }
@@ -519,28 +582,47 @@ export default function TeacherChat() {
   };
 
   return (
-      <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 overflow-auto">
-        {/* ... LessonCanvas JSX ... */}
+      <div className="flex-1 overflow-hidden relative">
+        <div 
+          className="flex-1 overflow-y-auto" 
+          style={{ 
+            padding: '1rem',
+            maxHeight: 'calc(100vh - 200px)',
+            paddingTop: '3rem'
+          }}
+        >
+          <div className="space-y-4">
+            {messages.map((msg, index) => (
+              <ChatMessageComponent
+                key={index}
+                message={msg}
+                userId="teacher-id"
+                onAIEdit={(newContent) => handleAIEdit(index, newContent)}
+              />
+            ))}
+          </div>
+          <div ref={messagesEndRef} className="h-8" />
+        </div>
             </div>
     );
   };
 
+  // Main render
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+    <div className={`min-h-screen flex flex-col lg:flex-row bg-white ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="flex-1 flex flex-col relative h-[calc(100vh-80px)]">
         <div className="flex-1 overflow-hidden relative">
           {!hasStartedConversation ? (
             <div className="p-8 max-w-4xl mx-auto">
               <h2 className="text-2xl font-semibold text-center mb-8 text-black">
-                How can I help you today?
+                {chatTranslations[language].startPrompt}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {actionCommands.map((command, index) => (
                 <button
                     key={index}
-                    onClick={() => handleAction(command.type)}
-                    className="w-full p-6 bg-white hover:bg-gray-50 rounded-2xl border 
-                      border-gray-200 transition-all group text-left"
+                    onClick={() => handleToolClick(command.type)}
+                    className="w-full p-6 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200 transition-all group text-left"
                   >
                     <div className="flex items-start gap-4">
                     {command.icon}
@@ -578,69 +660,36 @@ export default function TeacherChat() {
                   ))}
                   </div>
                 <div ref={messagesEndRef} className="h-8" />
+              </div>
             </div>
-          </div>
           )}
         </div>
 
-        {/* Chat Input - Fixed at bottom */}
+        {/* Chat Input */}
         <div className="h-24 bg-white border-t border-gray-200 sticky bottom-0">
           <div className="max-w-7xl mx-auto h-full px-4 lg:px-8 py-4">
             <div className="flex items-center gap-3 bg-gray-50/80 rounded-full p-2 lg:p-3 shadow-sm">
-              <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0 group">
-                <svg 
-                  className="w-6 h-6 text-gray-500 group-hover:text-gray-900 transition-colors" 
-                  viewBox="0 0 512 512" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    d="M216.08,192V335.55a40.08,40.08,0,0,0,80.15,0L296.36,147a67.94,67.94,0,1,0-135.87,0V336.82a95.51,95.51,0,0,0,191,0V159.44" 
-                    strokeLinecap="square" 
-                    strokeMiterlimit="10" 
-                    strokeWidth="32"
-                  />
-                </svg>
-              </button>
-              
               <input 
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                onFocus={() => {
-                  setHasStartedConversation(true);
-                }}
-                placeholder="Type a message..."
+                placeholder={t('typeMessage')}
                 className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none px-4 py-2 text-base lg:text-lg min-w-0"
               />
-
-              <div className="flex items-center gap-2">
-                {!message.length && (
-                  <>
-                    <button className="p-3 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-                      <svg className="w-7 h-7 text-gray-600" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 3C12.51285 3 12.9355092 3.38604429 12.9932725 3.88337975L13 4L13 20C13 20.5523 12.5523 21 12 21C11.48715 21 11.0644908 20.613973 11.0067275 20.1166239L11 20L11 4C11 3.44772 11.4477 3 12 3ZM8 6C8.55228 6 9 6.44772 9 7L9 17C9 17.5523 8.55228 18 8 18C7.44772 18 7 17.5523 7 17L7 7C7 6.44772 7.44772 6 8 6ZM16 6C16.5523 6 17 6.44772 17 7L17 17C17 17.5523 16.5523 18 16 18C15.4477 18 15 17.5523 15 17L15 7C15 6.44772 15.4477 6 16 6ZM4 9C4.55228 9 5 9.44772 5 10L5 14C5 14.5523 4.55228 15 4 15C3.44772 15 3 14.5523 3 14L3 10C3 9.44772 3.44772 9 4 9ZM20 9C20.51285 9 20.9355092 9.38604429 20.9932725 9.88337975L21 10L21 14C21 14.5523 20.5523 15 20 15C19.48715 15 19.0644908 14.613973 19.0067275 14.1166239L19 14L19 10C19 9.44772 19.4477 9 20 9Z" fill="currentColor"/>
-                      </svg>
-                    </button>
-                  </>
-                )}
-
                 <button 
                   onClick={handleSendMessage}
                   disabled={!message.trim() || isLoading}
                   className="p-2.5 bg-indigo-600 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <svg className="w-6 h-6 text-black" viewBox="0 0 24 24" fill="none">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M12.2929 4.29289C12.6834 3.90237 13.3166 3.90237 13.7071 4.29289L20.7071 11.2929C21.0976 11.6834 21.0976 12.3166 20.7071 12.7071L13.7071 19.7071C13.3166 20.0976 12.6834 20.0976 12.2929 19.7071C11.9024 19.3166 11.9024 18.6834 12.2929 18.2929L17.5858 13H4C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11H17.5858L12.2929 5.70711C11.9024 5.31658 11.9024 4.68342 12.2929 4.29289Z" fill="currentColor"/>
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4L20 12L12 20" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
                 </button>
-              </div>
             </div>
           </div>
         </div>
@@ -663,7 +712,7 @@ export default function TeacherChat() {
           <div className="bg-white p-6 rounded-lg">
             <p className="flex items-center gap-3">
               <span className="animate-spin">🌀</span>
-              Generating lesson plan...
+              {t('generatingLesson')}
             </p>
           </div>
         </div>
@@ -677,7 +726,7 @@ export default function TeacherChat() {
             setEditorContent(revisedContent);
             setMessages(prev => [...prev, {
               role: 'assistant',
-              content: 'AI-enhanced revision completed'
+              content: t('aiRevisionComplete')
             }]);
             triggerDashboardUpdate();
           }}
