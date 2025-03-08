@@ -1,4 +1,4 @@
-import Groq from 'groq-sdk';
+import { Groq } from 'groq-sdk';
 
 const groq = new Groq({
   apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
@@ -26,14 +26,120 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, backoff = 3000): 
 
 export interface Question {
   id: number;
-  type: string;
+  type: 'multiple_choice' | 'short_answer' | 'true_false' | 'essay';
   question: string;
   answer: string;
   explanation?: string;
-  points?: number;
-  isAnswered: boolean;
-  context?: string | null;
-  referenceText?: string | null;
+  options?: string[];
+  points: number;
+  category?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}
+
+interface GenerateExamOptions {
+  language: string;
+  subject: string;
+  grade: string;
+  questionTypes: string[];
+  difficulty: string[];
+}
+
+export async function generateExamFromText(
+  content: string, 
+  options: GenerateExamOptions
+): Promise<Question[]> {
+  try {
+    const prompt = `
+      As an expert ${options.subject} teacher, create exam questions from the following content:
+      "${content}"
+      
+      Requirements:
+      - Language: ${options.language}
+      - Subject: ${options.subject}
+      - Grade Level: ${options.grade}
+      - Question Types: ${options.questionTypes.join(', ')}
+      - Difficulty Levels: ${options.difficulty.join(', ')}
+      
+      Generate a well-structured exam with appropriate questions. For each question:
+      - Include clear question text
+      - Provide the correct answer
+      - Add an explanation where helpful
+      - For multiple choice, include 4 options
+      - Assign appropriate difficulty level
+      - Set reasonable point values
+      
+      Format the response as a JSON array of questions with this structure:
+      {
+        id: number,
+        type: "multiple_choice" | "short_answer" | "true_false" | "essay",
+        question: string,
+        answer: string,
+        explanation?: string,
+        options?: string[],
+        points: number,
+        difficulty: "easy" | "medium" | "hard"
+      }
+    `;
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert teacher and exam creator. Create high-quality exam questions based on provided content and requirements.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 4096,
+      top_p: 1,
+      stream: false,
+      stop: null
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      throw new Error('No response from AI');
+    }
+
+    // Extract the JSON array from the response
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error('Could not find JSON array in response');
+    }
+
+    const questions: Question[] = JSON.parse(jsonMatch[0]);
+
+    // Validate and clean up the questions
+    return questions.map((q, index) => ({
+      ...q,
+      id: index + 1,
+      points: q.points || 10,
+      type: validateQuestionType(q.type),
+      difficulty: validateDifficulty(q.difficulty),
+      options: q.type === 'multiple_choice' ? (q.options || []) : undefined
+    }));
+
+  } catch (error) {
+    console.error('Error generating exam:', error);
+    throw new Error('Failed to generate exam questions');
+  }
+}
+
+// Helper functions
+function validateQuestionType(type?: string): Question['type'] {
+  if (!type) return 'short_answer'; // Default type if none provided
+  const validTypes = ['multiple_choice', 'short_answer', 'true_false', 'essay'];
+  return validTypes.includes(type) ? type as Question['type'] : 'short_answer';
+}
+
+function validateDifficulty(difficulty?: string): Question['difficulty'] {
+  if (!difficulty) return 'medium'; // Default difficulty if none provided
+  const validDifficulties = ['easy', 'medium', 'hard'];
+  return validDifficulties.includes(difficulty) ? difficulty as Question['difficulty'] : 'medium';
 }
 
 export interface GradingResult {

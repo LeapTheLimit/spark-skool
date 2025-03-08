@@ -73,6 +73,74 @@ export default function SettingsPage() {
     setSelectedLanguage(language);
   }, [language]);
 
+  // Apply theme when it changes
+  useEffect(() => {
+    const applyTheme = () => {
+      const { theme } = settings;
+      const isDark = 
+        theme === 'dark' || 
+        (theme === 'system' && 
+          window.matchMedia('(prefers-color-scheme: dark)').matches);
+      
+      // Apply theme to document
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    applyTheme();
+    
+    // Listen for system theme changes
+    if (settings.theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [settings.theme]);
+
+  // Apply color scheme when it changes
+  useEffect(() => {
+    // Remove previous color scheme classes
+    const root = document.documentElement;
+    const colorSchemes = ['blue', 'purple', 'green', 'rose'];
+    colorSchemes.forEach(color => {
+      root.classList.remove(`color-scheme-${color}`);
+    });
+    
+    // Add new color scheme class
+    root.classList.add(`color-scheme-${settings.colorScheme}`);
+    
+    // Set CSS variables for the selected color
+    let primaryColor, secondaryColor;
+    switch(settings.colorScheme) {
+      case 'blue':
+        primaryColor = '#3b82f6';
+        secondaryColor = '#60a5fa';
+        break;
+      case 'purple':
+        primaryColor = '#8b5cf6';
+        secondaryColor = '#a78bfa';
+        break;
+      case 'green':
+        primaryColor = '#10b981';
+        secondaryColor = '#34d399';
+        break;
+      case 'rose':
+        primaryColor = '#f43f5e';
+        secondaryColor = '#fb7185';
+        break;
+      default:
+        primaryColor = '#3b82f6';
+        secondaryColor = '#60a5fa';
+    }
+    
+    root.style.setProperty('--color-primary', primaryColor);
+    root.style.setProperty('--color-secondary', secondaryColor);
+  }, [settings.colorScheme]);
+
   // Save profile changes
   const handleSaveProfile = async () => {
     try {
@@ -133,9 +201,7 @@ export default function SettingsPage() {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLanguage = e.target.value as 'en' | 'ar' | 'he';
     setSelectedLanguage(newLanguage);
-    setLanguage(newLanguage);
-    localStorage.setItem('appSettings', JSON.stringify({ language: newLanguage }));
-    toast.success(t('settingsUpdated'));
+    handleSaveSettings({ language: newLanguage });
   };
 
   return (
@@ -187,7 +253,7 @@ export default function SettingsPage() {
             </div>
 
             {isEditing ? (
-              // Edit Form - Updated text colors
+              // Edit Form - Fixed text colors
               <div className="space-y-4">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative">
@@ -275,7 +341,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             ) : (
-              // Profile Display
+              // Profile Display - Fixed text colors
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Image
@@ -306,7 +372,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* App Settings - Added max height and scrollbar */}
+        {/* App Settings */}
         {activeTab === 'app' && (
           <div className="bg-white rounded-xl shadow-sm p-6 max-h-[70vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-6 text-black">{t('applicationSettings')}</h2>
@@ -316,9 +382,9 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {settings.theme === 'dark' ? (
-                    <MoonIcon className="w-5 h-5" />
+                    <MoonIcon className="w-5 h-5 text-black" />
                   ) : (
-                    <SunIcon className="w-5 h-5" />
+                    <SunIcon className="w-5 h-5 text-black" />
                   )}
                   <div>
                     <p className="font-medium text-black">{t('theme')}</p>
@@ -328,7 +394,7 @@ export default function SettingsPage() {
                 <select
                   value={settings.theme}
                   onChange={(e) => handleSaveSettings({ theme: e.target.value as 'light' | 'dark' | 'system' })}
-                  className="px-3 py-2 border rounded-lg"
+                  className="px-3 py-2 border rounded-lg text-black"
                 >
                   <option value="light">{t('light')}</option>
                   <option value="dark">{t('dark')}</option>
@@ -336,10 +402,10 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              {/* Language Setting - Updated Options */}
+              {/* Language Setting */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <LanguageIcon className="w-5 h-5" />
+                  <LanguageIcon className="w-5 h-5 text-black" />
                   <div>
                     <p className="font-medium text-black">{t('language')}</p>
                     <p className="text-sm text-black">{t('selectPreferredLanguage')}</p>
@@ -348,7 +414,7 @@ export default function SettingsPage() {
                 <select
                   value={selectedLanguage}
                   onChange={handleLanguageChange}
-                  className="px-3 py-2 border rounded-lg"
+                  className="px-3 py-2 border rounded-lg text-black"
                 >
                   <option value="en">{t('english')}</option>
                   <option value="ar">{t('arabic')}</option>
@@ -359,7 +425,7 @@ export default function SettingsPage() {
               {/* Notifications Setting */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <BellIcon className="w-5 h-5" />
+                  <BellIcon className="w-5 h-5 text-black" />
                   <div>
                     <p className="font-medium text-black">{t('notifications')}</p>
                     <p className="text-sm text-black">{t('manageNotificationPreferences')}</p>
@@ -381,24 +447,37 @@ export default function SettingsPage() {
                 </label>
               </div>
 
-              {/* Color Scheme Setting */}
+              {/* Color Scheme Setting - Enhanced with better colors and text */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <SwatchIcon className="w-5 h-5" />
+                  <SwatchIcon className="w-5 h-5 text-black" />
                   <div>
                     <p className="font-medium text-black">{t('colorScheme')}</p>
                     <p className="text-sm text-black">{t('chooseAccentColor')}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {['blue', 'purple', 'green', 'rose'].map((color) => (
+                <div className="flex gap-3">
+                  {[
+                    { id: 'blue', color: 'bg-blue-500', label: 'Blue' },
+                    { id: 'purple', color: 'bg-purple-500', label: 'Purple' },
+                    { id: 'green', color: 'bg-green-500', label: 'Green' },
+                    { id: 'rose', color: 'bg-rose-500', label: 'Rose' }
+                  ].map((color) => (
                     <button
-                      key={color}
-                      onClick={() => handleSaveSettings({ colorScheme: color })}
-                      className={`w-6 h-6 rounded-full bg-${color}-500 ${
-                        settings.colorScheme === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''
-                      }`}
-                    />
+                      key={color.id}
+                      onClick={() => handleSaveSettings({ colorScheme: color.id })}
+                      className={`w-8 h-8 rounded-full ${color.color} flex items-center justify-center
+                        ${settings.colorScheme === color.id ? 'ring-2 ring-offset-2 ring-gray-400' : ''}
+                        hover:ring-1 hover:ring-offset-1 hover:ring-gray-300 transition-all`}
+                      title={color.label}
+                      aria-label={`Set color scheme to ${color.label}`}
+                    >
+                      {settings.colorScheme === color.id && (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-5 h-5">
+                          <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
