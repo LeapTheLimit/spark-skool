@@ -274,7 +274,7 @@ export default function Crossword({ clues, onGameComplete }: CrosswordProps) {
                       type="text"
                       value={userAnswers[clue.number] || ''}
                       onChange={(e) => handleAnswerInput(clue.number, e.target.value)}
-                      className="mt-1 w-full p-1 border rounded"
+                      className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       maxLength={clue.answer.length}
                     />
                   </div>
@@ -306,7 +306,7 @@ export default function Crossword({ clues, onGameComplete }: CrosswordProps) {
                       type="text"
                       value={userAnswers[clue.number] || ''}
                       onChange={(e) => handleAnswerInput(clue.number, e.target.value)}
-                      className="mt-1 w-full p-1 border rounded"
+                      className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       maxLength={clue.answer.length}
                     />
                   </div>

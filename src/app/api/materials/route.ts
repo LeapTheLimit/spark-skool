@@ -20,6 +20,16 @@ const saveMaterials = (materials: any[]) => {
   localStorage.setItem(`materials:${TEACHER_ID}`, JSON.stringify(materials));
 };
 
+// Add proper type for the material object
+interface Material {
+  id: string;
+  content: string;
+  category: string;
+  title: string;
+  createdAt: string;
+  userId: string;
+}
+
 export async function POST(request: Request) {
   try {
     const { content, category, title } = await request.json();
@@ -29,7 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing content' }, { status: 400 });
     }
 
-    const material = {
+    const material: Material = {
       id: `material:${Date.now()}`,
       content,
       category: category || 'other',

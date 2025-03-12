@@ -14,12 +14,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary-color: #3AB8FE;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    :root[data-theme="system"] {
+      --primary-color: #3AB8FE;
+    }
   }
 }
 
@@ -27,4 +31,9 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Use the primary color in your components */
+.btn-primary {
+  background-color: var(--primary-color);
 }

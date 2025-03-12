@@ -4,6 +4,8 @@ import { Noto_Naskh_Arabic, Amiri, David_Libre, Heebo } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { Providers } from '@/components/providers/Providers';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,8 +37,8 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
-  title: "SPARK SKOOL - Educational Platform",
-  description: "AI-powered educational platform for teachers and students",
+  title: "SparkSkoool - The all-in-one AI Platform for teachers and students",
+  description: "AI copilots for grading, lesson planning, and more",
 };
 
 export default function RootLayout({
@@ -48,11 +50,15 @@ export default function RootLayout({
     <html lang="en" className={`scrollbar-hide ${geistSans.variable} ${notoNaskhArabic.variable} ${amiri.variable} ${davidLibre.variable} ${heebo.variable}`}>
       <body className="flex flex-col h-screen overflow-hidden">
         <Toaster position="top-right" />
-        <Providers>
-          <div className="flex-1 overflow-y-auto invisible-scrollbar">
-            {children}
-          </div>
-        </Providers>
+        <ThemeProvider>
+          <LanguageProvider>
+            <Providers>
+              <div className="flex-1 overflow-y-auto invisible-scrollbar">
+                {children}
+              </div>
+            </Providers>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -217,11 +217,11 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
                 className={`p-4 rounded-lg border-2 ${
                   options.subject === subject.id
                     ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200'
-                }`}
+                    : 'border-gray-200 bg-white'
+                } transition-colors hover:bg-purple-50`}
               >
                 <subject.icon className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                <div className="text-black font-medium">{subject.name}</div>
+                <div className="text-gray-900 font-medium">{subject.name}</div>
               </button>
             ))}
           </div>
@@ -234,7 +234,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
               type="text"
               value={options.topic}
               onChange={(e) => setOptions({ ...options, topic: e.target.value })}
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               placeholder="e.g., Algebra, Solar System, etc."
             />
           </div>
@@ -257,10 +257,10 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
                 className={`p-4 rounded-lg border-2 ${
                   options.gameType === type.id
                     ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200'
-                }`}
+                    : 'border-gray-200 bg-white'
+                } transition-colors hover:bg-purple-50`}
               >
-                <div className="text-black font-medium">{type.name}</div>
+                <div className="text-gray-900 font-medium">{type.name}</div>
               </button>
             ))}
           </div>
@@ -274,7 +274,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
                 type="number"
                 value={options.numberOfQuestions}
                 onChange={(e) => setOptions({ ...options, numberOfQuestions: parseInt(e.target.value) })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 min="5"
                 max="50"
               />
@@ -287,7 +287,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
               <select
                 value={options.difficulty}
                 onChange={(e) => setOptions({ ...options, difficulty: e.target.value as any })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -388,7 +388,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
         {step > 1 && (
           <button
             onClick={() => setStep(step - 1)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-black"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors"
           >
             Back
           </button>
@@ -396,7 +396,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
         {step < 6 ? (
           <button
             onClick={() => setStep(step + 1)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg ml-auto"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors ml-auto"
           >
             Next
           </button>
@@ -404,7 +404,7 @@ export default function AIGenerator({ onGenerate, onError }: AIGeneratorProps) {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg ml-auto flex items-center"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors ml-auto flex items-center"
           >
             <SparklesIcon className="w-5 h-5 mr-2" />
             {loading ? 'Generating...' : 'Generate Questions'}

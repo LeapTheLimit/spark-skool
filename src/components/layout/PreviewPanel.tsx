@@ -5,6 +5,8 @@ import { ChatMessage, ChatPreferences, SavedMaterial } from '@/services/chatServ
 import ChatHistory from '@/components/ChatHistory';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Link from 'next/link';
+import { CalendarIcon, Cog6ToothIcon, ClockIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 
 // Base structure for all items in the panel
 type BaseItem = {
@@ -87,6 +89,10 @@ export default function PreviewPanel({
     complexity: 'moderate'
   });
   const [materials, setMaterials] = useState<SavedMaterial[]>([]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [upcomingClasses, setUpcomingClasses] = useState([]);
+  const [recentMaterials, setRecentMaterials] = useState([]);
+  const [activeTab, setActiveTab] = useState('schedule');
 
   // Move autoSaveChat to useEffect
   useEffect(() => {
@@ -131,6 +137,53 @@ export default function PreviewPanel({
     // Listen for storage changes from other tabs/windows
     window.addEventListener('storage', loadMaterials);
     return () => window.removeEventListener('storage', loadMaterials);
+  }, []);
+
+  // Load data
+  useEffect(() => {
+    // Load chat history
+    const loadChatHistory = async () => {
+      try {
+        const response = await fetch('/api/chat/history');
+        if (response.ok) {
+          const data = await response.json();
+          setChatHistory(data.chats || []);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+
+    // Mock upcoming classes (replace with real data)
+    const loadUpcomingClasses = async () => {
+      setUpcomingClasses([
+        { id: 1, title: 'Math - Algebra', time: '10:30 AM', students: 24 },
+        { id: 2, title: 'Science - Physics', time: '1:15 PM', students: 22 },
+        { id: 3, title: 'English - Literature', time: '2:45 PM', students: 26 }
+      ]);
+    };
+
+    // Load recent materials
+    const loadRecentMaterials = async () => {
+      try {
+        const response = await fetch('/api/materials/recent');
+        if (response.ok) {
+          const data = await response.json();
+          setRecentMaterials(data.materials || []);
+        }
+      } catch (error) {
+        console.error('Failed to load recent materials:', error);
+        // Fallback mock data
+        setRecentMaterials([
+          { id: 1, title: 'Algebra Quiz', type: 'quiz', date: '2023-03-15' },
+          { id: 2, title: 'Solar System', type: 'lesson', date: '2023-03-14' }
+        ]);
+      }
+    };
+
+    loadChatHistory();
+    loadUpcomingClasses();
+    loadRecentMaterials();
   }, []);
 
   const sections: Section[] = [

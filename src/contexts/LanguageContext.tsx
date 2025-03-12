@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 type Language = 'en' | 'ar' | 'he';
 
@@ -40,13 +40,35 @@ interface LanguageContextType {
   t: (key: string, params?: TranslationParams) => string;
 }
 
-const translations: Translations = {
+export const translations: Translations = {
   en: {
     // Dashboard & Common
     welcomeMessage: 'Welcome, {name}! 👋',
     teacherAt: '{subject} Teacher at {school}',
     newReport: 'New Report',
     createLesson: 'Create Lesson',
+    completed: 'Completed',
+    quickActions: 'Quick Actions',
+    recentActivity: 'Recent Activity',
+    recentChats: 'Recent Chats',
+    background: 'Background',
+    selectBackground: 'Choose your preferred background style',
+    createExam: 'Create Exam',
+    addStudents: 'Add Students',
+    scheduleClass: 'Schedule Class',
+    subjects: 'Subjects',
+    enterSubject: 'Enter Subject',
+    add: 'Add',
+    bio: 'Bio',
+    enterBio: 'Share a short bio about yourself (max 200 characters)',
+    characters: 'characters',
+    noBioYet: 'No bio added yet',
+    noRecentActivity: 'No recent activity',
+    activityWillAppearHere: 'Student activities will appear here',
+    noRecentChats: 'No recent chats',
+    startChattingWithStudents: 'Start chatting with your students',
+    teacher: 'Teacher',
+    at: 'at',
     
     // Stats
     activeStudents: 'Active Students',
@@ -90,14 +112,12 @@ const translations: Translations = {
     
     // Status & Progress
     inProgress: 'In Progress',
-    completed: 'Completed',
     pending: 'Pending',
     overdue: 'Overdue',
     dueDate: 'Due {date}',
     lastModified: 'Last modified {date}',
     
     // Quick Actions Section
-    quickActions: 'Quick Actions',
     importLesson: 'Import Lesson',
     generateWithAI: 'Generate with AI',
     useTemplate: 'Use Template',
@@ -117,7 +137,6 @@ const translations: Translations = {
     editProfile: 'Edit Profile',
     fullName: 'Full Name',
     email: 'Email',
-    subject: 'Subject',
     school: 'School',
     saveChanges: 'Save Changes',
     theme: 'Theme',
@@ -154,17 +173,14 @@ const translations: Translations = {
     },
     search: 'Search',
     newChat: 'New Chat',
-    recentChats: 'Recent Chats',
     savedMaterials: 'Saved Materials',
-    recentGrading: 'Recent Grading',
     viewAll: 'View All',
     gradeMore: 'Grade More',
     
     // Form Placeholders
     enterFullName: 'Enter your full name',
     enterEmail: 'Enter your email',
-    enterSubject: 'Enter your subject',
-    enterSchool: 'Enter your school name',
+    enterSchoolName: 'Enter your school name',
     
     // Subjects
     physicsForces: 'Physics - Forces & Motion',
@@ -229,7 +245,6 @@ const translations: Translations = {
     
     // Dashboard Extended
     quickStart: 'Quick Start',
-    recentActivity: 'Recent Activity',
     upcomingLessons: 'Upcoming Lessons',
     pendingTasks: 'Pending Tasks',
     studentProgress: 'Student Progress',
@@ -269,9 +284,6 @@ const translations: Translations = {
     custom: 'Custom',
     
     // Recent Activity
-    recentSessions: 'Recent Sessions',
-    currentChat: 'Current Chat',
-    active: 'Active',
     noRecentSessions: 'No recent sessions',
     
     // Time and Dates
@@ -354,7 +366,6 @@ const translations: Translations = {
     true: 'True',
     false: 'False',
     goodLuck: 'Good luck!',
-    teacher: 'Teacher',
     points: 'points',
     questionType: 'Question Type',
     questionText: 'Question Text',
@@ -367,6 +378,23 @@ const translations: Translations = {
     hard: 'Hard',
     materialLoadedAsContext: 'Material loaded as context for AI generation',
     textExtractedFromFile: 'Text extracted from file and added as context',
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
+    timezone: 'Timezone',
+    currentTime: 'Current time',
+    localizationSettings: 'Localization Settings',
+    contactSupportToChangeEmail: 'Contact support to change your email address',
+    classLevels: 'Class Levels',
+    addClass: 'Add Class',
+    enterClassLevel: 'Enter class level (e.g., 7th Grade, AP Physics)',
+    quickAdd: 'Quick add',
+    getStarted: 'Get Started',
+    newTeacherWelcome: 'New Teacher Welcome',
+    personalizeSparkMessage: 'Let\'s personalize Spark for you! Complete the steps below to get started.',
+    completeStepsBelow: 'Complete these steps to set up your teaching environment and get the most out of Spark.',
+    start: 'Start',
+    enterSchool: 'Enter your school name',
   },
   ar: {
     // Dashboard & Common
@@ -374,6 +402,28 @@ const translations: Translations = {
     teacherAt: 'مدرس {subject} في {school}',
     newReport: 'تقرير جديد',
     createLesson: 'إنشاء درس',
+    completed: 'مكتمل',
+    quickActions: 'إجراءات سريعة',
+    recentActivity: 'النشاط الأخير',
+    recentChats: 'المحادثات الأخيرة',
+    background: 'الخلفية',
+    selectBackground: 'اختر نمط الخلفية المفضل لديك',
+    createExam: 'إنشاء اختبار',
+    addStudents: 'إضافة طلاب',
+    scheduleClass: 'جدولة الفصل',
+    subjects: 'المواد الدراسية',
+    enterSubject: 'أدخل مادة',
+    add: 'إضافة',
+    bio: 'البيوغرافية',
+    enterBio: 'أشرف على بيوغرافية صغيرة عن نفسك (أقصى 200 حرفًا)',
+    characters: 'الأحرف',
+    noBioYet: 'لم تتم إضافة سيرة ذاتية بعد',
+    noRecentActivity: 'لا يوجد نشاط حديث',
+    activityWillAppearHere: 'ستظهر أنشطة الطلاب هنا',
+    noRecentChats: 'لا توجد محادثات حديثة',
+    startChattingWithStudents: 'ابدأ الدردشة مع طلابك',
+    teacher: 'مدرس',
+    at: 'في',
     
     // Stats
     activeStudents: 'الطلاب النشطون',
@@ -417,14 +467,12 @@ const translations: Translations = {
     
     // Status & Progress
     inProgress: 'قيد التنفيذ',
-    completed: 'مكتمل',
     pending: 'قيد الانتظار',
     overdue: 'متأخر',
     dueDate: 'تاريخ التسليم {date}',
     lastModified: 'آخر تعديل {date}',
     
     // Quick Actions Section
-    quickActions: 'إجراءات سريعة',
     importLesson: 'استيراد درس',
     generateWithAI: 'إنشاء بالذكاء الاصطناعي',
     useTemplate: 'استخدام قالب',
@@ -444,7 +492,6 @@ const translations: Translations = {
     editProfile: 'تعديل الملف الشخصي',
     fullName: 'الاسم الكامل',
     email: 'البريد الإلكتروني',
-    subject: 'المادة',
     school: 'المدرسة',
     saveChanges: 'حفظ التغييرات',
     theme: 'المظهر',
@@ -456,7 +503,7 @@ const translations: Translations = {
     selectPreferredLanguage: 'اختر لغتك المفضلة',
     english: 'English',
     arabic: 'العربية',
-    hebrew: 'עבريت',
+    hebrew: 'عبريت',
     notifications: 'الإشعارات',
     manageNotificationPreferences: 'إدارة تفضيلات الإشعارات',
     colorScheme: 'نظام الألوان',
@@ -481,7 +528,6 @@ const translations: Translations = {
     },
     search: 'بحث',
     newChat: 'محادثة جديدة',
-    recentChats: 'المحادثات الأخيرة',
     savedMaterials: 'المواد المحفوظة',
     recentGrading: 'التقييمات الأخيرة',
     viewAll: 'عرض الكل',
@@ -490,7 +536,6 @@ const translations: Translations = {
     // Form Placeholders
     enterFullName: 'أدخل اسمك الكامل',
     enterEmail: 'أدخل بريدك الإلكتروني',
-    enterSubject: 'أدخل المادة',
     enterSchool: 'أدخل اسم المدرسة',
     
     // Subjects
@@ -556,7 +601,6 @@ const translations: Translations = {
     
     // Dashboard Extended
     quickStart: 'البدء السريع',
-    recentActivity: 'النشاط الأخير',
     upcomingLessons: 'الدروس القادمة',
     pendingTasks: 'المهام المعلقة',
     studentProgress: 'تقدم الطلاب',
@@ -596,9 +640,6 @@ const translations: Translations = {
     custom: 'مخصص',
     
     // Recent Activity
-    recentSessions: 'الجلسات الأخيرة',
-    currentChat: 'المحادثة الحالية',
-    active: 'نشط',
     noRecentSessions: 'لا توجد جلسات حديثة',
     
     // Time and Dates
@@ -671,10 +712,10 @@ const translations: Translations = {
     generateQuestionsWithAI: 'إنشاء أسئلة باستخدام الذكاء الاصطناعي',
     processing: 'جاري المعالجة...',
     examQuestions: 'أسئلة الامتحان',
-    noQuestionsYet: 'لا توجد أسئلة مضافة بعد',
-    useToolsToAddQuestions: 'استخدم الأدوات أعلاه لإضافة الأسئلة',
-    pleaseEnterTitle: 'يرجى إدخال عنوان للامتحان',
-    pleaseAddQuestions: 'يرجى إضافة سؤال واحد على الأقل',
+    noQuestionsYet: 'No questions added yet',
+    useToolsToAddQuestions: 'Use the tools above to add questions',
+    pleaseEnterTitle: 'Please enter a title for the exam',
+    pleaseAddQuestions: 'Please add at least one question',
     examSavedSuccess: 'تم حفظ الامتحان في المواد بنجاح',
     failedToSaveExam: 'فشل في حفظ الامتحان في المواد',
     pdfDownloadStarted: 'بدأ تحميل ملف PDF',
@@ -682,7 +723,6 @@ const translations: Translations = {
     true: 'صحيح',
     false: 'خطأ',
     goodLuck: 'حظًا موفقًا!',
-    teacher: 'المعلم',
     points: 'نقاط',
     questionType: 'نوع السؤال',
     questionText: 'نص السؤال',
@@ -695,13 +735,51 @@ const translations: Translations = {
     hard: 'صعب',
     materialLoadedAsContext: 'تم تحميل المادة كسياق للإنشاء بالذكاء الاصطناعي',
     textExtractedFromFile: 'تم استخراج النص من الملف وإضافته كسياق',
+    goodMorning: 'صباح الخير',
+    goodAfternoon: 'صباح الخير',
+    goodEvening: 'صباح الخير',
+    timezone: 'منطقة زمنية',
+    currentTime: 'الوقت الحالي',
+    localizationSettings: 'إعدادات الموقع',
+    contactSupportToChangeEmail: 'اتصل بالدعم لتغيير عنوان بريدك الإلكتروني',
+    classLevels: 'مستويات الصف',
+    addClass: 'إضافة صف',
+    enterClassLevel: 'أدخل مستوى الصف (مثل، الصف السابع، الفيزياء المتقدمة)',
+    quickAdd: 'إضافة سريعة',
+    getStarted: 'ابدأ',
+    newTeacherWelcome: 'مرحبًا بالمعلم الجديد',
+    personalizeSparkMessage: 'دعنا نخصص سبارك لك! أكمل الخطوات أدناه للبدء.',
+    completeStepsBelow: 'أكمل هذه الخطوات لإعداد بيئة التدريس الخاصة بك والاستفادة القصوى من سبارك.',
+    start: 'ابدأ',
   },
   he: {
     // Dashboard & Common
     welcomeMessage: 'ברוך הבא, {name}! 👋',
     teacherAt: 'מורה ל{subject} ב{school}',
     newReport: 'דוח חדש',
-    createLesson: 'יצירת שיעור',
+    createLesson: 'צור שיעור',
+    completed: 'הושלם',
+    quickActions: 'פעולות מהירות',
+    recentActivity: 'פעילות אחרונה',
+    recentChats: 'צ\'אטים אחרונים',
+    background: 'רקע',
+    selectBackground: 'בחר את סגנון הרקע המועדף עליך',
+    createExam: 'צור מבחן',
+    addStudents: 'הוסף תלמידים',
+    scheduleClass: 'תזמן כיתה',
+    subjects: 'מקצועות',
+    enterSubject: 'הזן מקצוע',
+    add: 'הוסף',
+    bio: 'הביוגרפיה',
+    enterBio: 'שתף ביוגרפיה קצרה על עצמך (מקסימום 200 תווים)',
+    characters: 'תווים',
+    noBioYet: 'עדיין לא נוספה ביוגרפיה',
+    noRecentActivity: 'אין פעילות אחרונה',
+    activityWillAppearHere: 'פעילויות תלמידים יופיעו כאן',
+    noRecentChats: 'אין צ\'אטים אחרונים',
+    startChattingWithStudents: 'התחל לשוחח עם התלמידים שלך',
+    teacher: 'מורה',
+    at: 'ב',
     
     // Stats
     activeStudents: 'תלמידים פעילים',
@@ -745,14 +823,12 @@ const translations: Translations = {
     
     // Status & Progress
     inProgress: 'בתהליך',
-    completed: 'הושלם',
     pending: 'ממתין',
     overdue: 'באיחור',
     dueDate: 'תאריך יעד {date}',
     lastModified: 'עודכן לאחרונה {date}',
     
     // Quick Actions Section
-    quickActionsSection: 'פעולות מהירות',
     importLesson: 'ייבוא שיעור',
     generateWithAI: 'יצירה עם בינה מלאכותית',
     useTemplate: 'שימוש בתבנית',
@@ -772,7 +848,6 @@ const translations: Translations = {
     editProfile: 'עריכת פרופיל',
     fullName: 'שם מלא',
     email: 'דואר אלקטרוני',
-    subject: 'מקצוע',
     school: 'בית ספר',
     saveChanges: 'שמירת שינויים',
     theme: 'ערכת נושא',
@@ -809,7 +884,6 @@ const translations: Translations = {
     },
     search: 'חיפוש',
     newChat: 'צ\'אט חדש',
-    recentChats: 'שיחות אחרונות',
     savedMaterials: 'חומרים שמורים',
     recentGrading: 'ציונים אחרונים',
     viewAll: 'הצג הכל',
@@ -818,8 +892,7 @@ const translations: Translations = {
     // Form Placeholders
     enterFullName: 'הכנס שם מלא',
     enterEmail: 'הכנס דואר אלקטרוני',
-    enterSubject: 'הכנס מקצוע',
-    enterSchool: 'הכנס שם בית ספר',
+    enterSchoolName: 'הזן את שם בית הספר שלך',
     
     // Subjects
     physicsForces: 'פיזיקה - כוחות ותנועה',
@@ -884,7 +957,6 @@ const translations: Translations = {
     
     // Dashboard Extended
     quickStart: 'התחלה מהירה',
-    recentActivity: 'פעילות אחרונה',
     upcomingLessons: 'שיעורים קרובים',
     pendingTasks: 'משימות ממתינות',
     studentProgress: 'התקדמות תלמידים',
@@ -924,9 +996,6 @@ const translations: Translations = {
     custom: 'מותאם אישית',
     
     // Recent Activity
-    recentSessions: 'שיעורים אחרונים',
-    currentChat: 'שיחה נוכחית',
-    active: 'פעיל',
     noRecentSessions: 'אין שיעורים אחרונים',
     
     // Time and Dates
@@ -969,9 +1038,9 @@ const translations: Translations = {
     rubricCreatorDesc: 'יצירת רובריקות הערכה מפורטות למטלות ופרוייקטים',
     teachingTools: 'כלי הוראה',
     new: 'חדש',
-    published: 'פורסם',
+    published: 'מנוסם',
     graded: 'נבדק',
-    draft: 'טיוטה',
+    draft: 'מסודה',
     backToTools: 'חזרה לכלים',
     examSaveToMaterials: 'Save to Materials',
     useExistingMaterials: 'Use Existing Materials',
@@ -1010,7 +1079,6 @@ const translations: Translations = {
     true: 'True',
     false: 'False',
     goodLuck: 'Good luck!',
-    teacher: 'Teacher',
     points: 'points',
     questionType: 'Question Type',
     questionText: 'Question Text',
@@ -1023,6 +1091,22 @@ const translations: Translations = {
     hard: 'Hard',
     materialLoadedAsContext: 'Material loaded as context for AI generation',
     textExtractedFromFile: 'Text extracted from file and added as context',
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
+    timezone: 'Timezone',
+    currentTime: 'Current time',
+    localizationSettings: 'Localization Settings',
+    contactSupportToChangeEmail: 'צור קשר עם התמיכה כדי לשנות את כתובת הדוא"ל שלך',
+    classLevels: 'רמות כיתה',
+    addClass: 'הוסף כיתה',
+    enterClassLevel: 'הזן רמת כיתה (לדוגמה, כיתה ז, פיזיקה מתקדמת)',
+    quickAdd: 'הוספה מהירה',
+    getStarted: 'התחל',
+    newTeacherWelcome: 'ברוך הבא למורה חדש',
+    personalizeSparkMessage: 'בואו נתאים את ספארק עבורך! השלם את השלבים למטה כדי להתחיל.',
+    completeStepsBelow: 'השלם שלבים אלה כדי להגדיר את סביבת ההוראה שלך ולהפיק את המרב מספארק.',
+    start: 'התחל',
   }
 };
 
@@ -1034,17 +1118,28 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>('en');
+  // Use a more specific type for language state
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Initialize from localStorage if available, otherwise default to 'en'
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('language');
+      return (savedLang === 'en' || savedLang === 'ar' || savedLang === 'he') ? savedLang as Language : 'en';
+    }
+    return 'en';
+  });
 
-  useEffect(() => {
-    const savedLang = localStorage.getItem('appSettings');
-    if (savedLang) {
-      const settings = JSON.parse(savedLang);
-      setLanguage(settings.language || 'en');
+  // Update setLanguage to trigger re-render
+  const setLanguage = useCallback((newLang: Language) => {
+    setLanguageState(newLang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', newLang);
+      // Force a page refresh to ensure all components update
+      window.location.reload();
     }
   }, []);
 
-  const t = (key: string, params?: TranslationParams) => {
+  // Memoize the translation function to prevent unnecessary re-renders
+  const t = useCallback((key: string, params?: TranslationParams) => {
     // Split the key by dots to handle nested objects
     const keys = key.split('.');
     let translation: any = translations[language];
@@ -1060,16 +1155,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     // Replace parameters if they exist
     if (params) {
-      Object.entries(params).forEach(([param, value]) => {
-        translation = translation.replace(`{${param}}`, String(value));
-      });
+      return Object.entries(params).reduce((str, [param, value]) => {
+        return str.replace(`{${param}}`, String(value));
+      }, translation);
     }
     
     return translation;
-  };
+  }, [language]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    language,
+    setLanguage,
+    t
+  }), [language, setLanguage, t]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={contextValue}>
       <div dir={language === 'ar' || language === 'he' ? 'rtl' : 'ltr'}>
         {children}
       </div>

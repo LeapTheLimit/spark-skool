@@ -151,13 +151,13 @@ export default function MemoryGame({ questions, onGameComplete }: MemoryGameProp
             >
               <div className={`w-full h-full rounded-lg border-2 ${
                 card.isMatched || flippedCards.includes(card.id)
-                  ? 'bg-white border-green-500'
+                  ? 'bg-white border-purple-500'
                   : 'bg-purple-100 border-purple-300'
               } flex items-center justify-center p-4 shadow-md transform transition-transform duration-300 hover:scale-105`}>
                 <div className={`text-center ${
                   card.isMatched || flippedCards.includes(card.id) ? '' : 'opacity-0'
                 }`}>
-                  <p className="text-sm font-medium text-black">
+                  <p className="text-sm font-medium text-gray-900">
                     {card.content}
                   </p>
                   <span className="text-xs text-gray-500">
@@ -185,7 +185,7 @@ export default function MemoryGame({ questions, onGameComplete }: MemoryGameProp
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Play Again
             </button>

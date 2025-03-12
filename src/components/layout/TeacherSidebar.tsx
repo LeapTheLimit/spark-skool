@@ -5,6 +5,8 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { type Route } from 'next';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRouter } from 'next/navigation';
+import SparkIcon from '@/components/icons/SparkIcon';
 
 interface SparkLogoProps {
   className?: string;
@@ -25,7 +27,9 @@ const SparkLogo: React.FC<SparkLogoProps> = ({ className = '' }) => {
       </svg>
       {!className.includes("w-8") && (
         <div className="flex flex-col">
-          <span className="text-xs text-gray-400">Beta</span>
+          <span className="px-1.5 py-0.5 text-xs font-bold bg-[#3ab8fe]/20 text-[#3ab8fe] rounded-md border border-[#3ab8fe]/30">
+            Beta
+          </span>
         </div>
       )}
     </div>
@@ -42,9 +46,11 @@ interface TeacherSidebarProps {
 
 export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarProps) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [teacher, setTeacher] = useState(propTeacher);
+  useRouter();
 
   // Load teacher data from localStorage
   useEffect(() => {
@@ -62,6 +68,13 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
       console.error('Failed to load teacher data:', error);
     }
   }, []);
+
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('currentUser');
+    // Redirect to login page
+    router.push('/');
+  };
 
   const menuItems = [
     {
@@ -84,89 +97,105 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
         </svg>
       )
     },
-    { 
-      id: 'lessons', 
-      title: t('lessons'), 
+    {
+      id: 'lessons',
+      title: t('lessons'),
+      href: '/dashboard/teacher/lessons',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
-      ),
-      href: '/dashboard/teacher/lessons' as Route 
+      )
     },
-    { 
+    {
       id: 'materials',
       title: t('materials'),
+      href: '/dashboard/teacher/materials',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
-      ),
-      href: '/dashboard/teacher/materials' as Route 
+      )
     },
-    { 
+    {
       id: 'students',
       title: t('students'),
+      href: '/dashboard/teacher/students',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
-      ),
-      href: '/dashboard/teacher/students' as Route 
+      )
     },
     {
       id: 'tools',
-      title: t('tools'),
+      title: (
+        <div className="flex items-center">
+          {t('Superpowers', { defaultValue: 'Superpowers' })}
+          <span className="ml-2 px-1.5 py-0.5 text-xs font-bold bg-[#3ab8fe]/20 text-[#3ab8fe] rounded-md border border-[#3ab8fe]/30">
+            New
+          </span>
+        </div>
+      ),
       href: '/dashboard/teacher/tools',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
         </svg>
       )
-    },
+    }
+  ];
+
+  const toolsLinks = [
     {
-      id: 'settings',
-      title: t('settings'),
-      href: '/dashboard/teacher/settings',
+      label: 'Superpowers',
+      href: '/dashboard/teacher/tools',
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
         </svg>
       )
     }
   ];
 
+  // Alternative: Add a function to handle navigation with full page refresh
+  const navigateTo = (path: string) => {
+    window.location.href = path; // Forces a full page reload
+  };
+
   return (
-    <div className={`${isCollapsed ? 'w-[70px]' : 'w-[280px]'} bg-[#0a0a0a] flex flex-col h-full transition-all duration-300`}>
-      <div className="flex items-center justify-between p-4 mb-4">
+    <div className={`${isCollapsed ? 'w-[70px]' : 'w-[280px]'} bg-[#111827] flex flex-col h-full transition-all duration-300 relative`}>
+      {/* Collapse/Expand Button positioned at the edge */}
+      <button 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-20 p-1.5 bg-[#3ab8fe] rounded-full text-white shadow-md hover:bg-[#3ab8fe]/80 transition-colors z-10"
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <svg 
+          className="w-4 h-4 transition-transform duration-200" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        >
+          <path 
+            d="M15 6L9 12L15 18" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <div className="flex items-center p-4 mb-4">
         <Link href="/" className="flex items-center gap-2">
-          <SparkLogo className={isCollapsed ? "w-8 h-8" : "w-32 h-12"} />
-          {!isCollapsed && (
-            <span className="sr-only">Spark Skool</span>
+          {isCollapsed ? (
+            <SparkIcon className="w-8 h-8" />
+          ) : (
+            <SparkLogo className="w-32 h-12" />
           )}
         </Link>
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <svg 
-            className="w-5 h-5 transition-transform duration-200" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          >
-            <path 
-              d="M15 6L9 12L15 18" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
       </div>
 
       <nav className="px-2 space-y-1">
@@ -177,11 +206,11 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
             onClick={() => setActiveTab(item.id)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
               activeTab === item.id 
-                ? 'bg-white/10 text-white shadow-inner' 
-                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                ? 'bg-white/10 text-[#3ab8fe] shadow-inner' 
+                : 'text-gray-400 hover:bg-white/5 hover:text-[#3ab8fe]'
             }`}
           >
-            <span className={`${activeTab === item.id ? 'text-white' : 'text-gray-400'}`}>
+            <span className={`${activeTab === item.id ? 'text-[#3ab8fe]' : 'text-gray-400'}`}>
               {item.icon}
             </span>
             {!isCollapsed && (
@@ -192,8 +221,34 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
       </nav>
 
       <div className="mt-auto">
+        <div className="mb-3 mx-2">
+          <a 
+            href="https://sparkskool.com/help"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-gray-400 hover:bg-white/5 hover:text-[#3ab8fe]"
+          >
+            <span className="text-gray-400">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+                <circle cx="12" cy="12" r="3" strokeWidth={1.5} />
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={1.5} 
+                  d="M12 3v6M12 15v6M3 12h6M15 12h6" 
+                />
+              </svg>
+            </span>
+            {!isCollapsed && (
+              <span className="font-medium">Help & Support</span>
+            )}
+          </a>
+        </div>
+
+        {/* Profile section with settings icon only when expanded */}
         {isCollapsed ? (
-          <div className="p-2 bg-[#1a1a1a] rounded-xl flex justify-center mx-2 mb-2">
+          <div className="p-2 bg-[#2563eb]/20 rounded-xl flex justify-center mx-2 mb-2">
             <Image
               src={teacher?.avatar || "/avatars/default-teacher.jpg"}
               alt={teacher?.name || "Teacher"}
@@ -203,23 +258,34 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
             />
           </div>
         ) : (
-          <div className="p-4 bg-[#1a1a1a] rounded-xl mx-2 mb-2">
-            <div className="flex items-center gap-3">
-              <Image
-                src={teacher?.avatar || "/avatars/default-teacher.jpg"}
-                alt={teacher?.name || "Teacher"}
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-              <div>
-                <div className="text-white font-medium truncate">
-                  {teacher?.name}
-                </div>
-                <div className="text-gray-400 text-sm truncate">
-                  {teacher?.subject} Teacher
+          <div className="p-4 bg-[#2563eb]/20 rounded-xl mx-2 mb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Image
+                  src={teacher?.avatar || "/avatars/default-teacher.jpg"}
+                  alt={teacher?.name || "Teacher"}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+                <div>
+                  <div className="text-white font-medium truncate">
+                    {teacher?.name}
+                  </div>
+                  <div className="text-gray-300 text-sm truncate">
+                    {teacher?.subject} Teacher
+                  </div>
                 </div>
               </div>
+              <Link 
+                href="/dashboard/teacher/settings" 
+                className="p-2 hover:bg-white/10 rounded-full text-[#3ab8fe] hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </Link>
             </div>
           </div>
         )}
