@@ -829,7 +829,7 @@ export default function SchedulePage() {
                       value={formData.title}
                       onChange={handleInputChange}
                       required
-                      className={inputClasses}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                       placeholder={`e.g. ${formData.eventType === 'class' ? 'Algebra I' : 
                                     formData.eventType === 'meeting' ? 'Team Meeting' : 
                                     formData.eventType === 'break' ? 'Lunch Break' : 
@@ -847,7 +847,7 @@ export default function SchedulePage() {
                       value={formData.description}
                       onChange={handleInputChange}
                       rows={2}
-                      className={inputClasses}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                       placeholder="Optional class description"
                     />
                   </div>
@@ -863,7 +863,7 @@ export default function SchedulePage() {
                       value={formData.date ? format(formData.date, 'yyyy-MM-dd') : ''}
                       onChange={handleDateChange}
                       required
-                      className={inputClasses}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       The day of the week will be automatically determined from this date.
@@ -882,7 +882,7 @@ export default function SchedulePage() {
                         value={formData.startTime}
                         onChange={handleInputChange}
                         required
-                        className={inputClasses}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                       />
                     </div>
                     <div>
@@ -896,7 +896,7 @@ export default function SchedulePage() {
                         value={formData.endTime}
                         onChange={handleInputChange}
                         required
-                        className={inputClasses}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                       />
                     </div>
                   </div>
@@ -910,7 +910,7 @@ export default function SchedulePage() {
                       name="eventType"
                       value={formData.eventType}
                       onChange={handleInputChange}
-                      className={inputClasses}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                     >
                       {eventTypeOptions.map(option => (
                         <option key={option.value} value={option.value}>
@@ -936,7 +936,7 @@ export default function SchedulePage() {
                           onChange={handleInputChange}
                           min="1"
                           max="100"
-                          className={inputClasses}
+                          className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                         />
                       </div>
                     </>
@@ -954,7 +954,7 @@ export default function SchedulePage() {
                         name="room"
                         value={formData.room}
                         onChange={handleInputChange}
-                        className={inputClasses}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                         placeholder="e.g. Room 101"
                       />
                     </div>
@@ -969,7 +969,7 @@ export default function SchedulePage() {
                       name="color"
                       value={formData.color}
                       onChange={handleInputChange}
-                      className={inputClasses}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                     >
                       {colorOptions.map(option => (
                         <option key={option.value} value={option.value}>
@@ -1008,7 +1008,7 @@ export default function SchedulePage() {
                             name="recurrencePattern"
                             value={formData.recurrencePattern}
                             onChange={handleInputChange}
-                            className={inputClasses}
+                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                           >
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
@@ -1033,7 +1033,7 @@ export default function SchedulePage() {
                             onChange={handleInputChange}
                             min="1"
                             max="52"
-                            className={inputClasses}
+                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                           />
                         </div>
                       </div>
@@ -1109,7 +1109,7 @@ export default function SchedulePage() {
                       <select
                         value={workDayStart}
                         onChange={(e) => setWorkDayStart(parseInt(e.target.value))}
-                        className={inputClasses}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                       >
                         {Array.from({ length: 24 }, (_, i) => (
                           <option key={`start-${i}`} value={i}>
@@ -1126,7 +1126,7 @@ export default function SchedulePage() {
                       <select
                         value={workDayEnd}
                         onChange={(e) => setWorkDayEnd(parseInt(e.target.value))}
-                        className={inputClasses}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                       >
                         {Array.from({ length: 24 }, (_, i) => (
                           <option key={`end-${i}`} value={i+1}>

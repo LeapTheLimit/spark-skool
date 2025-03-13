@@ -201,7 +201,7 @@ export default function TasksPage() {
                   value={newTask}
                   onChange={(e) => setNewTask(e.target.value)}
                   placeholder="What do you need to do?"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                 />
               </div>
               
@@ -310,7 +310,7 @@ export default function TasksPage() {
                       <InformationCircleIcon className="w-4 h-4 text-gray-400 hover:text-[#3ab8fe] cursor-help" />
                     </Tooltip>
                   </div>
-                  <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                  <div className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
                     <div className="bg-gray-100 p-2 flex items-center justify-center">
                       <CalendarIcon className="w-5 h-5 text-gray-600" />
                     </div>
@@ -318,7 +318,7 @@ export default function TasksPage() {
                       type="date"
                       value={taskDeadline}
                       onChange={(e) => setTaskDeadline(e.target.value)}
-                      className="w-full p-2 border-0 focus:outline-none focus:ring-0 text-gray-800"
+                      className="w-full p-2 border-0 bg-white focus:outline-none focus:ring-0 text-gray-800"
                       min={format(new Date(), 'yyyy-MM-dd')}
                     />
                   </div>

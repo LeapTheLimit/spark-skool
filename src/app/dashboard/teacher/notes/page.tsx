@@ -186,13 +186,13 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }) => {
         </div>
         
         {/* Rich text editor div instead of textarea */}
-        <div className="p-4 flex-1 overflow-auto">
+        <div className="p-4 flex-1 overflow-auto bg-white">
           <div
             ref={editorRef}
             contentEditable
             dangerouslySetInnerHTML={{ __html: editedContent }}
             onInput={(e) => setEditedContent(e.currentTarget.innerHTML)}
-            className="w-full h-full min-h-[300px] p-4 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-800 whitespace-pre-wrap"
+            className="w-full h-full min-h-[300px] p-4 bg-white border-none focus:outline-none focus:ring-0 text-gray-800 whitespace-pre-wrap"
           />
         </div>
         
@@ -438,13 +438,13 @@ export default function NotesPage() {
                     ref={newNoteRef}
                     contentEditable
                     onInput={(e) => setNewNote(e.currentTarget.innerHTML)}
-                    className={`w-full p-6 min-h-[120px] border-0 ${
-                      noteColor === 'yellow' ? 'bg-yellow-50' :
-                      noteColor === 'blue' ? 'bg-blue-50' :
-                      noteColor === 'green' ? 'bg-green-50' :
-                      noteColor === 'pink' ? 'bg-pink-50' :
-                      'bg-purple-50'
-                    } rounded-lg focus:outline-none focus:ring-0 text-gray-800 empty:before:content-['Add_a_new_note...'] empty:before:text-gray-400`}
+                    className={`w-full p-6 min-h-[120px] border ${
+                      noteColor === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+                      noteColor === 'blue' ? 'bg-blue-50 border-blue-200' :
+                      noteColor === 'green' ? 'bg-green-50 border-green-200' :
+                      noteColor === 'pink' ? 'bg-pink-50 border-pink-200' :
+                      'bg-purple-50 border-purple-200'
+                    } rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3ab8fe] text-gray-800 empty:before:content-['Add_a_new_note...'] empty:before:text-gray-500 empty:before:opacity-100`}
                   />
                   <div className="absolute top-3 right-3 flex space-x-2">
                     {['yellow', 'blue', 'green', 'pink', 'purple'].map(color => (
