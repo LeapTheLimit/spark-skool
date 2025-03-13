@@ -28,7 +28,9 @@ import {
   CalendarDaysIcon,
   TableCellsIcon,
   BeakerIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowLeftIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import type { Route } from 'next';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';

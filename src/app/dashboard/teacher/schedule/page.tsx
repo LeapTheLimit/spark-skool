@@ -10,7 +10,10 @@ import {
   UsersIcon,
   BookOpenIcon,
   XMarkIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  CheckCircleIcon,
+  ClipboardDocumentListIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format, addDays, subDays, isSameDay, addMonths, subMonths, addYears, subYears, addWeeks } from 'date-fns';
@@ -410,32 +413,6 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* Next Class Notification */}
-        {nextClass && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <ClockIcon className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Upcoming: {nextClass.title}
-                </h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>
-                    {isSameDay(nextClass.date, new Date()) 
-                      ? 'Today' 
-                      : isSameDay(nextClass.date, addDays(new Date(), 1))
-                        ? 'Tomorrow'
-                        : format(nextClass.date, 'EEEE, MMMM d')}
-                    {' at '}{nextClass.startTime} in {nextClass.room}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
         {/* Calendar navigation */}
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
           <div className="flex justify-between items-center">
