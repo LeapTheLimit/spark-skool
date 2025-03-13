@@ -10,20 +10,23 @@ import {
   LightBulbIcon,
   UserIcon,
   ArrowRightIcon,
-  CalendarDaysIcon
+  CalendarDaysIcon,
+  ClockIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
   ChatBubbleLeftIcon,
   DocumentTextIcon,
-  ClockIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SparkMascot from '@/components/SparkMascot';
+import { useRouter } from 'next/navigation';
+import routes from '@/app/routes';
 
 interface TeacherDashboardProps {
   teacher: {
@@ -32,6 +35,8 @@ interface TeacherDashboardProps {
     school: string;
     subject: string;
   } | null;
+  todayEvents: any[];
+  upcomingEvents: any[];
 }
 
 interface ChatMessage {
@@ -144,9 +149,10 @@ export const triggerDashboardUpdate = () => {
   window.dispatchEvent(new CustomEvent('localDataUpdate'));
 };
 
-export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
+export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents }: TeacherDashboardProps) {
   const { recentChats, savedMaterials, recentGrades } = useRecentActivity(teacher?.email || '');
   const { t } = useLanguage();
+  const router = useRouter();
 
   if (!teacher) {
     return null; // Or a loading state
@@ -469,34 +475,187 @@ export default function TeacherDashboard({ teacher }: TeacherDashboardProps) {
           </div>
         </div>
 
-        {/* Add this section for upcoming events/calendar integration */}
+        {/* Add this section for Today's Schedule */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <CalendarDaysIcon className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-lg font-semibold text-gray-900">{t('upcomingEvents')}</h2>
+              <CalendarDaysIcon className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">{t('todaySchedule')}</h2>
             </div>
-            <Link 
-              href="/dashboard/teacher/chat"
-              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-            >
-              {t('viewCalendar')}
+            <Link href="/dashboard/teacher/schedule" 
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+              {t('viewFullSchedule')}
               <ArrowRightIcon className="w-3 h-3" />
             </Link>
           </div>
           
           <div className="space-y-3">
-            {/* Show a message if no events */}
-            <div className="text-center py-6">
-              <CalendarDaysIcon className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">{t('noUpcomingEvents')}</p>
-              <p className="text-sm text-gray-400 mt-1">{t('scheduleEventPrompt')}</p>
-              <button 
-                className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-              >
-                {t('scheduleEvent')}
-              </button>
+            {todayEvents.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {todayEvents.map(event => (
+                  <div key={event.id} className="py-3 flex justify-between items-center">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${event.color}`}>
+                        {event.eventType === 'class' ? (
+                          <BookOpenIcon className="w-5 h-5" />
+                        ) : event.eventType === 'meeting' ? (
+                          <UsersIcon className="w-5 h-5" />
+                        ) : (
+                          <ClockIcon className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{event.title}</div>
+                        <div className="text-sm text-gray-500">
+                          {event.startTime} - {event.endTime} • {event.room || ''}
+                        </div>
+                      </div>
+                    </div>
+                    <Link href="/dashboard/teacher/schedule" 
+                      className="text-sm text-blue-600 hover:text-blue-700">
+                      Details
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CalendarDaysIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">{t('noEventsToday')}</p>
+                <button 
+                  onClick={() => router.push('/dashboard/teacher/schedule')}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  {t('addEvent')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming Events Section */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <CalendarDaysIcon className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-gray-900">{t('upcomingEvents')}</h2>
             </div>
+          </div>
+          
+          <div className="space-y-3">
+            {upcomingEvents.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {upcomingEvents.slice(0, 3).map(event => (
+                  <div key={event.id} className="py-3 flex justify-between items-center">
+                    <div className="flex items-start gap-3">
+                      <div className="text-purple-600 text-sm font-medium w-16">
+                        {format(new Date(event.date), 'EEE, d')}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{event.title}</div>
+                        <div className="text-sm text-gray-500">
+                          {event.startTime} - {event.endTime}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {upcomingEvents.length > 3 && (
+                  <div className="pt-3 text-center">
+                    <Link href="/dashboard/teacher/schedule" 
+                      className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+                      View {upcomingEvents.length - 3} more upcoming events
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">{t('noUpcomingEvents')}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Update Tools Section with real tools */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
+          <div className="flex items-center gap-2 mb-6">
+            <LightBulbIcon className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-semibold text-gray-900">{t('teachingTools')}</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <Link ref={routes.tools.examGame.quizShow} className="group" href={'/dashboard/teacher'}>
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-blue-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-blue-600">Quiz Show</h3>
+                <p className="text-sm text-gray-500 mb-3">Create interactive quiz games with customizable categories and point values.</p>
+              </div>
+            </Link>
+            
+            <Link href="/dashboard/teacher/tools/exam-game" className="group">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-green-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-green-600">Word Scramble</h3>
+                <p className="text-sm text-gray-500 mb-3">Create word scramble puzzles from your vocabulary lists and terms.</p>
+              </div>
+            </Link>
+            
+            <Link href="/dashboard/teacher/tools/exam-game" className="group">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-purple-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-purple-600">Word Search</h3>
+                <p className="text-sm text-gray-500 mb-3">Generate printable word search puzzles from your vocabulary terms.</p>
+              </div>
+            </Link>
+            
+            <Link href="/dashboard/teacher/tools/exam-game" className="group">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-amber-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-amber-600">Timeline Creator</h3>
+                <p className="text-sm text-gray-500 mb-3">Create interactive timelines for historical events and sequences.</p>
+              </div>
+            </Link>
+            
+            <Link href="/dashboard/teacher/chat" className="group">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-rose-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-rose-600">AI Assistant</h3>
+                <p className="text-sm text-gray-500 mb-3">Get help with lesson planning, assessments, and teaching ideas.</p>
+              </div>
+            </Link>
+            
+            <Link href="/dashboard/teacher/tools/exam-game" className="group">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
+                <div className="bg-teal-100 p-3 rounded-lg w-fit mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-teal-600">Presentation Exporter</h3>
+                <p className="text-sm text-gray-500 mb-3">Export your lessons and activities as PowerPoint presentations.</p>
+              </div>
+            </Link>
           </div>
         </div>
 
