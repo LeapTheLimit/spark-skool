@@ -1,0 +1,28 @@
+<svg viewBox="0 0 120 120" fill="#3ab8fe" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sparkles -->
+  <path d="M40 20L35 25L30 20L35 15L40 20Z" fill="#3ab8fe" />
+  <path d="M90 40L85 45L80 40L85 35L90 40Z" fill="#3ab8fe" />
+  
+  <!-- Star body -->
+  <path d="M60 10L72 40L105 40L78 60L88 90L60 70L32 90L42 60L15 40L48 40L60 10Z" />
+  
+  <!-- Eyes -->
+  <circle cx="45" cy="50" r="4" fill="#333" />
+  <circle cx="75" cy="50" r="4" fill="#333" />
+  <circle cx="47" cy="48" r="1.5" fill="white" />
+  <circle cx="77" cy="48" r="1.5" fill="white" />
+  
+  <!-- Thinking expression -->
+  <path
+    d="M45 65 Q60 65 75 65"
+    stroke="#333"
+    stroke-width="2"
+    fill="none"
+    stroke-linecap="round"
+  />
+  
+  <!-- Thought bubble -->
+  <circle cx="95" cy="30" r="5" fill="white" stroke="#333" stroke-width="1" />
+  <circle cx="85" cy="25" r="3" fill="white" stroke="#333" stroke-width="1" />
+  <circle cx="78" cy="22" r="2" fill="white" stroke="#333" stroke-width="1" />
+</svg> 
