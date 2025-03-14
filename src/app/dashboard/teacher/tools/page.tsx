@@ -34,7 +34,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { Route } from 'next';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
-import SparkMascot from '@/components/SparkMascot';
+import TeacherMascot from '@/components/TeacherMascot';
 import React from 'react';
 
 interface GradingResult {
@@ -767,7 +767,7 @@ export default function ToolsPage() {
                 
                 {/* Mascot in top left corner */}
                 <div className="absolute top-3 left-3">
-                  <SparkMascot width={32} height={32} variant={
+                  <TeacherMascot width={32} height={32} variant={
                     tool.id === 'exam-grading' ? 'teal' : 
                     tool.id === 'exam-creator' ? 'blue' : 
                     tool.id === 'ai-exam-generator' ? 'purple' :

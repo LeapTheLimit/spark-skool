@@ -15,7 +15,7 @@ import {
 import Link from 'next/link';
 import type { Route } from 'next';
 import { useLanguage } from '@/contexts/LanguageContext';
-import SparkMascot from '@/components/SparkMascot';
+import TeacherMascot from '@/components/TeacherMascot';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
 
 // Adding missing Question type if not imported from services
@@ -108,7 +108,7 @@ function AskSparkHelper({ activeTab, isVisible, setIsVisible }: {
         } hover:bg-teal-50 transition-colors`}
       >
         <div className="flex items-center">
-          <SparkMascot width={40} height={40} variant="teal" blinking={false} />
+          <TeacherMascot width={40} height={40} variant="teal" />
           {!expanded && (
             <span className="ml-2 mr-3 text-sm font-medium text-gray-700">Ask Spark</span>
           )}
@@ -382,7 +382,7 @@ export default function ExamGradingPage() {
           {/* Header with back button and title */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-white">
             <div className="flex items-center gap-3">
-              <SparkMascot width={36} height={36} variant="teal" />
+              <TeacherMascot width={36} height={36} variant="teal" />
               <h2 className="text-xl font-bold text-gray-900">GradeWizard</h2>
             </div>
             <Link

@@ -12,6 +12,7 @@ import {
   ClockIcon,
   BookOpenIcon
 } from '@heroicons/react/24/outline';
+import TeacherMascot from '@/components/TeacherMascot';
 
 interface ScheduleEvent {
   id: number;

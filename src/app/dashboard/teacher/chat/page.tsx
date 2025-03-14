@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { DocumentIcon, ClipboardIcon, ChatBubbleLeftIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 import SparkMascot from '@/components/SparkMascot';
 import { motion } from 'framer-motion';
+import TeacherMascot from '@/components/TeacherMascot';
 
 interface TeacherPreferences {
   teachingStyle?: string;
@@ -721,23 +722,11 @@ export default function TeacherChat() {
                     />
                     
                     {/* Floating mascot animation */}
-                    <motion.div
-                      initial={{ y: 0 }}
-                      animate={{ 
-                        y: [0, -10, 0, -5, 0]  // Smooth up and down motion
-                      }}
-                      transition={{ 
-                        duration: 4,
-                        repeat: Infinity,
-                        repeatType: "loop",
-                        ease: "easeInOut"
-                      }}
-                    >
-                      <SparkMascot 
+                    <motion.div className="mx-auto mb-8">
+                      <TeacherMascot 
                         width={120} 
                         height={120} 
                         variant="blue"
-                        blinking={true} 
                         className="drop-shadow-xl relative z-10"
                       />
                     </motion.div>
@@ -792,11 +781,10 @@ export default function TeacherChat() {
                         {/* Show mascot only for assistant/AI messages */}
                         {msg.role === 'assistant' && (
                           <div className="flex-shrink-0 mt-1">
-                            <SparkMascot 
+                            <TeacherMascot 
                               width={30} 
                               height={30} 
                               variant="blue"
-                              blinking={false}
                               className="drop-shadow-sm" 
                             />
                           </div>
@@ -823,11 +811,10 @@ export default function TeacherChat() {
                     {isThinking && (
                       <div className="flex items-start gap-2">
                         <div className="flex-shrink-0 mt-1">
-                          <SparkMascot 
+                          <TeacherMascot 
                             width={30} 
                             height={30} 
                             variant="blue"
-                            blinking={true}
                             className="drop-shadow-sm" 
                           />
                         </div>
