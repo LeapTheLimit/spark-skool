@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "version": 2,
   "builds": [
     {
@@ -7,11 +6,4 @@
       "use": "@vercel/next"
     }
   ]
-=======
-  "functions": {
-    "app/api/generate-lesson/route.ts": {
-      "maxDuration": 30
-    }
-  }
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 } 

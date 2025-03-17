@@ -1,20 +1,12 @@
 'use client';
 
-<<<<<<< HEAD
 import { useState, useEffect, Suspense } from 'react';
-=======
-import { useState, useEffect } from 'react';
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
-<<<<<<< HEAD
 function ResetPasswordContent() {
-=======
-export default function ResetPasswordPage() {
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -208,7 +200,6 @@ export default function ResetPasswordPage() {
       </motion.div>
     </div>
   );
-<<<<<<< HEAD
 }
 
 export default function ResetPassword() {
@@ -217,6 +208,4 @@ export default function ResetPassword() {
       <ResetPasswordContent />
     </Suspense>
   );
-=======
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 } 

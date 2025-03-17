@@ -174,6 +174,7 @@ export const translations: Translations = {
     search: 'Search',
     newChat: 'New Chat',
     savedMaterials: 'Saved Materials',
+    recentGrading: 'Recent Grading',
     viewAll: 'View All',
     gradeMore: 'Grade More',
     
@@ -883,11 +884,12 @@ export const translations: Translations = {
       }
     },
     search: 'חיפוש',
-    newChat: 'צ\'אט חדש',
-    savedMaterials: 'חומרים שמורים',
-    recentGrading: 'ציונים אחרונים',
-    viewAll: 'הצג הכל',
-    gradeMore: 'ציין עוד',
+    initiateChat: 'צ\'אט חדש',
+    latestConversations: 'שיחות אחרונות',
+    storedMaterials: 'חומרים שמורים',
+    latestAssessments: 'ציונים אחרונים',
+    displayAll: 'הצג הכל',
+    evaluateFurther: 'ציין עוד',
     
     // Form Placeholders
     enterFullName: 'הכנס שם מלא',

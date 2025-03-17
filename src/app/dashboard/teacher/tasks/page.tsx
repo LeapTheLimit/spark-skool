@@ -17,7 +17,6 @@ import {
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-<<<<<<< HEAD
 // Make the types available for import in other files
 export type TaskCategory = 'general' | 'grading' | 'call' | 'note';
 
@@ -32,8 +31,6 @@ export interface Task {
   createdAt: string;
 }
 
-=======
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 // Add Tooltip component
 const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -59,17 +56,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
 
 export default function TasksPage() {
   const { t } = useLanguage();
-<<<<<<< HEAD
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   const [taskCategory, setTaskCategory] = useState<'grading' | 'call' | 'general'>('general');
   const [taskPriority, setTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
-=======
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [newTask, setNewTask] = useState('');
-  const [taskCategory, setTaskCategory] = useState<'grading' | 'call' | 'general'>('general');
-  const [taskPriority, setTaskPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   const [taskDeadline, setTaskDeadline] = useState<string>('');
   const [activeTaskFilter, setActiveTaskFilter] = useState('active');
 
@@ -77,7 +67,6 @@ export default function TasksPage() {
   useEffect(() => {
     const savedTasks = localStorage.getItem('teacherTasks');
     if (savedTasks) {
-<<<<<<< HEAD
       // Filter out notes and ensure proper typing
       const parsedTasks = JSON.parse(savedTasks);
       const onlyTasks = parsedTasks
@@ -86,11 +75,6 @@ export default function TasksPage() {
           ...task,
           status: task.status as 'pending' | 'completed'
         })) as Task[];
-=======
-      // Filter out notes as they'll be on the notes page
-      const parsedTasks = JSON.parse(savedTasks);
-      const onlyTasks = parsedTasks.filter((task: any) => task.category !== 'note');
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
       setTasks(onlyTasks);
     }
   }, []);
@@ -100,7 +84,6 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newTask.trim()) return;
     
-<<<<<<< HEAD
     const task: Task = {
       id: Date.now().toString(),
       title: newTask,
@@ -109,16 +92,6 @@ export default function TasksPage() {
       category: taskCategory,
       priority: taskPriority,
       dueDate: taskDeadline || undefined
-=======
-    const task = {
-      id: Date.now().toString(),
-      content: newTask,
-      completed: false,
-      createdAt: new Date().toISOString(),
-      category: taskCategory,
-      priority: taskPriority,
-      deadline: taskDeadline || undefined
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     };
     
     // Get all existing tasks and notes
@@ -129,7 +102,6 @@ export default function TasksPage() {
     const updatedAllTasks = [...allTasks, task];
     localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
     
-<<<<<<< HEAD
     // Update the current view
     setTasks([...tasks, task]);
     
@@ -137,21 +109,10 @@ export default function TasksPage() {
     setNewTask('');
     setTaskCategory('general');
     setTaskPriority('medium');
-=======
-    // Update the current view (only if it's not a note)
-    if (task.category !== 'note') {
-      setTasks([...tasks, task]);
-    }
-    
-    setNewTask('');
-    setTaskCategory('general');
-    setTaskPriority('Medium');
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     setTaskDeadline('');
   };
   
   const toggleTaskComplete = (id: string) => {
-<<<<<<< HEAD
     // Update UI with proper typing
     const updatedTasks = tasks.map(task => 
       task.id === id 
@@ -173,19 +134,6 @@ export default function TasksPage() {
             status: task.status === 'completed' ? 'pending' : 'completed' 
           } as Task
         : task
-=======
-    // Update UI
-    const updatedTasks = tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    );
-    setTasks(updatedTasks);
-    
-    // Update localStorage with all tasks
-    const savedTasks = localStorage.getItem('teacherTasks');
-    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    const updatedAllTasks = allTasks.map((task: any) => 
-      task.id === id ? { ...task, completed: !task.completed } : task
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     );
     localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
   };
@@ -205,13 +153,8 @@ export default function TasksPage() {
   // Improved filtering based on completion status and category
   const filteredTasks = useMemo(() => {
     // Start by separating completed and active tasks
-<<<<<<< HEAD
     const activeTasks = tasks.filter(task => task.status === 'pending');
     const completedTasks = tasks.filter(task => task.status === 'completed');
-=======
-    const activeTasks = tasks.filter(task => !task.completed);
-    const completedTasks = tasks.filter(task => task.completed);
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     
     // Then filter by category if needed
     if (activeTaskFilter === 'completed') {
@@ -230,19 +173,11 @@ export default function TasksPage() {
   const taskCounts = useMemo(() => {
     const counts = {
       all: tasks.length,
-<<<<<<< HEAD
       active: tasks.filter(task => task.status === 'pending').length,
       completed: tasks.filter(task => task.status === 'completed').length,
       grading: tasks.filter(task => task.category === 'grading' && task.status === 'pending').length,
       call: tasks.filter(task => task.category === 'call' && task.status === 'pending').length,
       general: tasks.filter(task => task.category === 'general' && task.status === 'pending').length
-=======
-      active: tasks.filter(task => !task.completed).length,
-      completed: tasks.filter(task => task.completed).length,
-      grading: tasks.filter(task => task.category === 'grading' && !task.completed).length,
-      call: tasks.filter(task => task.category === 'call' && !task.completed).length,
-      general: tasks.filter(task => task.category === 'general' && !task.completed).length
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     };
     return counts;
   }, [tasks]);
@@ -260,19 +195,11 @@ export default function TasksPage() {
   };
 
   // Priority icon mapping
-<<<<<<< HEAD
   const getPriorityIcon = (priority: string | undefined) => {
     switch(priority) {
       case 'high':
         return <ExclamationCircleIcon className="w-4 h-4 text-red-600" />;
       case 'medium':
-=======
-  const getPriorityIcon = (priority: string) => {
-    switch(priority) {
-      case 'High':
-        return <ExclamationCircleIcon className="w-4 h-4 text-red-600" />;
-      case 'Medium':
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
         return <ExclamationCircleIcon className="w-4 h-4 text-yellow-600" />;
       default:
         return <ExclamationCircleIcon className="w-4 h-4 text-green-600" />;
@@ -366,15 +293,9 @@ export default function TasksPage() {
                   <div className="flex gap-2">
                     <button 
                       type="button"
-<<<<<<< HEAD
                       onClick={() => setTaskPriority('high')}
                       className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
                         taskPriority === 'high' 
-=======
-                      onClick={() => setTaskPriority('High')}
-                      className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
-                        taskPriority === 'High' 
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                           ? 'bg-red-50 border-red-300 text-red-700' 
                           : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
@@ -384,15 +305,9 @@ export default function TasksPage() {
                     </button>
                     <button 
                       type="button"
-<<<<<<< HEAD
                       onClick={() => setTaskPriority('medium')}
                       className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
                         taskPriority === 'medium' 
-=======
-                      onClick={() => setTaskPriority('Medium')}
-                      className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
-                        taskPriority === 'Medium' 
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                           ? 'bg-yellow-50 border-yellow-300 text-yellow-700' 
                           : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
@@ -402,15 +317,9 @@ export default function TasksPage() {
                     </button>
                     <button 
                       type="button"
-<<<<<<< HEAD
                       onClick={() => setTaskPriority('low')}
                       className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
                         taskPriority === 'low' 
-=======
-                      onClick={() => setTaskPriority('Low')}
-                      className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-1 text-sm ${
-                        taskPriority === 'Low' 
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                           ? 'bg-green-50 border-green-300 text-green-700' 
                           : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
@@ -490,23 +399,15 @@ export default function TasksPage() {
                   <button 
                     onClick={() => {
                       if (confirm('Are you sure you want to clear all completed tasks?')) {
-<<<<<<< HEAD
                         const updatedTasks = tasks.filter(task => task.status !== 'completed');
-=======
-                        const updatedTasks = tasks.filter(task => !task.completed);
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                         setTasks(updatedTasks);
                         
                         // Update localStorage
                         const savedTasks = localStorage.getItem('teacherTasks');
                         const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
-<<<<<<< HEAD
                         const updatedAllTasks = allTasks.filter((task: Task) => 
                           task.status !== 'completed' || task.category === 'note'
                         );
-=======
-                        const updatedAllTasks = allTasks.filter((task: any) => !task.completed || task.category === 'note');
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                         localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
                       }
                     }}
@@ -610,11 +511,7 @@ export default function TasksPage() {
                     <div
                       key={task.id}
                       className={`relative ${
-<<<<<<< HEAD
                         task.status === 'completed' 
-=======
-                        task.completed 
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                           ? 'bg-gray-50 border border-gray-200 animate-fadeIn' 
                           : (
                             task.category === 'grading'
@@ -630,7 +527,6 @@ export default function TasksPage() {
                         <button
                           onClick={() => toggleTaskComplete(task.id)}
                           className={`p-2 rounded-lg flex-shrink-0 transition-colors duration-300 ${
-<<<<<<< HEAD
                             task.status === 'completed' 
                               ? 'bg-green-100 text-green-600 hover:bg-green-200' 
                               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -638,15 +534,6 @@ export default function TasksPage() {
                           aria-label={task.status === 'completed' ? "Mark as incomplete" : "Mark as complete"}
                         >
                           {task.status === 'completed' ? (
-=======
-                            task.completed 
-                              ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                          }`}
-                          aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
-                        >
-                          {task.completed ? (
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                             <CheckCircleIcon className="w-5 h-5" />
                           ) : (
                             <div className="w-5 h-5 border-2 border-gray-400 rounded-lg" />
@@ -656,21 +543,12 @@ export default function TasksPage() {
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
                             <p className={`font-medium text-lg transition-all duration-300 ${
-<<<<<<< HEAD
                               task.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900'
                             }`}>
                               {task.title}
                             </p>
                             <div className="flex gap-1">
                               {task.status !== 'completed' && task.dueDate && new Date(task.dueDate) < new Date() && (
-=======
-                              task.completed ? 'text-gray-500 line-through' : 'text-gray-900'
-                            }`}>
-                              {task.content}
-                            </p>
-                            <div className="flex gap-1">
-                              {!task.completed && task.deadline && new Date(task.deadline) < new Date() && (
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                                 <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-xs font-medium flex items-center">
                                   <ExclamationCircleIcon className="w-3 h-3 mr-1" />
                                   Overdue
@@ -708,50 +586,30 @@ export default function TasksPage() {
                               
                               {/* Priority badge with improved contrast */}
                               <span className={`px-2 py-1 rounded-md flex items-center gap-1 ${
-<<<<<<< HEAD
                                 task.priority === 'high'
                                   ? 'bg-red-50 text-red-800 border border-red-200' 
                                   : task.priority === 'medium'
-=======
-                                task.priority === 'High'
-                                  ? 'bg-red-50 text-red-800 border border-red-200' 
-                                  : task.priority === 'Medium'
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                                     ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                                     : 'bg-green-50 text-green-800 border border-green-200'
                               }`}>
                                 {getPriorityIcon(task.priority)}
-<<<<<<< HEAD
                                 <span className="font-medium">
                                   {task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Low'}
                                 </span>
-=======
-                                <span className="font-medium">{task.priority}</span>
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                               </span>
                             </div>
                             
                             {/* Create separate row for dates for better spacing */}
                             <div className="flex items-center gap-3 mt-1 w-full">
                               {/* Deadline with improved visibility */}
-<<<<<<< HEAD
                               {task.dueDate && (
                                 <span className={`px-2 py-1 rounded-md flex items-center gap-1 ${
                                   new Date(task.dueDate) < new Date() 
-=======
-                              {task.deadline && (
-                                <span className={`px-2 py-1 rounded-md flex items-center gap-1 ${
-                                  new Date(task.deadline) < new Date() 
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                                     ? 'bg-red-50 text-red-800 border border-red-200' 
                                     : 'bg-gray-50 text-gray-800 border border-gray-200'
                                 }`}>
                                   <CalendarIcon className="w-4 h-4" />
-<<<<<<< HEAD
                                   <span className="font-medium">Due: {format(new Date(task.dueDate), 'MMM d')}</span>
-=======
-                                  <span className="font-medium">Due: {format(new Date(task.deadline), 'MMM d')}</span>
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                                 </span>
                               )}
                               

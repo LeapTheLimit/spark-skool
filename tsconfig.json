@@ -22,7 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-<<<<<<< HEAD
   "include": [
     "next-env.d.ts",
     "**/*.ts",
@@ -31,8 +30,5 @@
     "../mystuff/app/src/openai.ts",
     "src/types/*.d.ts"
   ],
-=======
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../mystuff/app/src/openai.ts"],
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   "exclude": ["node_modules"]
 }

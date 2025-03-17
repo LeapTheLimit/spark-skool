@@ -18,7 +18,6 @@ import {
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-<<<<<<< HEAD
 // Add these types at the top of the file
 interface Note {
   id: string;
@@ -40,8 +39,6 @@ interface NoteModalProps {
   onPin: (id: string) => void;
 }
 
-=======
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 // Define the PinIcon component
 const PinIcon = ({ className = "w-5 h-5" }) => (
   <svg 
@@ -66,7 +63,6 @@ const PinIcon = ({ className = "w-5 h-5" }) => (
     />
   </svg>
 );
-<<<<<<< HEAD
 // Note Modal for editing
 const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteModalProps) => {
   const [editedContent, setEditedContent] = useState(note.content);
@@ -80,19 +76,6 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
     if (editorRef.current) {
       editorRef.current.focus();
     }
-=======
-
-// Note Modal for editing
-const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }) => {
-  const [editedContent, setEditedContent] = useState(note.content);
-  const [editedColor, setEditedColor] = useState(note.color || 'yellow');
-  const editorRef = useRef(null);
-  
-  // Replace the addFormatting function with one that uses document.execCommand
-  const applyFormatting = (command, value = null) => {
-    // Make sure the editor has focus
-    editorRef.current.focus();
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     
     // Execute the formatting command
     document.execCommand(command, false, value);
@@ -112,7 +95,6 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }) => {
     });
   };
   
-<<<<<<< HEAD
   useEffect(() => {
     const currentRef = newNoteRef.current;
     if (currentRef) {
@@ -138,8 +120,6 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }) => {
     }
   }, []);
 
-=======
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className={`bg-white max-w-2xl w-full rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}>
@@ -293,17 +273,10 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }) => {
 
 export default function NotesPage() {
   const { t } = useLanguage();
-<<<<<<< HEAD
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [noteColor, setNoteColor] = useState('yellow');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-=======
-  const [notes, setNotes] = useState<any[]>([]);
-  const [newNote, setNewNote] = useState('');
-  const [noteColor, setNoteColor] = useState('yellow');
-  const [selectedNote, setSelectedNote] = useState(null);
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   const [viewMode, setViewMode] = useState<'all' | 'pinned' | 'archived'>('all');
 
   // Load notes from localStorage
@@ -376,11 +349,7 @@ export default function NotesPage() {
     setNoteColor(colors[Math.floor(Math.random() * colors.length)]);
   };
   
-<<<<<<< HEAD
   const updateNote = (updatedNote: Note) => {
-=======
-  const updateNote = (updatedNote) => {
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     // Update UI
     const updatedNotes = notes.map(note => 
       note.id === updatedNote.id ? updatedNote : note
@@ -455,7 +424,6 @@ export default function NotesPage() {
   });
 
   // Add CSS for the placeholder text
-<<<<<<< HEAD
   const newNoteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -480,24 +448,6 @@ export default function NotesPage() {
         currentRef.removeEventListener('focus', handleFocus);
         currentRef.removeEventListener('blur', handleBlur);
       };
-=======
-  const newNoteRef = useRef(null);
-
-  useEffect(() => {
-    // Apply placeholder style for contentEditable div
-    if (newNoteRef.current) {
-      newNoteRef.current.addEventListener('focus', function() {
-        if (this.innerHTML.trim() === '') {
-          this.innerHTML = '';
-        }
-      });
-      
-      newNoteRef.current.addEventListener('blur', function() {
-        if (this.innerHTML.trim() === '') {
-          this.innerHTML = '';
-        }
-      });
->>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     }
   }, []);
 
