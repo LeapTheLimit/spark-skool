@@ -1,0 +1,27 @@
+<svg viewBox="0 0 120 120" fill="#3ab8fe" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sparkles -->
+  <path d="M40 20L35 25L30 20L35 15L40 20Z" fill="#3ab8fe" />
+  <path d="M90 40L85 45L80 40L85 35L90 40Z" fill="#3ab8fe" />
+  <path d="M20 40L15 45L10 40L15 35L20 40Z" fill="#3ab8fe" />
+  <path d="M110 20L105 25L100 20L105 15L110 20Z" fill="#3ab8fe" />
+  
+  <!-- Star body -->
+  <path d="M60 10L72 40L105 40L78 60L88 90L60 70L32 90L42 60L15 40L48 40L60 10Z" />
+  
+  <!-- Eyes -->
+  <path d="M41 50 Q45 45 49 50" stroke="#333" stroke-width="2" fill="none" />
+  <path d="M71 50 Q75 45 79 50" stroke="#333" stroke-width="2" fill="none" />
+  
+  <!-- Big smile -->
+  <path
+    d="M40 65 Q60 80 80 65"
+    stroke="#333"
+    stroke-width="2"
+    fill="none"
+    stroke-linecap="round"
+  />
+  
+  <!-- Party hat -->
+  <path d="M60 5 L50 25 L70 25 Z" fill="#FF5722" stroke="#333" stroke-width="1" />
+  <circle cx="60" cy="5" r="2" fill="yellow" />
+</svg> 
