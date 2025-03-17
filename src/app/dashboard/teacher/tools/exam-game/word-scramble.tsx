@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+<<<<<<< HEAD
 import { motion } from 'framer-motion';
+=======
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 import { LightBulbIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface WordScrambleProps {
@@ -32,6 +35,7 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
   const [showHint, setShowHint] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
+<<<<<<< HEAD
 
   // Initialize game
   useEffect(() => {
@@ -75,6 +79,116 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr.join('');
+=======
+  const [reshufflesRemaining, setReshufflesRemaining] = useState(3);
+  const [isGameInitialized, setIsGameInitialized] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [skipsRemaining, setSkipsRemaining] = useState(2); // New state for skip button
+
+  // Ensure a word is suitable for scrambling (max 2 words, reasonable length)
+  const processWord = (text: string): string => {
+    // Remove extra whitespace
+    const trimmed = text.trim().replace(/\s+/g, ' ');
+    
+    // Split by space
+    const words = trimmed.split(' ');
+    
+    // If more than 2 words, take only first two
+    const limitedText = words.length <= 2 ? trimmed : words.slice(0, 2).join(' ');
+    
+    // If longer than 15 chars, truncate
+    return limitedText.length <= 15 ? limitedText : limitedText.substring(0, 15);
+  };
+
+  // Initialize game once
+  useEffect(() => {
+    if (words.length > 0 && !isGameInitialized) {
+      // Process words to ensure they're suitable for scrambling
+      const processedWords = words.map(word => ({
+        ...word,
+        word: processWord(word.word)
+      }));
+      
+      // Create initial scrambled versions - these won't change during gameplay
+      const initialWords = processedWords.map(word => {
+        const original = word.word.toUpperCase();
+        return {
+          original: original,
+          scrambled: scrambleWord(original),
+          hint: word.hint,
+          category: word.category,
+          isCorrect: false,
+          attempts: 0
+        };
+      });
+      
+      setScrambledWords(initialWords);
+      setGameStarted(true);
+      setIsGameInitialized(true);
+    }
+  }, [words, isGameInitialized]);
+
+  // Game over handler
+  const handleGameOver = useCallback(() => {
+    if (gameOver) return;
+    
+    const finalScore = score + (timer * 2);
+    setGameOver(true);
+    onGameComplete(finalScore);
+  }, [score, timer, onGameComplete, gameOver]);
+
+  // Timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (gameStarted && timer > 0 && !gameOver) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else if (timer === 0 && !gameOver) {
+      handleGameOver();
+    }
+    return () => clearInterval(interval);
+  }, [gameStarted, timer, handleGameOver, gameOver]);
+
+  // Stable scramble function
+  const scrambleWord = (word: string): string => {
+    if (word.length <= 3) {
+      // For very short words, special handling
+      return word.length === 1 ? word : word.split('').reverse().join('');
+    }
+    
+    // For multiple word phrases
+    if (word.includes(' ')) {
+      // Split by space
+      const parts = word.split(' ');
+      // Scramble each part separately and combine
+      return parts.map(part => scrambleWord(part)).join(' ');
+    }
+    
+    // For single words - keep first and last letter, scramble middle
+    // This makes the puzzle more solvable
+    const first = word.charAt(0);
+    const last = word.charAt(word.length - 1);
+    const middle = word.substring(1, word.length - 1);
+    
+    // If middle is just 1 character, no need to scramble
+    if (middle.length <= 1) {
+      return word;
+    }
+    
+    // Scramble middle (ensure different from original)
+    let scrambledMiddle;
+    let attempts = 0;
+    
+    do {
+      scrambledMiddle = middle.split('')
+        .sort(() => Math.random() - 0.5)
+        .join('');
+      attempts++;
+    } while (scrambledMiddle === middle && attempts < 5);
+    
+    return first + scrambledMiddle + last;
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +197,17 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
 
   const handleSubmit = () => {
     const currentWord = scrambledWords[currentIndex];
+<<<<<<< HEAD
     if (userInput === currentWord.original) {
+=======
+    
+    // Check answer (allow for slight variations in spacing)
+    const normalizedInput = userInput.trim();
+    const normalizedOriginal = currentWord.original.trim();
+    const isCorrect = normalizedInput === normalizedOriginal;
+    
+    if (isCorrect) {
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
       // Calculate score based on attempts and time
       const attemptBonus = Math.max(0, 50 - (currentWord.attempts * 10));
       const timeBonus = Math.floor(timer / 10);
@@ -101,9 +225,17 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
           setCurrentIndex(prev => prev + 1);
           setUserInput('');
           setFeedback('');
+<<<<<<< HEAD
         }, 1500);
       } else {
         handleGameOver();
+=======
+        }, 1800);
+      } else {
+        setTimeout(() => {
+          handleGameOver();
+        }, 1500);
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
       }
     } else {
       setScrambledWords(prev => prev.map((word, idx) => 
@@ -122,18 +254,71 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
     }
   };
 
+<<<<<<< HEAD
   const handleReshuffle = () => {
+=======
+  // Limited reshuffle functionality
+  const handleReshuffle = () => {
+    if (reshufflesRemaining <= 0) {
+      setFeedback("No reshuffles remaining!");
+      return;
+    }
+    
+    setReshufflesRemaining(prev => prev - 1);
+    
+    const currentWord = scrambledWords[currentIndex];
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     setScrambledWords(prev => prev.map((word, idx) => 
       idx === currentIndex
         ? { ...word, scrambled: scrambleWord(word.original) }
         : word
     ));
+<<<<<<< HEAD
   };
 
   return (
     <div className="p-4">
       {/* Game Stats */}
       <div className="flex justify-between items-center mb-6">
+=======
+    
+    setFeedback(`Reshuffled! ${reshufflesRemaining - 1} remaining.`);
+    setTimeout(() => {
+      setFeedback('');
+    }, 1500);
+  };
+
+  // Skip current word functionality
+  const handleSkip = () => {
+    if (skipsRemaining <= 0) {
+      setFeedback("No skips remaining!");
+      return;
+    }
+    
+    setSkipsRemaining(prev => prev - 1);
+    
+    // Mark current word as incorrect for scoring purposes
+    setScrambledWords(prev => prev.map((word, idx) => 
+      idx === currentIndex ? { ...word, attempts: 999 } : word
+    ));
+    
+    // Move to next word
+    if (currentIndex < scrambledWords.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setUserInput('');
+      setFeedback(`Word skipped! ${skipsRemaining - 1} skips remaining.`);
+      setShowHint(false);
+    } else {
+      // If last word, end the game
+      handleGameOver();
+    }
+  };
+
+  return (
+    <div className="p-4 max-w-xl mx-auto">
+      {/* Game Stats */}
+      <div className="flex justify-between items-center mb-6 bg-white p-3 rounded-lg shadow-sm">
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
         <div className="text-black">
           Time: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
         </div>
@@ -146,6 +331,7 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
       </div>
 
       {/* Game Area */}
+<<<<<<< HEAD
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-black mb-4">
@@ -178,6 +364,44 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
           >
             Submit
           </button>
+=======
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-bold tracking-widest text-black mb-6">
+            {scrambledWords[currentIndex]?.scrambled.split('').join(' ')}
+          </h2>
+          {scrambledWords[currentIndex]?.category && (
+            <div className="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium mb-2">
+              {scrambledWords[currentIndex].category}
+            </div>
+          )}
+          {showHint && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mt-4 text-black text-left">
+              <p>Hint: {scrambledWords[currentIndex]?.hint}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={userInput}
+              onChange={handleInputChange}
+              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+              className="w-full p-4 border-2 border-gray-300 rounded-lg text-black text-xl text-center uppercase"
+              placeholder="Type your answer..."
+              maxLength={20}
+              autoFocus
+            />
+            <button
+              onClick={handleSubmit}
+              className="absolute right-2 top-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Submit
+            </button>
+          </div>
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
         </div>
 
         <div className="flex justify-center gap-4">
@@ -195,24 +419,60 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
           </button>
           <button
             onClick={handleReshuffle}
+<<<<<<< HEAD
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             <ArrowPathIcon className="w-5 h-5" />
             Reshuffle
+=======
+            disabled={reshufflesRemaining === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              reshufflesRemaining > 0
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-gray-300 text-gray-500'
+            }`}
+          >
+            <ArrowPathIcon className="w-5 h-5" />
+            Reshuffle: {reshufflesRemaining}
+          </button>
+          <button
+            onClick={handleSkip}
+            disabled={skipsRemaining === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              skipsRemaining > 0
+                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                : 'bg-gray-300 text-gray-500'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+            </svg>
+            Skip: {skipsRemaining}
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
           </button>
         </div>
 
         {feedback && (
+<<<<<<< HEAD
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mt-4 p-3 rounded-lg text-center ${
               feedback === 'Correct! Well done!'
                 ? 'bg-green-100 text-green-800'
+=======
+          <div
+            className={`mt-4 p-3 rounded-lg text-center ${
+              feedback.includes('Correct')
+                ? 'bg-green-100 text-green-800'
+                : feedback.includes('Reshuffled')
+                ? 'bg-blue-100 text-blue-800'
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                 : 'bg-red-100 text-red-800'
             }`}
           >
             {feedback}
+<<<<<<< HEAD
           </motion.div>
         )}
       </div>
@@ -223,12 +483,43 @@ export default function WordScramble({ words, onGameComplete }: WordScrambleProp
           <div
             key={index}
             className={`h-2 rounded-full ${
+=======
+          </div>
+        )}
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-white p-3 rounded-lg shadow-sm">
+        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-green-500 rounded-full"
+            style={{ width: `${(currentIndex / scrambledWords.length) * 100}%` }}
+          ></div>
+        </div>
+        
+        <div className="flex justify-between mt-2">
+          <span className="text-xs text-black">Start</span>
+          <span className="text-xs text-black">Finish</span>
+        </div>
+      </div>
+
+      {/* Word List - small indicators */}
+      <div className="flex justify-center mt-4 space-x-2">
+        {scrambledWords.map((word, index) => (
+          <div
+            key={index}
+            className={`w-3 h-3 rounded-full ${
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
               index === currentIndex
                 ? 'bg-blue-600'
                 : word.isCorrect
                 ? 'bg-green-600'
                 : 'bg-gray-300'
             }`}
+<<<<<<< HEAD
+=======
+            title={word.original}
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
           />
         ))}
       </div>

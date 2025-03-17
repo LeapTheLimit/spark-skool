@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NextRequest } from 'next/server';
 
 // Remove the runtime export for now
@@ -6,6 +7,13 @@ import { NextRequest } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+=======
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     
     // Generate structured lesson content
     const lessonContent = `
@@ -58,6 +66,7 @@ Differentiation Strategies:
 ${body.revisionRequest ? `\nRevision Notes:\n${body.revisionRequest}` : ''}
 `.trim();
 
+<<<<<<< HEAD
     return new Response(JSON.stringify({
       plan: lessonContent,
       status: "success"
@@ -89,4 +98,16 @@ export async function GET() {
       'Content-Type': 'application/json',
     },
   });
+=======
+    return NextResponse.json({
+      plan: lessonContent,
+      status: "success"
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to generate lesson plan" },
+      { status: 500 }
+    );
+  }
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
 } 

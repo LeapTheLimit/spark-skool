@@ -46,7 +46,11 @@ const colorOptions = [
 
 export default function SchedulePage() {
   const { t } = useLanguage();
+<<<<<<< HEAD
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('week');
+=======
+  const [viewMode, setViewMode] = useState<'week' | 'month' | 'year'>('week');
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showClassModal, setShowClassModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -269,9 +273,13 @@ export default function SchedulePage() {
   };
 
   const handleNavigate = (direction: 'prev' | 'next') => {
+<<<<<<< HEAD
     if (viewMode === 'day') {
       setCurrentDate(direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1));
     } else if (viewMode === 'week') {
+=======
+    if (viewMode === 'week') {
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
       setCurrentDate(direction === 'prev' ? subDays(currentDate, 7) : addDays(currentDate, 7));
     } else if (viewMode === 'month') {
       setCurrentDate(direction === 'prev' ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -360,6 +368,7 @@ export default function SchedulePage() {
               {/* View switcher */}
               <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
                 <button 
+<<<<<<< HEAD
                   onClick={() => setViewMode('day')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium ${
                     viewMode === 'day' 
@@ -370,6 +379,8 @@ export default function SchedulePage() {
                   Day
                 </button>
                 <button 
+=======
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
                   onClick={() => setViewMode('week')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium ${
                     viewMode === 'week' 
@@ -706,6 +717,7 @@ export default function SchedulePage() {
           </div>
         )}
         
+<<<<<<< HEAD
         {/* Day View */}
         {viewMode === 'day' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -816,6 +828,8 @@ export default function SchedulePage() {
           </div>
         )}
         
+=======
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
         {/* Update the event list heading and add filtering */}
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">

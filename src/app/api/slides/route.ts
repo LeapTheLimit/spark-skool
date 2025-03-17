@@ -34,6 +34,7 @@ const FALLBACK_SLIDES = [
   }
 ];
 
+<<<<<<< HEAD
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
@@ -68,6 +69,129 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: 'Failed to generate slides' },
       { status: 500 }
+=======
+export async function POST(req: Request) {
+  try {
+    // Validate request
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
+    if (!body || !body.prompt) {
+      return NextResponse.json(
+        { error: 'Invalid request. Prompt is required.' },
+        { status: 400 }
+      );
+    }
+    
+    const { prompt, context = '', language = 'en' } = body;
+    
+    // Try to get cached slides first
+    const cacheKey = `${prompt.toLowerCase().trim()}-${language}`;
+    const cachedSlides = await getCachedSlides(cacheKey);
+    
+    if (cachedSlides && cachedSlides.length > 0) {
+      console.log('Using cached slides for:', prompt);
+      return NextResponse.json({ slides: cachedSlides, cached: true });
+    }
+
+    // Initialize Gemini API
+    let genAI;
+    try {
+      if (!GEMINI_API_KEY) {
+        throw new Error('Gemini API key is not configured');
+      }
+      genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    } catch (error) {
+      console.error('Error initializing Gemini API:', error);
+      
+      // Return fallback slides with the user's prompt
+      const customizedFallbackSlides = await addImagesToSlides(FALLBACK_SLIDES, prompt);
+      
+      return NextResponse.json({ 
+        slides: customizedFallbackSlides,
+        fallback: true,
+        message: 'Using fallback slides due to AI configuration issue'
+      });
+    }
+
+    // Generate slide content
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      
+      const result = await model.generateContent(`
+        Create a presentation with the following details:
+        Topic: ${prompt}
+        Context: ${context || prompt}
+        Language: ${language}
+
+        For each slide, provide:
+        1. A clear title (prefix with "TITLE:")
+        2. Well-structured content (prefix with "CONTENT:")
+        3. Image description (prefix with "IMAGE:")
+        4. Layout type (prefix with "LAYOUT:" - one of: title, content, two-column, image-text, bullets)
+
+        Format each slide as:
+        ---SLIDE START---
+        TITLE: [Slide Title]
+        CONTENT: [Slide Content]
+        IMAGE: [Brief image description for Unsplash]
+        LAYOUT: [layout type]
+        ---SLIDE END---
+
+        Create 5-7 slides that are engaging and professional.
+      `);
+
+      const response = await result.response;
+      const slidesText = response.text();
+      
+      if (!slidesText) {
+        throw new Error('No content generated');
+      }
+
+      // Parse the slides and add Unsplash image URLs
+      const slides = await parseSlides(slidesText, prompt);
+      
+      // Cache the slides for future use
+      await cacheSlides(cacheKey, slides);
+      
+      return NextResponse.json({ 
+        slides: slides,
+        raw: slidesText 
+      });
+    } catch (error: any) {
+      console.error('Error generating content with Gemini:', error);
+      
+      // Return fallback slides with the user's prompt
+      const customizedFallbackSlides = await addImagesToSlides(FALLBACK_SLIDES, prompt);
+      
+      return NextResponse.json({ 
+        slides: customizedFallbackSlides,
+        fallback: true,
+        message: 'Using fallback slides due to content generation issue'
+      });
+    }
+  } catch (error: any) {
+    console.error('Unhandled error in slide generation:', error);
+    
+    // Create fallback slides with images
+    const fallbackWithImages = await addImagesToSlides(FALLBACK_SLIDES, 'presentation');
+    
+    return NextResponse.json(
+      { 
+        error: 'Failed to generate slides. Please try again.',
+        details: error.message,
+        fallback: true,
+        slides: fallbackWithImages
+      },
+      { status: 200 } // Return 200 with fallback content instead of 500
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
     );
   }
 }

@@ -13,6 +13,7 @@ const nextConfig = {
   },
   experimental: {
     typedRoutes: true,
+<<<<<<< HEAD
     serverActions: true,
   },
   env: {
@@ -31,6 +32,8 @@ const nextConfig = {
         ],
       },
     ];
+=======
+>>>>>>> 90ba128b77a37239696f731a4cbfd4c1385d90f6
   },
   webpack: (config) => {
     config.resolve.alias = {
