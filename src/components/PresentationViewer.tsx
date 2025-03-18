@@ -75,13 +75,49 @@ const fetchImageFromMultipleSources = async (prompt: string): Promise<string> =>
   return `https://via.placeholder.com/800x600/007ACC/FFFFFF?text=${encodedPrompt}`;
 };
 
-const PresentationViewer: React.FC<PresentationViewerProps> = ({
-  title,
-  slides: initialSlides,
-  templateSettings,
-  onEdit,
-  onBack
-}) => {
+// Add this function before the component definition or at the top-level scope
+const PresentationViewer: React.FC<PresentationViewerProps> = ({ title, slides: initialSlides, templateSettings, onEdit, onBack }) => {
+  // Define autoAssignSlideTypes FIRST before using it in useState
+  const autoAssignSlideTypes = (slides: Slide[]): Slide[] => {
+    if (!slides || slides.length === 0) return slides;
+    
+    // Create a copy of slides to modify
+    const updatedSlides = [...slides];
+    
+    // Assign different slide types based on position and content
+    updatedSlides.forEach((slide, index) => {
+      // Skip slides that already have a non-standard type
+      if (slide.slideType && slide.slideType !== 'standard') {
+        return;
+      }
+      
+      // First slide is typically a title slide
+      if (index === 0) {
+        slide.slideType = 'title-slide';
+        return;
+      }
+      
+      // Last slide often works well as a text-heavy conclusion
+      if (index === updatedSlides.length - 1) {
+        slide.slideType = 'text-heavy';
+        return;
+      }
+      
+      // Distribute other slide types based on index to ensure variety
+      const slideTypes: Slide['slideType'][] = [
+        'standard', 'text-heavy', 'image-focus', 'quote', 
+        'statistics', 'comparison', 'timeline', 'example'
+      ];
+      
+      // Use modulo to cycle through different slide types
+      const typeIndex = index % slideTypes.length;
+      slide.slideType = slideTypes[typeIndex];
+    });
+    
+    return updatedSlides;
+  };
+  
+  // NOW you can use the function in your state initialization
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditingSlide, setIsEditingSlide] = useState(false);
@@ -91,7 +127,11 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [aiWritingPrompt, setAiWritingPrompt] = useState<string>('');
   const [isEnhancingContent, setIsEnhancingContent] = useState<boolean>(false);
-  const [internalSlides, setSlides] = useState<Slide[]>(initialSlides);
+  const [internalSlides, setSlides] = useState<Slide[]>(() => {
+    // Auto-assign slide types if they're not already set
+    const hasAssignedTypes = initialSlides.some(slide => slide.slideType && slide.slideType !== 'standard');
+    return hasAssignedTypes ? initialSlides : autoAssignSlideTypes(initialSlides);
+  });
   
   // Get the current slide from internalSlides instead of slides
   const currentSlide = internalSlides[currentSlideIndex];
@@ -242,7 +282,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     startEditingSlide();
   };
   
-  // Update the generateImage function for more reliable image fetching
+  // Update the generateImage function for better handling with Pexels API
   const generateImage = async () => {
     if (!imagePrompt.trim()) {
       toast.error("Please enter an image description");
@@ -253,84 +293,74 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     toast.loading("Generating image...");
     
     try {
-      // Get the current slide
+      // Get the current slide title for context
       const currentSlide = internalSlides[currentSlideIndex];
+      const searchTerm = encodeURIComponent(`${imagePrompt} ${currentSlide.title}`);
+      let imageUrl = '';
       
-      // Create a specific, detailed prompt combining user input and slide context
-      const enhancedPrompt = `${imagePrompt} ${currentSlide.title.replace(/[^\w\s]/gi, '')}`;
-      
-      // Try multiple image sources (Unsplash is primary)
-      let imageUrl;
-      
-      // First attempt: Unsplash
-      try {
-        const timestamp = Date.now();
-        const searchTerm = encodeURIComponent(enhancedPrompt);
-        // Make the image URL more specific with search parameters and prevent caching
-        imageUrl = `https://source.unsplash.com/featured/?${searchTerm}&sig=${timestamp}`;
-        
-        // Test if the image is available
-        await fetch(imageUrl, { method: 'HEAD' });
-        console.log("Using Unsplash image source:", imageUrl);
-      } catch (error) {
-        console.log("Unsplash source failed, trying alternative...");
-        
-        // Second attempt: Pixabay fallback
+      // Try Pexels API first
+      const pexelsKey = process.env.NEXT_PUBLIC_PEXELS_API_KEY;
+      if (pexelsKey) {
         try {
-          // Placeholder for actual Pixabay API implementation (requires API key)
-          // Would require setting up NEXT_PUBLIC_PIXABAY_API_KEY
-          const pixabayKey = process.env.NEXT_PUBLIC_PIXABAY_API_KEY;
-          if (pixabayKey) {
-            const pixabayUrl = `https://pixabay.com/api/?key=${pixabayKey}&q=${encodeURIComponent(enhancedPrompt)}&image_type=photo&per_page=3`;
-            const response = await fetch(pixabayUrl);
-            const data = await response.json();
-            if (data.hits && data.hits.length > 0) {
-              imageUrl = data.hits[0].largeImageURL;
-              console.log("Using Pixabay image source:", imageUrl);
+          console.log("Fetching from Pexels API with key:", pexelsKey);
+          const pexelsUrl = `https://api.pexels.com/v1/search?query=${searchTerm}&per_page=1`;
+          
+          const response = await fetch(pexelsUrl, {
+            headers: {
+              Authorization: pexelsKey
             }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Pexels API responded with status ${response.status}`);
           }
-        } catch (pixabayError) {
-          console.log("Pixabay source also failed");
+          
+          const data = await response.json();
+          console.log("Pexels API response:", data);
+          
+          if (data.photos && data.photos.length > 0) {
+            imageUrl = data.photos[0].src.large;
+            console.log("Using Pexels image:", imageUrl);
+          } else {
+            console.log("No images found from Pexels API");
+          }
+        } catch (pexelsError) {
+          console.error("Pexels API error:", pexelsError);
         }
-        
-        // If all image sources fail, use a placeholder
-        if (!imageUrl) {
-          // Use a placeholder with the search term embedded
-          imageUrl = `https://via.placeholder.com/800x600/4285F4/FFFFFF?text=${encodeURIComponent(enhancedPrompt.substring(0, 30))}`;
-          console.log("Using placeholder image:", imageUrl);
+      } else {
+        console.warn("No Pexels API key found in environment variables");
+      }
+      
+      // Fallback to Unsplash if Pexels failed
+      if (!imageUrl) {
+        try {
+          console.log("Falling back to Unsplash");
+          // Add a timestamp to avoid caching
+          const timestamp = Date.now();
+          imageUrl = `https://source.unsplash.com/featured/?${searchTerm}&sig=${timestamp}`;
+        } catch (unsplashError) {
+          console.error("Unsplash fallback error:", unsplashError);
         }
       }
       
-      // Update the slide with the new image
+      // If both APIs failed, use placeholder
+      if (!imageUrl) {
+        console.log("All image sources failed, using placeholder");
+        imageUrl = `https://via.placeholder.com/800x600/4285F4/FFFFFF?text=${encodeURIComponent(currentSlide.title)}`;
+      }
+      
+      // Update the current slide with the new image
       const updatedSlides = [...internalSlides];
       updatedSlides[currentSlideIndex] = {
         ...updatedSlides[currentSlideIndex],
         slideImage: imageUrl
       };
       
-      // Preload the image before updating state
-      const img = new Image();
-      img.onload = () => {
-        // Only update state after the image has loaded
-        setSlides(updatedSlides);
-        setImagePrompt('');
-        toast.dismiss();
-        toast.success("Image generated successfully!");
-      };
-      
-      img.onerror = () => {
-        // If image loading fails, try a placeholder
-        console.error("Image failed to load:", imageUrl);
-        const placeholderUrl = `https://via.placeholder.com/800x600/4285F4/FFFFFF?text=${encodeURIComponent("Image for: " + currentSlide.title.substring(0, 20))}`;
-        updatedSlides[currentSlideIndex].slideImage = placeholderUrl;
-        
-        setSlides(updatedSlides);
-        toast.dismiss();
-        toast.error("Could not load image, using placeholder instead");
-      };
-      
-      // Start loading the image
-      img.src = imageUrl;
+      // Update slides and clear prompt
+      setSlides(updatedSlides);
+      setImagePrompt('');
+      toast.dismiss();
+      toast.success("Image added to current slide");
       
     } catch (error) {
       console.error("Error generating image:", error);
@@ -432,6 +462,27 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       default:
         return baseContent;
     }
+  };
+  
+  // Define redistributeSlideLayouts after all state is initialized
+  const redistributeSlideLayouts = () => {
+    // Create a copy of current slides
+    const updatedSlides = [...internalSlides];
+    
+    // Reset the slideType for all slides to ensure fresh assignment
+    updatedSlides.forEach(slide => {
+      // Preserve title slide and any custom slide types the user might have set
+      if (slide.slideType !== 'title-slide') {
+        slide.slideType = undefined;
+      }
+    });
+    
+    // Apply the autoAssignSlideTypes function to get a variety of layouts
+    const diversifiedSlides = autoAssignSlideTypes(updatedSlides);
+    
+    // Update state with new slide types
+    setSlides(diversifiedSlides);
+    toast.success("Slide layouts have been diversified!");
   };
   
   // Render the slide content based on the template
@@ -1210,9 +1261,9 @@ Point 2 for right side"
               
               {/* Add image if available */}
               {slide.slideImage && (
-                <div className="mb-4 max-w-[40%] float-right ml-4 relative">
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mb-4 w-full max-w-md mx-auto relative">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse rounded-lg">
+                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -1220,7 +1271,8 @@ Point 2 for right side"
                   <img 
                     src={slide.slideImage} 
                     alt={slide.title}
-                    className="rounded-lg shadow-lg w-full h-auto relative z-10"
+                    className="rounded-lg shadow-lg w-full h-auto object-cover relative z-10"
+                    style={{ maxHeight: '300px' }}
                     onLoad={(e) => {
                       // Hide the loading placeholder when image loads
                       const parent = e.currentTarget.parentElement;
@@ -1415,355 +1467,23 @@ Point 2 for right side"
   
   // Move the renderToolSidebar function here, inside the component
   const renderToolSidebar = () => {
-    if (!activeToolTab) return null;
-
     switch (activeToolTab) {
-      case 'theme':
-        const getColorsForTemplate = (templateId: string) => {
-          switch (templateId) {
-            case 'modern':
-              return {
-                primary: '#3b82f6',
-                accent: '#4285f4',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#f8f9fa'
-              };
-            case 'classic':
-              return {
-                primary: '#10b981',
-                accent: '#34a853',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#f8f9fa'
-              };
-            case 'minimal':
-              return {
-                primary: '#6b7280',
-                accent: '#dadce0',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#f8f9fa'
-              };
-            case 'creative':
-              return {
-                primary: '#8b5cf6',
-                accent: '#9c27b0',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#f3e5f5'
-              };
-            case 'dark':
-              return {
-                primary: '#1f2937',
-                accent: '#5c6bc0',
-                text: '#ffffff',
-                background: '#121212',
-                secondary: '#424242'
-              };
-            case 'gradient':
-              return {
-                primary: '#ec4899',
-                accent: '#8b5cf6',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#fce7f3'
-              };
-            default:
-              return {
-                primary: '#3b82f6',
-                accent: '#4285f4',
-                text: '#202124',
-                background: '#ffffff',
-                secondary: '#f8f9fa'
-              };
-          }
-        };
-
-        return (
-          <div className="absolute right-24 top-16 bottom-0 w-80 bg-white border-l shadow-lg p-4 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 text-black">Theme Settings</h3>
-            <p className="text-black mb-4">Choose a template for your presentation.</p>
-            
-            <div className="space-y-4">
-              {[
-                { id: 'modern', name: 'Modern', color: '#3b82f6', description: 'Clean, professional design with sidebar' },
-                { id: 'classic', name: 'Classic', color: '#10b981', description: 'Traditional with top/bottom borders' },
-                { id: 'minimal', name: 'Minimal', color: '#6b7280', description: 'Simple, distraction-free layout' },
-                { id: 'creative', name: 'Creative', color: '#8b5cf6', description: 'Vibrant design with colored headers' },
-                { id: 'dark', name: 'Dark Mode', color: '#1f2937', description: 'High contrast dark background theme' },
-                { id: 'gradient', name: 'Gradient', color: 'linear-gradient(to right, #ec4899, #8b5cf6)', description: 'Beautiful gradient backgrounds' }
-              ].map(template => (
-                <div 
-                  key={template.id}
-                  className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${
-                    templateSettings.layout === template.id ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                  onClick={() => {
-                    // Update template settings
-                    const newSettings = {
-                      ...templateSettings,
-                      layout: template.id,
-                      colors: getColorsForTemplate(template.id)
-                    };
-                    // Here you would update the template settings in state and parent component
-                    // This is a placeholder since we don't have direct access to the templateSettings state setter
-                    toast.success(`Template changed to ${template.name}`);
-                    
-                    // Mock update for demonstration
-                    const updatedTemplateSettings = newSettings;
-                    // This should call back to a parent component's setter function
-                    // For example: onUpdateTemplateSettings(updatedTemplateSettings);
-                  }}
-                >
-                  <div className="flex items-center">
-                    <div 
-                      className="w-12 h-12 rounded-md mr-3 flex-shrink-0" 
-                      style={{ 
-                        background: typeof template.color === 'string' && template.color.includes('gradient') 
-                          ? template.color 
-                          : template.color
-                      }}
-                    ></div>
-                    <div>
-                      <h4 className="font-medium text-black">{template.name}</h4>
-                      <p className="text-xs text-gray-500">{template.description}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Preview */}
-                  <div className="mt-2 h-16 bg-gray-100 rounded relative overflow-hidden">
-                    {template.id === 'modern' && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1/4 bg-blue-600"></div>
-                    )}
-                    {template.id === 'classic' && (
-                      <>
-                        <div className="absolute top-0 left-0 right-0 h-2 bg-green-600"></div>
-                        <div className="absolute bottom-0 left-0 right-0 h-2 bg-green-600"></div>
-                      </>
-                    )}
-                    {template.id === 'creative' && (
-                      <div className="absolute top-0 left-0 right-0 h-1/3 bg-purple-600"></div>
-                    )}
-                    {template.id === 'dark' && (
-                      <div className="absolute inset-0 bg-gray-800"></div>
-                    )}
-                    {template.id === 'gradient' && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500"></div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Color palette selector */}
-            <div className="mt-6">
-              <h4 className="font-medium text-black mb-2">Color Palette</h4>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { name: 'Blue', primary: '#1a73e8', accent: '#4285f4', text: '#202124' },
-                  { name: 'Green', primary: '#0f9d58', accent: '#34a853', text: '#202124' },
-                  { name: 'Red', primary: '#ea4335', accent: '#f25c54', text: '#202124' },
-                  { name: 'Purple', primary: '#673ab7', accent: '#9c27b0', text: '#202124' },
-                  { name: 'Orange', primary: '#ff9800', accent: '#ffb74d', text: '#202124' },
-                  { name: 'Teal', primary: '#009688', accent: '#4db6ac', text: '#202124' },
-                  { name: 'Dark', primary: '#212121', accent: '#5c6bc0', text: '#ffffff' },
-                  { name: 'Elegant', primary: '#795548', accent: '#bcaaa4', text: '#3e2723' }
-                ].map(color => (
-                  <button
-                    key={color.name}
-                    className="p-1 rounded-md hover:ring-2 hover:ring-blue-500 transition-all"
-                    onClick={() => {
-                      // Update template colors
-                      const newSettings = {
-                        ...templateSettings,
-                        colors: {
-                          primary: color.primary,
-                          accent: color.accent,
-                          text: color.text,
-                          background: templateSettings.colors.background,
-                          secondary: templateSettings.colors.secondary
-                        }
-                      };
-                      // Mock update for demonstration
-                      toast.success(`Color palette changed to ${color.name}`);
-                      // This should call back to parent: onUpdateTemplateSettings(newSettings);
-                    }}
-                  >
-                    <div className="flex flex-col items-center">
-                      <div 
-                        className="w-10 h-10 rounded-full mb-1" 
-                        style={{ backgroundColor: color.primary }}
-                      ></div>
-                      <span className="text-xs text-gray-600">{color.name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-        
-      case 'pages':
-        return (
-          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 text-black">Slides</h3>
-            <div className="space-y-2">
-              {internalSlides.map((slide, index) => (
-                <div 
-                  key={index} 
-                  className={`p-2 border rounded-md cursor-pointer ${currentSlideIndex === index ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'}`}
-                  onClick={() => setCurrentSlideIndex(index)}
-                >
-                  <p className="text-black font-medium truncate">{slide.title}</p>
-                  <p className="text-xs text-gray-500">{slide.slideType || 'standard'}</p>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                const newId = internalSlides.length + 1;
-                const newSlide: Slide = {
-                  id: newId.toString(),
-                  title: `New Slide ${newId}`,
-                  content: ['Add your content here'],
-                  slideType: 'standard' as const
-                };
-                setSlides([...internalSlides, newSlide]);
-                setCurrentSlideIndex(internalSlides.length);
-                toast.success("New slide added");
-              }}
-              className="mt-4 w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Add New Slide
-            </button>
-          </div>
-        );
-        
-      case 'aiImage':
-        return (
-          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 text-black">AI Image Generator</h3>
-            <p className="text-black mb-4">Generate images for your slides using AI.</p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  Image Description
-                </label>
-                <textarea 
-                  className="w-full p-2 border rounded bg-white text-black"
-                  rows={4}
-                  value={imagePrompt}
-                  onChange={(e) => setImagePrompt(e.target.value)}
-                  placeholder="Describe the image you want to generate..."
-                ></textarea>
-              </div>
-              
-              <button 
-                className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400"
-                onClick={generateImage}
-                disabled={isGeneratingImage || !imagePrompt.trim()}
-              >
-                {isGeneratingImage ? (
-                  <div className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating...
-                  </div>
-                ) : (
-                  "Generate Image"
-                )}
-              </button>
-              
-              {internalSlides[currentSlideIndex]?.slideImage && (
-                <div className="mt-4">
-                  <p className="text-sm text-black mb-2">Current Slide Image:</p>
-                  <img 
-                    src={internalSlides[currentSlideIndex].slideImage}
-                    alt={internalSlides[currentSlideIndex].title}
-                    className="w-full h-auto rounded-lg border"
-                  />
-                  <button
-                    onClick={() => {
-                      const updatedSlides = [...internalSlides];
-                      updatedSlides[currentSlideIndex] = {
-                        ...updatedSlides[currentSlideIndex],
-                        slideImage: undefined
-                      };
-                      setSlides(updatedSlides);
-                      toast.success("Image removed");
-                    }}
-                    className="mt-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 w-full"
-                  >
-                    Remove Image
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-        
-      case 'aiWriting':
-        return (
-          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 text-black">AI Writing Assistant</h3>
-            <p className="text-black mb-4">Enhance your slide content with AI.</p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  Current Slide Content:
-                </label>
-                <div className="p-3 bg-gray-50 rounded border mb-4 text-black">
-                  <p className="font-medium">{internalSlides[currentSlideIndex]?.title}</p>
-                  <ul className="mt-2 text-sm space-y-1">
-                    {internalSlides[currentSlideIndex]?.content?.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <label className="block text-sm font-medium text-black mb-1">
-                  Writing Instructions
-                </label>
-                <textarea 
-                  className="w-full p-2 border rounded bg-white text-black"
-                  rows={4}
-                  value={aiWritingPrompt}
-                  onChange={(e) => setAiWritingPrompt(e.target.value)}
-                  placeholder="e.g., Make it more persuasive, Add statistics, Simplify the language..."
-                ></textarea>
-              </div>
-              
-              <button 
-                className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400"
-                onClick={enhanceContentWithAI}
-                disabled={isEnhancingContent || !aiWritingPrompt.trim()}
-              >
-                {isEnhancingContent ? (
-                  <div className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enhancing...
-                  </div>
-                ) : (
-                  "Enhance Content"
-                )}
-              </button>
-            </div>
-          </div>
-        );
-        
       case 'layout':
         return (
           <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4 text-black">Layout Options</h3>
             <p className="text-black mb-4">Choose a layout for the current slide.</p>
+            
+            {/* Add Auto-optimize button */}
+            <button
+              className="w-full py-2 mb-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+              onClick={redistributeSlideLayouts}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Auto-Optimize Slide Layouts
+            </button>
             
             <div className="space-y-2">
               {[
@@ -1802,6 +1522,8 @@ Point 2 for right side"
             </div>
           </div>
         );
+        
+      // Add other cases here as needed
         
       default:
         return null;
@@ -1926,6 +1648,16 @@ Point 2 for right side"
             </svg>
             Presentation
           </button>
+          
+          <button 
+            onClick={redistributeSlideLayouts}
+            className="flex items-center px-4 py-2 bg-green-600 rounded-full text-white hover:bg-green-700"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            Smart Layouts
+          </button>
         </div>
       </div>
       
@@ -2046,9 +1778,9 @@ Point 2 for right side"
                   {!isEditingSlide && !isFullscreen && (
                     <button
                       onClick={startEditingSlide}
-                      className="absolute top-4 right-4 px-3 py-1 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 flex items-center z-10"
+                      className="absolute top-4 right-4 px-4 py-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 flex items-center z-10 font-medium"
                     >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                       Edit Slide
