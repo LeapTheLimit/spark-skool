@@ -26,6 +26,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import pptxgen from 'pptxgenjs';
 import { Switch } from '@headlessui/react';
 import TeacherMascot from '@/components/TeacherMascot';
+import TemplateCustomizer, { TemplateSettings } from '@/components/TemplateCustomizer';
+import PresentationViewer from '@/components/PresentationViewer';
 
 // Simple tooltip component since the import was broken
 function Tooltip({ children, content }: { children: React.ReactNode; content: string }) {
@@ -64,6 +66,7 @@ interface OutlineItem {
   imagePrompt?: string;
   sources?: string[];
   isBulletPoint?: boolean;
+  slideType?: string;
 }
 
 // Enhanced interface for the API response
@@ -117,6 +120,19 @@ const Dropdown = ({
   </div>
 );
 
+// Update the SlideContent interface to match the expected structure
+interface SlideContent {
+  id: string;
+  title: string;
+  content: string[];
+  slideType: string; // Required, not optional
+  backgroundImage: string | undefined; // Required, but can be undefined
+  slideImage: string; // Required, not optional
+  quote?: string;
+  quoteAuthor?: string;
+  statistics?: Array<{ value: string; label: string }>;
+}
+
 export default function SlideCreator() {
   const { t } = useLanguage();
   const [prompt, setPrompt] = useState('');
@@ -159,6 +175,23 @@ export default function SlideCreator() {
   const [fontSize, setFontSize] = useState("text-xl");
   const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(null);
   const [editingBulletContent, setEditingBulletContent] = useState("");
+  
+  // Add these state variables at the top of your component
+  const [editingTitleId, setEditingTitleId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState(prompt);
+  
+  // Replace the showTemplateSelector and selectedTemplate state variables
+  const [showTemplateCustomizer, setShowTemplateCustomizer] = useState(false);
+  const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
+  
+  // Add a state variable to track when to show the presentation viewer
+  const [showPresentationViewer, setShowPresentationViewer] = useState(false);
+  const [generatedSlides, setGeneratedSlides] = useState<any[]>([]);
+  
+  // Add these state variables with the other state definitions at the top of your component
+  const [imagePrompt, setImagePrompt] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -281,120 +314,161 @@ export default function SlideCreator() {
     loadMaterials();
   }, []);
 
-  // Enhanced image generation function for high-quality educational visuals
+  // Update the generateSlideImages function to work better with different slide types
   const generateSlideImages = async () => {
     setIsGeneratingImages(true);
-    toast.success('Generating professional visuals for your slides...', {
+    toast.success('Generating contextual visuals for your slides...', {
       duration: 3000
     });
     
     try {
       const newSlideImages: {[key: number]: string} = {};
       
-      // Add AI-generated fallback images (professional looking, specific to education)
-      const fallbackImages = [
-        "https://images.unsplash.com/photo-1501504905252-473c47e087f8?q=80&w=1200&h=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?q=80&w=1200&h=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1200&h=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1513258496099-48168024aec0?q=80&w=1200&h=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1200&h=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1200&h=800&auto=format&fit=crop"
-      ];
-      
       // Process each slide sequentially
       for (const item of outlineItems) {
-        // Create a specific, educational image prompt
-        const basePrompt = item.title.trim();
+        // Skip image generation for slide types that don't need images
+        const slideType = item.slideType || 'standard';
+        if (slideType === 'quote' && !item.imagePrompt) {
+          continue;
+        }
         
-        // Create a more focused, educational image query
-        const subtopicsArray = item.subtopics || [];
-        const detailPrompt = subtopicsArray.length > 0 ? subtopicsArray[0].trim() : '';
+        // Create a specific image prompt based on the slide content and type
+        let imagePrompt = item.imagePrompt || '';
+        
+        if (!imagePrompt) {
+          // If no image prompt is provided, generate one based on the title and content
+          const title = item.title.trim();
+          const subtopicsText = (item.subtopics || []).join(' ').trim();
           
-        const imageQuery = item.imagePrompt || 
-          `${basePrompt} ${detailPrompt}`.trim();
+          // Get the most significant words from title and content
+          const words = [...title.split(' '), ...subtopicsText.split(' ')]
+            .filter(word => word.length > 3)
+            .filter(word => !['with', 'that', 'this', 'from', 'there', 'their', 'about'].includes(word.toLowerCase()));
+          
+          // Use the most significant words for the image prompt
+          const significantWords = [...new Set(words)].slice(0, 5).join(' ');
+          
+          // Customize prompt based on slide type
+          if (slideType === 'statistics') {
+            imagePrompt = `data visualization chart graph ${title} ${significantWords}`.trim();
+          } else if (slideType === 'image-focus') {
+            imagePrompt = `high quality professional photo of ${title} ${significantWords}`.trim();
+          } else {
+            imagePrompt = `${title} ${significantWords}`.trim().slice(0, 50);
+          }
+        }
         
-        // Much more aggressive cleaning for image query
-        const cleanedQuery = imageQuery
+        // Clean up the image prompt to be more effective
+        const cleanedPrompt = imagePrompt
           .replace(/create|design|visual|image|picture|photo|showing|include|depicting/gi, '')
-          .replace(/and|the|for|with|a|an/gi, ' ')
-          .replace(/[^\w\s]/gi, ' ') // Remove special characters
-          .replace(/\s+/g, ' ')      // Replace multiple spaces with a single space
-          .trim()
-          // Add specific educational/academic terms
-          .concat(' education concept')
-          .slice(0, 50);  // Significantly limit length
+          .replace(/[^\w\s]/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         
         toast.success(`Creating visual for "${item.title}"...`, 
           { id: `image-${item.id}`, duration: 1500 });
         
         try {
-          // Immediately set a fallback image to ensure something shows right away
-          const fallbackImageIndex = (item.id - 1) % fallbackImages.length;
-          newSlideImages[item.id] = fallbackImages[fallbackImageIndex];
+          // Add category-specific keywords to improve image relevance
+          const topicKeywords = getTopicKeywords(item.title);
+          let searchTerm = `${cleanedPrompt} ${topicKeywords}`;
           
-          // Update slides immediately with the fallback image to ensure something is visible right away
-          setSlideImages(prev => ({
-            ...prev,
-            [item.id]: fallbackImages[fallbackImageIndex]
-          }));
+          // For statistics slides, focus on chart/graph images
+          if (slideType === 'statistics') {
+            searchTerm = `${cleanedPrompt} data visualization chart`;
+          }
           
-          // Then try to get a more specific image
-          const width = 1200;
-          const height = 800;
+          const encodedTerm = encodeURIComponent(searchTerm);
           
-          // Add random parameter to avoid caching issues
+          // Determine best image source based on slide type
+          let imageUrl = '';
+          
+          // Try to get an image from Unsplash or other sources
+          try {
+            // Use a cache breaker to avoid getting the same image
           const cacheBreaker = Date.now();
+            const unsplashUrl = `https://source.unsplash.com/featured/800x600?${encodedTerm}&t=${cacheBreaker}`;
+            
+            // For statistics, we could try to get a chart image
+            if (slideType === 'statistics') {
+              // You could use a different source for charts or graphs here
+              // For now, we'll still use Unsplash but with specific terms
+              imageUrl = unsplashUrl;
+            } else {
+              imageUrl = unsplashUrl;
+            }
+            
+            // Wait for the image to be available (simple approach)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+          } catch (imageError) {
+            console.error(`Error fetching image from primary source: ${imageError}`);
+            // Fall back to a placeholder service
+            imageUrl = `https://via.placeholder.com/800x600/cccccc/333333?text=${encodeURIComponent(item.title)}`;
+          }
           
-          // Use simpler educational keywords that work well with Unsplash
-          const categoryKeywords = [
-            "education", 
-            "learning", 
-            "academic", 
-            "knowledge",
-            "concept"
-          ];
-          
-          // Add a random educational keyword to improve results
-          const randomKeyword = categoryKeywords[Math.floor(Math.random() * categoryKeywords.length)];
-          
-          // Create a more specific educational search with properly encoded URI
-          // Use a simpler query structure that's less likely to cause 404 errors
-          const searchTerm = cleanedQuery.split(' ').slice(0, 2).join(' ');
-          const imageUrl = `https://source.unsplash.com/featured/${width}x${height}?${encodeURIComponent(searchTerm + " " + randomKeyword)}&t=${cacheBreaker}`;
-          
-          // Fetch in background but don't wait for it
-          fetch(imageUrl, { method: 'HEAD' })
-            .then(imgResponse => {
-              if (imgResponse.ok) {
-                // Only update if we got a successful response
+          // Set the image for this slide
                 newSlideImages[item.id] = imageUrl;
                 setSlideImages(prev => ({
                   ...prev,
                   [item.id]: imageUrl
                 }));
-              }
-            })
-            .catch(err => {
-              console.log("Error fetching image, keeping fallback:", err);
-            });
-            
         } catch (error) {
           console.error(`Error generating image for slide ${item.id}:`, error);
-          // If we encounter any errors, we already have the fallback set
+          // Set a fallback image
+          const fallbackImage = `https://via.placeholder.com/800x600/cccccc/333333?text=${encodeURIComponent(item.title)}`;
+          setSlideImages(prev => ({
+            ...prev,
+            [item.id]: fallbackImage
+          }));
         }
         
         // Short delay between requests
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      toast.success('Professional slide visuals generated successfully!');
+      toast.success('Slide visuals generated successfully!');
+      
+      // Return the new images
+      return newSlideImages;
     } catch (error) {
       console.error('Image generation error:', error);
       toast.error('Some images could not be generated. Using fallbacks instead.');
+      return {};
     } finally {
       setIsGeneratingImages(false);
     }
   };
+
+  // Helper function to get topic-specific keywords
+  function getTopicKeywords(title: string): string {
+    const topics = [
+      { keywords: ['history', 'ancient', 'empire', 'civilization'], categories: 'historical artifact vintage' },
+      { keywords: ['business', 'economy', 'finance', 'marketing'], categories: 'professional business corporate' },
+      { keywords: ['science', 'biology', 'physics', 'chemistry'], categories: 'scientific laboratory research' },
+      { keywords: ['technology', 'computer', 'digital', 'software'], categories: 'technology digital modern' },
+      { keywords: ['art', 'design', 'creative', 'visual'], categories: 'artistic creative colorful' },
+      { keywords: ['health', 'medical', 'wellness', 'fitness'], categories: 'healthcare medical wellness' },
+      { keywords: ['nature', 'environment', 'climate', 'ecosystem'], categories: 'nature environmental landscape' },
+      { keywords: ['education', 'learning', 'teaching', 'school'], categories: 'education learning academic' }
+    ];
+    
+    // Default category if no match is found
+    let categoryTerms = 'conceptual professional';
+    
+    // Check if the title contains any of the topic keywords
+    const lowerTitle = title.toLowerCase();
+    for (const topic of topics) {
+      for (const keyword of topic.keywords) {
+        if (lowerTitle.includes(keyword)) {
+          categoryTerms = topic.categories;
+          break;
+        }
+      }
+    }
+    
+    return categoryTerms;
+  }
 
   // Update the generateOutline function to properly pass settings to the API
   const generateOutline = async () => {
@@ -410,34 +484,31 @@ export default function SlideCreator() {
       // Build the enhanced prompt with all configuration options
       const enhancedPrompt = buildEnhancedPrompt();
       
-      // Pass ALL settings as separate parameters
+      // Create a clean settings object with all user preferences
       const settings = {
-        pages,
-        wordAmount,
-        audience,
-        slidesForm,
-        imageSource,
-        isOnline
+        pages: pages,
+        wordAmount: wordAmount,
+        audience: audience,
+        slidesForm: slidesForm,
+        imageSource: imageSource,
+        isOnline: isOnline
       };
       
-      // Determine which model to use
-      const modelName = aiModel === 'standard' 
-        ? 'gemini-2.0-flash' 
-        : 'gemini-2.0-flash-thinking-exp-01-21';
+      console.log("Sending settings to API:", settings); // For debugging
       
       // Call the API with the enhanced prompt AND settings
-      const response = await fetch('/api/gemini-generate', {
-        method: 'POST',
+        const response = await fetch('/api/gemini-generate', {
+          method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+          body: JSON.stringify({
           prompt: enhancedPrompt,
-          model: modelName,
+          model: aiModel === 'standard' ? 'gemini-2.0-flash' : 'gemini-2.0-flash-thinking-exp-01-21',
           settings: settings
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate presentation outline');
+        throw new Error(`Failed to generate presentation outline: ${response.status}`);
       }
       
       const data = await response.json();
@@ -447,15 +518,8 @@ export default function SlideCreator() {
       let items: OutlineItem[] = [];
       
       if (data.status === 'success' && data.content) {
-        if (data.content.title) {
-          title = data.content.title;
-        } else if (prompt.trim().length < 60) {
-          // If no title in response but prompt is short, use prompt as title
-          title = prompt.trim();
-        } else {
-          // Default title
-          title = 'Generated Presentation';
-        }
+        // Use title from API response
+        title = data.content.title || 'Generated Presentation';
         
         // Process sections if they exist
         if (data.content.sections && Array.isArray(data.content.sections)) {
@@ -465,17 +529,30 @@ export default function SlideCreator() {
             subtopics: section.subtopics || [],
             isBulletPoint: section.isBulletPoint !== undefined ? section.isBulletPoint : true
           }));
-        } else {
+          
+          // Ensure we have exactly the number of pages requested
+          const requestedPages = parseInt(pages);
+          
+          // If we have fewer items than requested, add more
+          if (items.length < requestedPages) {
+            for (let i = items.length; i < requestedPages; i++) {
+              items.push({
+                id: i + 1,
+                title: `Additional Slide ${i + 1}`,
+                subtopics: ['Content will be added here'],
+                isBulletPoint: true
+              });
+            }
+          }
+          // If we have more items than requested, trim the list
+          else if (items.length > requestedPages) {
+            items = items.slice(0, requestedPages);
+            }
+          } else {
           // Fallback if no sections are provided
-          const numSlides = parseInt(pages);
-          items = Array(numSlides).fill(0).map((_, i) => ({
-            id: i + 1,
-            title: i === 0 ? 'Introduction' : i === numSlides - 1 ? 'Conclusion' : `Slide ${i + 1}`,
-            subtopics: ['Add content here'],
-            isBulletPoint: true
-          }));
-        }
-      } else {
+          throw new Error('Invalid response format from API');
+          }
+        } else {
         // Show error if we didn't get proper content
         throw new Error(data.error || 'Failed to generate content');
       }
@@ -485,13 +562,13 @@ export default function SlideCreator() {
       setOutlineItems(items);
       
       // Switch to outline view
-      setCurrentView('outline');
+        setCurrentView('outline');
       
       toast.success('Outline generated successfully!', { id: loadingId });
       
     } catch (error) {
       console.error('Error generating outline:', error);
-      toast.error('Failed to generate outline. Please try again.', { id: loadingId });
+      toast.error(`Failed to generate outline: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: loadingId });
     } finally {
       setIsLoading(false);
     }
@@ -553,339 +630,132 @@ export default function SlideCreator() {
     toast.success(t('slideCreator.slideUpdated', { default: 'Slide content updated' }));
   };
 
-  // Update the handleGenerateSlides function to create slides without ANY images
+  // Update the handleGenerateSlides function
   const handleGenerateSlides = async () => {
+    // Show the template customizer instead of template selector
+    setShowTemplateCustomizer(true);
+  };
+
+  // Update the handleApplyTemplate function
+  const handleApplyTemplate = (settings: TemplateSettings) => {
+    setTemplateSettings(settings);
+    generatePresentation(settings);
+  };
+
+  // Update the enrichSlideContent function to ensure all required properties are present
+  const enrichSlideContent = (slides: SlideContent[]): SlideContent[] => {
+    return slides.map(slide => {
+      // Ensure slide has a valid type
+      if (!slide.slideType) {
+        slide.slideType = 'standard';
+      }
+      
+      // Ensure slideImage is always present
+      if (!slide.slideImage) {
+        slide.slideImage = ''; // Provide a default empty string
+      }
+      
+      // Fix: Use type assertion to handle the backgroundImage property
+      if (!('backgroundImage' in slide)) {
+        (slide as any).backgroundImage = undefined;
+      }
+      
+      // Ensure slide has content
+      if (!slide.content || slide.content.length === 0 || 
+          (slide.content.length === 1 && slide.content[0].trim() === '')) {
+        
+        // Generate appropriate content based on slide type
+        if (slide.slideType === 'quote') {
+          slide.content = [
+            `"A well-crafted presentation on ${slide.title} can transform understanding."`,
+            "Presentation Expert"
+          ];
+        } else if (slide.slideType === 'statistics') {
+          slide.content = [
+            "67%: Increase in engagement with visual content",
+            "$1.2M: Average value added through clear communication",
+            "3x: Higher retention of information with structured presentations"
+          ];
+        } else {
+          slide.content = [
+            "Key aspects of this topic include comprehensive understanding",
+            "Important principles guide successful implementation",
+            "Real-world applications demonstrate practical value",
+            "Future developments will continue to enhance possibilities"
+          ];
+        }
+      }
+      
+      // Ensure content has sufficient depth (at least 3 items for most slide types)
+      if (slide.slideType !== 'quote' && slide.slideType !== 'section-divider' && 
+          slide.content.length < 3) {
+        
+        // Add generic but relevant points to reach minimum content amount
+        const additionalPoints = [
+          "This aspect connects to broader industry trends and developments",
+          "Case studies reveal consistent patterns of success when implemented properly",
+          "Expert analysis supports these conclusions across multiple contexts",
+          "Integration with existing systems enhances overall effectiveness"
+        ];
+        
+        // Add enough points to reach at least 3
+        const pointsToAdd = Math.max(3 - slide.content.length, 0);
+        slide.content = [
+          ...slide.content,
+          ...additionalPoints.slice(0, pointsToAdd)
+        ];
+      }
+      
+      return slide;
+    });
+  };
+
+  // Update the generatePresentation function to ensure slides have the correct structure
+  const generatePresentation = async (template: TemplateSettings) => {
     const loadingToastId = toast.loading('Creating your presentation...');
     
     try {
-      // Format the content for slides, using all slides in the outline
-      const allSections = outlineItems.map(item => ({
+      // First generate images for slides
+      const slideImages = await generateSlideImages();
+      
+      // Format the content for slides, adding images
+      let slides: SlideContent[] = outlineItems.map(item => ({
+        id: item.id.toString(),
         title: item.title,
         content: item.subtopics || [],
-        sources: sources[item.id] || []
+        slideType: item.slideType || 'standard', // Ensure slideType is never undefined
+        backgroundImage: template.backgroundImage, // Include backgroundImage
+        slideImage: slideImages[item.id] || '', // Ensure slideImage is never undefined
+        // Add special fields based on slide type
+        ...(item.slideType === 'quote' ? {
+          quote: item.subtopics?.[0] || '',
+          quoteAuthor: item.subtopics?.[1] || ''
+        } : {}),
+        ...(item.slideType === 'statistics' ? {
+          statistics: item.subtopics?.map(stat => {
+            const parts = stat.split(':');
+            return {
+              value: parts[0]?.trim() || '',
+              label: parts.slice(1).join(':').trim() || ''
+            };
+          }) || []
+        } : {})
       }));
+      
+      // Enrich and validate slide content
+      slides = enrichSlideContent(slides);
 
-      const presentationData = {
-        title: presentationTitle,
-        sections: allSections
-      };
-
-      toast.loading('Designing slides...', { id: loadingToastId });
+      // Save the slides
+      setGeneratedSlides(slides);
       
-      // Generate a unique ID for this presentation
-      const presentationId = `presentation_${Date.now()}`;
+      // Show the presentation viewer
+      setShowTemplateCustomizer(false);
+      setShowPresentationViewer(true);
       
-      // CREATE THE PRESENTATION USING PPTXGENJS
-      const pptx = new pptxgen();
-      
-      // Set presentation properties
-      pptx.author = "SparkSkool AI";
-      pptx.title = presentationTitle;
-      pptx.subject = "Generated Presentation";
-      
-      // Define theme colors - using purple as our primary color
-      const themeColors = {
-        primary: "#6C63FF", // Purple
-        secondary: "#F8F9FA",
-        accent: "#4F46E5",
-        background: "#FFFFFF",
-        text: "#000000"
-      };
-      
-      // Set master slide defaults for consistent styling
-      pptx.defineSlideMaster({
-        title: 'MASTER_SLIDE',
-        background: { color: themeColors.background },
-        objects: [
-          { 'line': { x: 0, y: 7.1, w: '100%', h: 0, line: { color: themeColors.primary, width: 2 } } }
-        ]
-      });
-      
-      // CREATE TITLE SLIDE (NO IMAGES)
-      const titleSlide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
-      
-      // Add colored sidebar
-      titleSlide.addShape("rect", { 
-        x: 0, y: 0, w: 3, h: "100%", 
-        fill: { color: themeColors.primary }
-      });
-      
-      // Add decorative elements
-      for (let i = 0; i < 10; i++) {
-        titleSlide.addShape("ellipse", {
-          x: 4 + (Math.random() * 6), 
-          y: Math.random() * 7,
-          w: 0.4, h: 0.4,
-          fill: { color: themeColors.primary }
-        });
-      }
-      
-      // Add title with modern typography
-      titleSlide.addText(presentationTitle, {
-        x: 3.5, y: 2.5, w: "60%", h: 2,
-        fontFace: "Arial", fontSize: 40, color: themeColors.text,
-        bold: true, align: "left"
-      });
-      
-      // Add subtitle with a colored bar
-      titleSlide.addShape("rect", {
-        x: 3.5, y: 4.3, w: 4, h: 0.1,
-        fill: { color: themeColors.primary }
-      });
-      
-      titleSlide.addText("Created with SparkSkool AI", {
-        x: 3.5, y: 4.5, w: "60%",
-        fontFace: "Arial", fontSize: 18, color: themeColors.text,
-        italic: true, align: "left"
-      });
-      
-      // Add date with more professional formatting
-      titleSlide.addText(new Date().toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric'
-      }), {
-        x: 3.5, y: 5.5, fontFace: "Arial", fontSize: 14, color: themeColors.text
-      });
-      
-      // Create content slides with different layouts (NO IMAGES)
-      allSections.forEach((section, idx) => {
-        // Choose layout based on slide index
-        const layoutType = idx % 3; // 0, 1, or 2
-        
-        // LAYOUT TYPE 0: Clean layout with sidebar
-        if (layoutType === 0) {
-          const slide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
-          
-          // Add purple sidebar
-          slide.addShape("rect", { 
-            x: 0, y: 0, w: 1.5, h: "100%", 
-            fill: { color: themeColors.primary } 
-          });
-          
-          // Title at top
-          slide.addText(section.title, {
-            x: 1.8, y: 0.5, w: 8, h: 0.8,
-            fontFace: "Arial", fontSize: 28, color: themeColors.text,
-            bold: true
-          });
-          
-          // Content as bullet points - FULL WIDTH (no image)
-          if (section.content && section.content.length > 0) {
-            slide.addText(section.content.map(point => point).join('\n'), {
-              x: 1.8, y: 1.5, w: 8.5, h: 4.5, // Using full width
-              fontFace: "Arial", fontSize: 18, color: themeColors.text,
-              bullet: { type: "bullet" },
-              lineSpacing: 28
-            });
-          }
-          
-          // Slide number
-          slide.addText(`${idx + 1}`, {
-            x: 0.75, y: 6.5, w: 0.5, h: 0.5,
-            fontFace: "Arial", fontSize: 14, color: "#FFFFFF",
-            align: "center"
-          });
-        }
-        // LAYOUT TYPE 1: Colored background with content box
-        else if (layoutType === 1) {
-          const slide = pptx.addSlide();
-          
-          // Light blue background
-          slide.background = { color: "#F0F4FF" };
-          
-          // Add decorative header bar
-          slide.addShape("rect", {
-            x: 0, y: 0, w: "100%", h: 1,
-            fill: { color: themeColors.primary }
-          });
-          
-          // Add decorative footer bar
-          slide.addShape("rect", {
-            x: 0, y: 6.5, w: "100%", h: 1,
-            fill: { color: themeColors.primary }
-          });
-          
-          // Content box (FULL WIDTH - no image)
-          slide.addShape("rect", {
-            x: 0.5, y: 1.5, w: 9.5, h: 4.5,
-            fill: { color: "#FFFFFF" },
-            line: { color: themeColors.primary, width: 1 }
-          });
-          
-          // Title in colored bar
-          slide.addShape("rect", {
-            x: 0.5, y: 1.5, w: 9.5, h: 0.8,
-            fill: { color: themeColors.primary }
-          });
-          
-          slide.addText(section.title, {
-            x: 0.8, y: 1.5, w: 8.9, h: 0.8,
-            fontFace: "Arial", fontSize: 24, color: "#FFFFFF",
-            bold: true, valign: "middle"
-          });
-          
-          // Content in white box
-          if (section.content && section.content.length > 0) {
-            slide.addText(section.content.map(point => `• ${point}`).join('\n'), {
-              x: 0.8, y: 2.5, w: 8.9, h: 3.3,
-              fontFace: "Arial", fontSize: 16, color: themeColors.text,
-              lineSpacing: 28
-            });
-          }
-          
-          // Slide number in bottom right
-          slide.addText(`${idx + 1}`, {
-            x: 9.5, y: 6.7, w: 0.5, h: 0.3,
-            fontFace: "Arial", fontSize: 14, color: "#FFFFFF",
-            align: "center", bold: true
-          });
-        }
-        // LAYOUT TYPE 2: Two-column layout with decorative elements
-        else {
-          const slide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
-          
-          // Title at top with underline
-          slide.addText(section.title, {
-            x: 0.5, y: 0.5, w: 9.5, h: 0.8,
-            fontFace: "Arial", fontSize: 28, color: themeColors.text,
-            bold: true
-          });
-          
-          slide.addShape("rect", {
-            x: 0.5, y: 1.3, w: 9.5, h: 0.05,
-            fill: { color: themeColors.primary }
-          });
-          
-          // Add decorative vertical accent bar
-          slide.addShape("rect", { 
-            x: 0.5, y: 1.5, w: 0.1, h: 4, 
-            fill: { color: themeColors.accent } 
-          });
-          
-          // Add decorative circles
-          for (let i = 0; i < 5; i++) {
-            slide.addShape("ellipse", {
-              x: 0.8 + (i * 0.4), 
-              y: 1.7 + (i * 0.8),
-              w: 0.3, h: 0.3,
-              fill: { color: themeColors.primary },
-              line: { color: themeColors.primary, width: 1 }
-            });
-          }
-          
-          // Content with numbers instead of bullets - FULL WIDTH (no image)
-          if (section.content && section.content.length > 0) {
-            const numberedContent = section.content.map((point, i) => 
-              `${i + 1}. ${point}`
-            ).join('\n\n');
-            
-            slide.addText(numberedContent, {
-              x: 1.5, y: 1.5, w: 8.5, h: 4, // Full width
-              fontFace: "Arial", fontSize: 16, color: themeColors.text,
-              lineSpacing: 28
-            });
-          }
-          
-          // Footer bar
-          slide.addShape("rect", {
-            x: 0, y: 6.7, w: "100%", h: 0.3,
-            fill: { color: themeColors.primary }
-          });
-          
-          // Slide number in footer
-          slide.addText(`${idx + 1} / ${allSections.length}`, {
-            x: 8.5, y: 6.7, w: 1, h: 0.3,
-            fontFace: "Arial", fontSize: 12, color: "#FFFFFF",
-            align: "center", valign: "middle"
-          });
-        }
-      });
-      
-      // Add a professional closing slide
-      const closingSlide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
-      
-      // Bottom colored area
-      closingSlide.addShape("rect", {
-        x: 0, y: 4, w: "100%", h: 3.5,
-        fill: { color: themeColors.primary }
-      });
-      
-      // Thank you text
-      closingSlide.addText("Thank You", {
-        x: 0.5, y: 1.5, w: 9, h: 2,
-        fontFace: "Arial", fontSize: 60, color: themeColors.text,
-        bold: true, align: "center"
-      });
-      
-      // Additional text on colored area
-      closingSlide.addText("Questions & Discussion", {
-        x: 0.5, y: 5, w: 9, h: 1,
-        fontFace: "Arial", fontSize: 32, color: "#FFFFFF",
-        align: "center"
-      });
-
-      // SAVE THE PRESENTATION
-      const pptxOutput = await pptx.write({ outputType: "nodebuffer" });
-      const pptxBlob = new Blob([pptxOutput as BlobPart], {
-        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-      });
-      
-      // Create a URL from the blob
-      const downloadUrl = URL.createObjectURL(pptxBlob);
-      
-      // Create a proper download function that the component can use later
-      const handleDownload = () => {
-        // Create a download link and trigger the download
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = `${presentationTitle.replace(/[^\w\s]/gi, '')}.pptx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      };
-      
-      // Store the download function in a window property for later use
-      // @ts-ignore
-      window.downloadCurrentPresentation = handleDownload;
-      
-      // Create a simple thumbnail for the presentation
-      const thumbnailBgColor = themeColors.primary;
-      const thumbnailUrl = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="100%" height="100%" fill="${encodeURIComponent(thumbnailBgColor)}"/><text x="50%" y="50%" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">${encodeURIComponent(presentationTitle.substring(0, 20))}</text></svg>`;
-      
-      // Create new slide object for local storage
-      const newSlide: SavedSlide = {
-        id: presentationId,
-        title: presentationTitle,
-        createdAt: new Date().toISOString(),
-        thumbnailUrl,
-        downloadUrl,
-        embedUrl: downloadUrl
-      };
-      
-      // Update state with new slide
-      const updatedSlides = [newSlide, ...previousSlides];
-      setPreviousSlides(updatedSlides);
-      localStorage.setItem('previous_slides', JSON.stringify(updatedSlides));
-      
-      // Set the preview URL for display
-      setGeneratedSlideUrl(downloadUrl);
-      
-      // Switch to slides view
-      setCurrentView('slides');
-      
-      // Success notification
-      toast.dismiss(loadingToastId);
-      toast.success('Your presentation is ready! Click Download to save the file.');
-      
+      toast.success('Presentation created successfully!', { id: loadingToastId });
     } catch (error) {
-      console.error('Error in handleGenerateSlides:', error);
-      toast.dismiss(loadingToastId);
-      
-      // Show appropriate error message
-      if (error instanceof Error) {
-        toast.error(error.message || 'Failed to generate presentation');
-      } else {
-        toast.error('An unexpected error occurred');
-      }
+      console.error('Error in generatePresentation:', error);
+      toast.error('Failed to generate presentation. Please try again.', { id: loadingToastId });
     }
   };
 
@@ -1081,15 +951,415 @@ export default function SlideCreator() {
     }
   };
 
+  // Add these functions to handle slide management
+  const handleDeleteSlide = (slideId: number) => {
+    const newItems = outlineItems.filter(item => item.id !== slideId);
+    // Renumber the IDs to keep them sequential
+    const renumberedItems = newItems.map((item, index) => ({
+      ...item,
+      id: index + 1
+    }));
+    setOutlineItems(renumberedItems);
+    toast.success('Slide deleted');
+  };
+
+  const handleMoveSlide = (slideId: number, direction: 'up' | 'down') => {
+    const currentIndex = outlineItems.findIndex(item => item.id === slideId);
+    if (currentIndex === -1) return;
+    
+    // Calculate new index
+    const newIndex = direction === 'up' 
+      ? Math.max(0, currentIndex - 1) 
+      : Math.min(outlineItems.length - 1, currentIndex + 1);
+    
+    // Don't move if already at the edge
+    if (newIndex === currentIndex) return;
+    
+    // Create a new array with the item moved
+    const newItems = [...outlineItems];
+    const [movedItem] = newItems.splice(currentIndex, 1);
+    newItems.splice(newIndex, 0, movedItem);
+    
+    // Renumber IDs to keep them sequential
+    const renumberedItems = newItems.map((item, index) => ({
+      ...item,
+      id: index + 1
+    }));
+    
+    setOutlineItems(renumberedItems);
+  };
+
+  const handleTitleEdit = (id: number, title: string) => {
+    setEditingTitleId(id);
+    setEditingTitle(title);
+  };
+
+  const saveTitleEdit = () => {
+    if (editingTitleId === null) return;
+    
+    const newItems = [...outlineItems];
+    const itemIndex = newItems.findIndex(item => item.id === editingTitleId);
+    
+    if (itemIndex >= 0) {
+      newItems[itemIndex] = { ...newItems[itemIndex], title: editingTitle };
+      setOutlineItems(newItems);
+    } else if (editingTitleId === 0) {
+      // Editing presentation title
+      setPresentationTitle(editingTitle);
+    }
+    
+    setEditingTitleId(null);
+  };
+
+  const savePromptEdit = () => {
+    setPrompt(editedPrompt);
+    setIsEditingPrompt(false);
+    toast.success('Prompt updated');
+  };
+
+  // Add this function to manage the active tool tab
+  const [activeToolTab, setActiveToolTab] = useState<'theme' | 'pages' | 'aiImage' | 'aiWriting' | 'layout' | null>(null);
+
+  // Add this to handle updating the current slide layout
+  const updateCurrentSlideLayout = (layoutType: string) => {
+    if (currentSlideIndex < outlineItems.length) {
+      const newItems = [...outlineItems];
+      newItems[currentSlideIndex] = {
+        ...newItems[currentSlideIndex],
+        slideType: layoutType
+      };
+      setOutlineItems(newItems);
+      toast.success(`Slide layout updated to ${layoutType}`);
+    }
+  };
+
+  // Add this function to generate image for current slide
+  const generateImageForCurrentSlide = async (prompt: string) => {
+    if (!prompt.trim()) {
+      toast.error("Please enter an image description");
+      return;
+    }
+    
+    setIsGeneratingImages(true);
+    toast.loading(`Generating image for "${outlineItems[currentSlideIndex]?.title}"...`);
+    
+    try {
+      // Optimize the prompt for better image search
+      const slideTitle = outlineItems[currentSlideIndex]?.title || '';
+      const optimizedPrompt = `${prompt} ${slideTitle}`.trim();
+      const encodedPrompt = encodeURIComponent(optimizedPrompt);
+      
+      // Add cache breaker for fresh results
+      const cacheBreaker = Date.now();
+      const imageUrl = `https://source.unsplash.com/featured/800x600?${encodedPrompt}&t=${cacheBreaker}`;
+      
+      // Wait for image to be available
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update the slide with the new image
+      const newItems = [...outlineItems];
+      newItems[currentSlideIndex] = {
+        ...newItems[currentSlideIndex],
+        imagePrompt: prompt
+      };
+      setOutlineItems(newItems);
+      
+      // Update image in the slideImages state
+      setSlideImages(prev => ({
+        ...prev,
+        [newItems[currentSlideIndex].id]: imageUrl
+      }));
+      
+      toast.success("Image generated successfully!");
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  };
+
+  // Add this function to enhance current slide content with AI
+  const enhanceSlideContent = async (instruction: string) => {
+    if (!instruction.trim()) {
+      toast.error("Please enter writing instructions");
+      return;
+    }
+    
+    const loadingToast = toast.loading("Enhancing slide content...");
+    
+    try {
+      const currentSlide = outlineItems[currentSlideIndex];
+      
+      // Call the AI API to enhance the content
+      const response = await fetch('/api/gemini-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Enhance this slide content: "${currentSlide.title}"
+                   Current content: ${currentSlide.subtopics?.join(", ") || "Empty"}
+                   
+                   User instructions: ${instruction}
+                   
+                   Provide 4-6 enhanced bullet points that maintain the slide's purpose but make it more engaging, 
+                   informative, and aligned with the user's instructions.
+                   Return ONLY the bullet points as an array, no other text.`,
+          model: 'gemini-2.0-flash'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to enhance content");
+      }
+      
+      const data = await response.json();
+      
+      // Extract the enhanced content
+      let enhancedContent: string[] = [];
+      if (data.status === 'success' && data.content) {
+        if (Array.isArray(data.content)) {
+          enhancedContent = data.content;
+        } else if (data.content.sections && data.content.sections[0]?.subtopics) {
+          enhancedContent = data.content.sections[0].subtopics;
+        }
+      }
+      
+      // Fallback if no content was generated
+      if (enhancedContent.length === 0) {
+        throw new Error("No enhanced content generated");
+      }
+      
+      // Update the slide with enhanced content
+      const newItems = [...outlineItems];
+      newItems[currentSlideIndex] = {
+        ...newItems[currentSlideIndex],
+        subtopics: enhancedContent
+      };
+      setOutlineItems(newItems);
+      
+      toast.success("Content enhanced successfully!", { id: loadingToast });
+    } catch (error) {
+      console.error("Error enhancing content:", error);
+      toast.error("Failed to enhance content. Please try again.", { id: loadingToast });
+    }
+  };
+
+  // Add this component for the sidebar tools
+  const renderToolSidebar = () => {
+    switch (activeToolTab) {
+      case 'theme':
+  return (
+          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 text-black">Theme Settings</h3>
+            <p className="text-black mb-4">Choose a theme for your presentation.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {['Modern', 'Classic', 'Minimal', 'Bold', 'Creative', 'Professional'].map(theme => (
+                <button
+                  key={theme}
+                  className="p-2 border rounded-md hover:bg-blue-50 text-black"
+                  onClick={() => {
+                    toast.success(`Theme set to ${theme}`);
+                  }}
+                >
+                  {theme}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        
+      case 'pages':
+        return (
+          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 text-black">Slides</h3>
+            <div className="space-y-2">
+              {outlineItems.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className={`p-2 border rounded-md cursor-pointer ${currentSlideIndex === index ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'}`}
+                  onClick={() => setCurrentSlideIndex(index)}
+                >
+                  <p className="text-black font-medium truncate">{item.title}</p>
+                  <p className="text-xs text-gray-500">{item.slideType || 'standard'}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                const newId = outlineItems.length + 1;
+                setOutlineItems([...outlineItems, {
+                  id: newId,
+                  title: `New Slide ${newId}`,
+                  subtopics: ['Content will be added here'],
+                  slideType: 'standard'
+                }]);
+                setCurrentSlideIndex(outlineItems.length);
+                toast.success("New slide added");
+              }}
+              className="mt-4 w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Add New Slide
+            </button>
+          </div>
+        );
+        
+      case 'aiImage':
+        return (
+          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 text-black">AI Image Generator</h3>
+            <p className="text-black mb-4">Generate images for your slides using AI.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">
+                  Image Description
+                </label>
+              <textarea
+                  className="w-full p-2 border rounded text-black"
+                  rows={4}
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  placeholder="Describe the image you want to generate..."
+                ></textarea>
+              </div>
+              
+                        <button 
+                className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400"
+                onClick={() => generateImageForCurrentSlide(imagePrompt)}
+                disabled={isGeneratingImages || !imagePrompt.trim()}
+              >
+                {isGeneratingImages ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                      </div>
+                ) : (
+                  "Generate Image"
+                )}
+              </button>
+              
+              {slideImages[outlineItems[currentSlideIndex]?.id] && (
+                    <div className="mt-4">
+                  <p className="text-sm text-black mb-2">Current Slide Image:</p>
+                  <img 
+                    src={slideImages[outlineItems[currentSlideIndex]?.id]}
+                    alt={outlineItems[currentSlideIndex]?.title}
+                    className="w-full h-auto rounded-lg border"
+                  />
+                  <button
+                    onClick={() => {
+                      const newSlideImages = {...slideImages};
+                      delete newSlideImages[outlineItems[currentSlideIndex]?.id];
+                      setSlideImages(newSlideImages);
+                      toast.success("Image removed");
+                    }}
+                    className="mt-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 w-full"
+                  >
+                    Remove Image
+                  </button>
+                    </div>
+                  )}
+                </div>
+            </div>
+        );
+        
+      case 'aiWriting':
+        return (
+          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 text-black">AI Writing Assistant</h3>
+            <p className="text-black mb-4">Enhance your slide content with AI.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">
+                  Current Slide Content:
+                </label>
+                <div className="p-3 bg-gray-50 rounded border mb-4 text-black">
+                  <p className="font-medium">{outlineItems[currentSlideIndex]?.title}</p>
+                  <ul className="mt-2 text-sm space-y-1">
+                    {outlineItems[currentSlideIndex]?.subtopics?.map((item, i) => (
+                      <li key={i}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <label className="block text-sm font-medium text-black mb-1">
+                  Writing Instructions
+                </label>
+                <textarea 
+                  className="w-full p-2 border rounded text-black"
+                  rows={4}
+                  value={slideContent}
+                  onChange={(e) => setSlideContent(e.target.value)}
+                  placeholder="e.g., Make it more persuasive, Add statistics, Simplify the language..."
+                ></textarea>
+              </div>
+              
+                <button 
+                className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                onClick={() => enhanceSlideContent(slideContent)}
+                disabled={!slideContent.trim()}
+                >
+                Enhance Content
+                </button>
+            </div>
+          </div>
+        );
+        
+      case 'layout':
+        return (
+          <div className="absolute right-24 top-16 bottom-0 w-72 bg-white border-l shadow-lg p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 text-black">Layout Options</h3>
+            <p className="text-black mb-4">Choose a layout for the current slide.</p>
+            
+            <div className="space-y-2">
+              {[
+                { id: 'standard', name: 'Bullet Points', icon: '•' },
+                { id: 'title-slide', name: 'Title Only', icon: 'T' },
+                { id: 'text-heavy', name: 'Text Heavy', icon: '¶' },
+                { id: 'split', name: 'Split Content/Image', icon: '◧' },
+                { id: 'quote', name: 'Quote', icon: '"' },
+                { id: 'statistics', name: 'Statistics', icon: '#' },
+                { id: 'timeline', name: 'Timeline', icon: '↔' },
+                { id: 'comparison', name: 'Comparison', icon: '⇄' },
+                { id: 'image-focus', name: 'Image Focus', icon: '🖼' },
+                { id: 'diagram', name: 'Diagram', icon: '◉' },
+                { id: 'example', name: 'Example', icon: '★' }
+              ].map(layout => (
+                <button
+                  key={layout.id}
+                  className={`flex items-center w-full p-3 border rounded-md hover:bg-blue-50 text-black ${
+                    outlineItems[currentSlideIndex]?.slideType === layout.id ? 'bg-blue-100 border-blue-300' : ''
+                  }`}
+                  onClick={() => updateCurrentSlideLayout(layout.id)}
+                >
+                  <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md mr-3 text-lg font-medium">
+                    {layout.icon}
+                  </span>
+                  <span>{layout.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        
+      default:
+        return null;
+    }
+  };
+
   // Render the prompt/input view
   const renderPromptView = () => (
     <div className="border border-gray-200 rounded-lg p-6 mb-6">
       <div className="relative">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
           placeholder="You can specify the title of presentation or provide enhancing requirement."
-          className="w-full h-20 text-black bg-white focus:outline-none resize-none"
+          className="w-full h-20 text-black bg-white focus:outline-none resize-none font-medium"
         />
         
         {previewImage && (
@@ -1099,35 +1369,35 @@ export default function SlideCreator() {
               alt="Preview" 
               className="h-20 w-auto rounded border border-gray-200" 
             />
-            <button 
+                <button 
               onClick={() => setPreviewImage(null)}
               className="absolute top-1 right-1 bg-gray-800 bg-opacity-70 rounded-full p-1 text-white"
-            >
+                >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
-          </div>
+                </button>
+            </div>
         )}
         
-        {uploadedFiles.length > 0 && (
+              {uploadedFiles.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
-            {uploadedFiles.map((file, index) => (
+                    {uploadedFiles.map((file, index) => (
               <div key={index} className="flex items-center bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm">
                 <DocumentIcon className="w-4 h-4 mr-1" />
                 <span className="truncate max-w-[150px] text-black">{file.name}</span>
-                <button 
-                  onClick={() => handleRemoveFile(index)}
+              <button
+                          onClick={() => handleRemoveFile(index)}
                   className="ml-1 text-blue-500 hover:text-blue-700"
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              >
+                          <XMarkIcon className="w-4 h-4" />
+              </button>
+            </div>
+                    ))}
           </div>
         )}
-      </div>
-      
+          </div>
+
       {/* Configuration options */}
       <div className="mt-6 grid grid-cols-5 gap-4 bg-gray-50 p-4 rounded-lg">
         <div>
@@ -1136,9 +1406,9 @@ export default function SlideCreator() {
             value={pages}
             onChange={setPages}
             options={pagesOptions}
-          />
-        </div>
-
+                        />
+            </div>
+            
         <div>
           <p className="text-sm text-black mb-2">Word Amount</p>
           <Dropdown 
@@ -1149,7 +1419,7 @@ export default function SlideCreator() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
             </svg>}
           />
-        </div>
+                        </div>
 
         <div>
           <p className="text-sm text-black mb-2">Audience</p>
@@ -1158,7 +1428,7 @@ export default function SlideCreator() {
             onChange={setAudience}
             options={audienceOptions}
           />
-        </div>
+                    </div>
 
         <div>
           <p className="text-sm text-black mb-2">Slides Form</p>
@@ -1167,8 +1437,8 @@ export default function SlideCreator() {
             onChange={setSlidesForm}
             options={slidesFormOptions}
           />
-        </div>
-        
+                    </div>
+
         <div>
           <p className="text-sm text-black mb-2">Image Source</p>
           <Dropdown 
@@ -1176,8 +1446,8 @@ export default function SlideCreator() {
             onChange={setImageSource}
             options={imageSourceOptions}
           />
-        </div>
-      </div>
+                  </div>
+                </div>
       
       {/* Bottom toolbar */}
       <div className="flex items-center justify-between mt-6">
@@ -1195,20 +1465,20 @@ export default function SlideCreator() {
               />
             </Switch>
             <span className="ml-2 text-sm font-medium text-black">Online</span>
-          </div>
-          
-          <button 
+            </div>
+      
+            <button 
             onClick={handleUploadFile}
             className="text-gray-500 hover:text-gray-700 p-2"
             title="Attach file"
-          >
+            >
             <PaperClipIcon className="w-5 h-5" />
-          </button>
-        </div>
-        
+            </button>
+                </div>
+
         <div className="flex items-center space-x-4">
           {/* AI model dropdown with black text */}
-          <div className="relative">
+              <div className="relative">
             <select
               value={aiModel}
               onChange={(e) => setAiModel(e.target.value)}
@@ -1220,162 +1490,255 @@ export default function SlideCreator() {
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
               <ChevronDownIcon className="w-4 h-4 text-gray-500" />
-            </div>
-          </div>
+                  </div>
+                </div>
           
-          <button 
-            onClick={generateOutline}
-            disabled={isLoading}
+              <button
+                onClick={generateOutline}
+                disabled={isLoading}
             className={`bg-blue-500 hover:bg-blue-600 text-white rounded-lg p-3 transition ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
           >
             {isLoading ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12 2h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             ) : (
               <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+              </button>
+              </div>
+                  </div>
+                </div>
   );
 
   // Render the outline view
   const renderOutlineView = () => (
-    <div className="border border-gray-200 rounded-lg p-6 mb-6">
-      {/* Prompt section */}
+    <div className="border border-gray-200 rounded-lg p-4 mb-6">
+      {/* Prompt section with inline editing */}
       <div className="mb-5">
-        <h2 className="text-xl font-semibold mb-2">Prompt</h2>
-        <div className="border rounded-lg p-4 bg-white">
-          <p className="text-black">{prompt}</p>
-        </div>
-      </div>
-      
-      {/* Outline section */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Outline</h2>
-        <div className="space-y-4">
-          {/* Title (Slide 1) */}
-          <div className="flex">
-            <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-gray-600 text-2xl mr-4">
-              1
-            </div>
-            <div className="bg-white border rounded-lg flex-1 p-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-black">{presentationTitle}</h3>
-                <button
-                  onClick={() => {
-                    const newTitle = window.prompt('Edit presentation title:', presentationTitle);
-                    if (newTitle) setPresentationTitle(newTitle);
-                  }}
-                  className="p-1 text-gray-500 hover:text-blue-500"
-                  title="Edit title"
+        <h2 className="text-md font-semibold mb-2 text-black">Prompt</h2>
+        <div className="border rounded-lg p-3 bg-white relative">
+          {isEditingPrompt ? (
+            <div className="flex flex-col">
+              <textarea 
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                className="w-full p-2 text-black bg-white border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={3}
+              />
+              <div className="flex justify-end mt-2 space-x-2">
+                <button 
+                  onClick={() => setIsEditingPrompt(false)}
+                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
                 >
-                  <PencilIcon className="w-5 h-5" />
+                  Cancel
+                </button>
+                <button 
+                  onClick={savePromptEdit}
+                  className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                >
+                  Save
                 </button>
               </div>
             </div>
+          ) : (
+            <div className="flex justify-between items-start">
+              <p className="text-black">{prompt}</p>
+              <button 
+                onClick={() => {
+                  setIsEditingPrompt(true);
+                  setEditedPrompt(prompt);
+                }}
+                className="ml-2 p-1 text-gray-500 hover:text-blue-500"
+                title="Edit prompt"
+              >
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           </div>
-          
-          {/* Slide Outline Items */}
+            </div>
+            
+      {/* Outline section */}
+      <div>
+        <h2 className="text-md font-semibold mb-2 text-black">Outline</h2>
+        <div className="space-y-2">
+          {/* Title (First slide) */}
+                    <div className="flex items-center">
+            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-600 text-lg mr-2">
+              1
+                  </div>
+            <div className="bg-white border rounded flex-1">
+              {editingTitleId === 0 ? (
+                <div className="flex items-center p-2">
+                      <input 
+                        type="text" 
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onBlur={saveTitleEdit}
+                    onKeyDown={(e) => e.key === 'Enter' && saveTitleEdit()}
+                    className="flex-1 px-2 py-1 text-black bg-white border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    autoFocus
+                      />
+                    </div>
+                  ) : (
+                <div className="flex items-center justify-between p-2">
+                  <h3 className="text-md font-bold text-black">{presentationTitle}</h3>
+                  <div className="flex space-x-1">
+            <button
+                      onClick={() => {
+                        handleTitleEdit(0, presentationTitle);
+                      }}
+                      className="p-1 text-gray-500 hover:text-blue-500"
+                      title="Edit title"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+            </div>
+            </div>
+            
+          {/* Slide Items - with reordering and deletion options */}
           {outlineItems.map((item, index) => (
-            <div key={item.id} className="flex">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-gray-600 text-2xl mr-4">
+            <div key={item.id} className="flex items-center">
+              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-600 text-lg mr-2">
                 {index + 2}
               </div>
-              <div className="bg-white border rounded-lg flex-1 p-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-lg font-bold text-black">{item.title}</h3>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          const newTitle = window.prompt('Edit slide title:', item.title);
-                          if (newTitle) {
-                            const newItems = [...outlineItems];
-                            const itemIndex = newItems.findIndex(i => i.id === item.id);
-                            if (itemIndex >= 0) {
-                              newItems[itemIndex] = { ...newItems[itemIndex], title: newTitle };
-                              setOutlineItems(newItems);
-                            }
-                          }
-                        }}
+              <div className="bg-white border rounded flex-1">
+                {editingTitleId === item.id ? (
+                  <div className="flex items-center p-2">
+                      <input 
+                        type="text" 
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={saveTitleEdit}
+                      onKeyDown={(e) => e.key === 'Enter' && saveTitleEdit()}
+                      className="flex-1 px-2 py-1 text-black bg-white border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                      />
+                    </div>
+                  ) : (
+                  <div className="flex items-center justify-between p-2">
+                    <div className="flex items-center gap-2">
+                      {item.isBulletPoint && <span className="text-black">•</span>}
+                      <h3 className="text-md font-medium text-black">{item.title}</h3>
+                </div>
+                    <div className="flex space-x-1">
+              <button
+                        onClick={() => handleMoveSlide(item.id, 'up')}
+                        className="p-1 text-gray-500 hover:text-blue-500"
+                        title="Move up"
+                        disabled={index === 0}
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                        </svg>
+              </button>
+              <button
+                        onClick={() => handleMoveSlide(item.id, 'down')}
+                        className="p-1 text-gray-500 hover:text-blue-500"
+                        title="Move down"
+                        disabled={index === outlineItems.length - 1}
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+              </button>
+              <button 
+                        onClick={() => handleTitleEdit(item.id, item.title)}
                         className="p-1 text-gray-500 hover:text-blue-500"
                         title="Edit slide"
                       >
-                        <PencilIcon className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {item.isBulletPoint ? (
-                    <ul className="list-disc ml-5 space-y-1">
-                      {item.subtopics && item.subtopics.map((point, i) => (
-                        <li key={i} className="text-black">{point}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-black ml-2">
-                      {item.subtopics && item.subtopics.join('\n')}
-                    </p>
-                  )}
-                </div>
-              </div>
+                        <PencilIcon className="w-4 h-4" />
+              </button>
+              <button 
+                        onClick={() => handleDeleteSlide(item.id)}
+                        className="p-1 text-gray-500 hover:text-red-500"
+                        title="Delete slide"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
             </div>
-          ))}
-        </div>
-        
+                </div>
+                )}
+                  </div>
+                </div>
+              ))}
+          </div>
+
+        {/* Button to add a new slide */}
+              <button 
+          onClick={() => {
+            const newId = outlineItems.length + 1;
+            setOutlineItems([...outlineItems, {
+              id: newId,
+              title: `New Slide ${newId}`,
+              subtopics: ['Content will be added here'],
+              isBulletPoint: true
+            }]);
+          }}
+          className="mt-3 flex items-center px-4 py-2 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50"
+        >
+          <svg className="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+          Add Slide
+              </button>
+              
         {/* Theme selection button at bottom */}
         <div className="mt-6 flex justify-center">
-          <button
+              <button 
             onClick={handleGenerateSlides}
             className="flex items-center px-6 py-3 bg-indigo-600 rounded-full text-white hover:bg-indigo-700 mx-2"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M7 12H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+                </svg>
             Select Theme
-          </button>
-        </div>
-      </div>
-    </div>
+              </button>
+                    </div>
+                  </div>
+                          </div>
   );
 
   // Render the slides view
   const renderSlidesView = () => (
     <div className="border border-gray-200 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setCurrentView('outline')}
+              <button
+                onClick={() => setCurrentView('outline')}
           className="flex items-center text-blue-600 hover:text-blue-800"
-        >
+              >
           <ArrowLeftIcon className="w-5 h-5 mr-1" />
-          Back to Outline
-        </button>
+                Back to Outline
+              </button>
         
         <div className="flex space-x-3">
-          <button
+              <button
             onClick={() => saveToMaterials()}
-            disabled={isSavingToMaterials}
+                disabled={isSavingToMaterials}
             className="flex items-center px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100"
-          >
+              >
             <FolderIcon className="w-4 h-4 mr-1" />
-            Save to Materials
-          </button>
+                Save to Materials
+              </button>
           <a 
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              // @ts-ignore
-              if (window.downloadCurrentPresentation) {
-                // @ts-ignore
-                window.downloadCurrentPresentation();
+                  // @ts-ignore
+                  if (window.downloadCurrentPresentation) {
+                    // @ts-ignore
+                    window.downloadCurrentPresentation();
               }
             }}
             className="flex items-center px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
@@ -1383,22 +1746,22 @@ export default function SlideCreator() {
             <ArrowUpTrayIcon className="w-4 h-4 mr-1" />
             Download
           </a>
-        </div>
-      </div>
-      
+            </div>
+          </div>
+
       {/* Simplified slide view */}
       <div className="mt-8 max-w-3xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="bg-blue-600 text-white p-8 text-center">
             <h2 className="text-3xl font-bold mb-4">{presentationTitle}</h2>
             <p className="text-xl">Presentation created successfully!</p>
-          </div>
+        </div>
           <div className="p-8">
             <div className="text-center mb-8">
               <p className="text-gray-600 mb-4">Your presentation has been generated with {outlineItems.length} slides.</p>
               <p className="text-gray-600">Click the Download button to save your presentation.</p>
-            </div>
-            
+              </div>
+              
             <div className="flex justify-center">
               <button 
                 onClick={() => {
@@ -1414,47 +1777,76 @@ export default function SlideCreator() {
                 Download Presentation
               </button>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                    </div>
+                  </div>
+              </div>
+              </div>
   );
-
-  return (
+                      
+                      return (
     <div className="bg-gray-50 min-h-screen p-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-6 pb-0">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">
-              {currentView === 'prompt' ? 'Presentation from User and Internet Content with AI' : presentationTitle}
-            </h1>
-            <TeacherMascot 
-              width={80} 
-              height={80} 
-              variant={selectedTheme as "white" | "blue" | "yellow" | "teal" | "purple" | "orange" | "rose" | "indigo" | "emerald" | "amber"} 
-              toolType="creator" 
-              className="hidden md:block" 
+      {/* Only show the main content when not viewing the presentation */}
+      {!showPresentationViewer && (
+        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="p-6 pb-0">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl font-bold text-gray-800">
+                {currentView === 'prompt' ? 'Presentation from User and Internet Content with AI' : presentationTitle}
+              </h1>
+              <TeacherMascot 
+                width={80} 
+                height={80} 
+                variant={selectedTheme as "white" | "blue" | "yellow" | "teal" | "purple" | "orange" | "rose" | "indigo" | "emerald" | "amber"} 
+                toolType="creator" 
+                className="hidden md:block" 
+              />
+            </div>
+            
+            {/* Render the appropriate view */}
+            {currentView === 'prompt' 
+              ? renderPromptView() 
+              : currentView === 'outline' 
+                ? renderOutlineView() 
+                : renderSlidesView()
+            }
+            
+            {/* Hidden file input */}
+                  <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
             />
+            
+            {/* Template customizer */}
+            {showTemplateCustomizer && (
+              <TemplateCustomizer 
+                presentationTitle={presentationTitle}
+                prompt={prompt}
+                onBack={() => setShowTemplateCustomizer(false)}
+                onApply={handleApplyTemplate}
+              />
+            )}
           </div>
-          
-          {/* Render the appropriate view */}
-          {currentView === 'prompt' 
-            ? renderPromptView() 
-            : currentView === 'outline' 
-              ? renderOutlineView() 
-              : renderSlidesView()
-          }
-          
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            multiple
-          />
         </div>
-      </div>
+      )}
+
+      {/* Presentation viewer - now completely separate */}
+      {showPresentationViewer && (
+        <PresentationViewer
+          title={presentationTitle}
+          slides={generatedSlides}
+          templateSettings={templateSettings}
+          onEdit={() => {
+            setShowPresentationViewer(false);
+            setShowTemplateCustomizer(true);
+          }}
+          onBack={() => {
+            setShowPresentationViewer(false);
+          }}
+        />
+      )}
     </div>
   );
 } 

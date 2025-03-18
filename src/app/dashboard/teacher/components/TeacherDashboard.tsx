@@ -15,14 +15,16 @@ import {
   UsersIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  SparklesIcon
+  SparklesIcon,
+  PuzzlePieceIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
   ChatBubbleLeftIcon,
   DocumentTextIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  DocumentIcon
 } from '@heroicons/react/24/outline';
 import { formatDistanceToNow, format } from 'date-fns';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
@@ -31,6 +33,10 @@ import SparkMascot from '@/components/SparkMascot';
 import { useRouter } from 'next/navigation';
 import routes from '@/app/routes';
 import React from 'react';
+import TeacherMascot from '@/components/TeacherMascot';
+import type { Route } from 'next';
+import type { UrlObject } from 'url';
+import type { ComponentType } from 'react';
 
 interface TeacherDashboardProps {
   teacher: {
@@ -181,6 +187,40 @@ const onboardingSteps = [
   }
 ];
 
+// Define proper types for your icons and routes
+interface QuickAction {
+  title: string;
+  description: string;
+  href: string | UrlObject;
+  iconName: string;
+  iconBg: string;
+  iconColor: string;
+}
+
+interface TeachingTool {
+  name: string;
+  description: string;
+  href: string | UrlObject;
+  iconName: string;
+  bgColor: string;
+  iconColor: string;
+}
+
+// Icon mapper function - this safely maps string names to actual components
+const getIconComponent = (iconName: string) => {
+  const iconMap: {[key: string]: React.FC<{className?: string}>} = {
+    'ChatBubbleLeftIcon': ChatBubbleLeftIcon,
+    'DocumentTextIcon': DocumentTextIcon,
+    'ChartBarIcon': ChartBarIcon,
+    'UserGroupIcon': UserGroupIcon,
+    'BookOpenIcon': BookOpenIcon,
+    'AcademicCapIcon': AcademicCapIcon,
+    // Add all other icons you use
+  };
+  
+  return iconMap[iconName] || ChartBarIcon; // Default fallback
+};
+
 export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents }: TeacherDashboardProps) {
   const { recentChats, savedMaterials, recentGrades } = useRecentActivity(teacher?.email || '');
   const { t } = useLanguage();
@@ -243,239 +283,252 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
     throw new Error('Function not implemented.');
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30">
-      <div className="flex flex-col gap-6 p-6 pb-12">
-        {/* SECTION 1: Enhanced Header with added AI Insights and Upcoming Events */}
-        <div className="relative bg-gradient-to-br from-[#0099e5] to-[#3ab8fe] p-8 rounded-3xl shadow-md mb-8 overflow-hidden">
-          {/* White gradient line at top */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-white/0 via-white/50 to-white/0"></div>
-          
-          {/* Inner white gradient glow */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-          
-          {/* Top section with greeting */}
-          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:block">
-                <SparkMascot 
-                  width={64} 
-                  height={64} 
-                  className="drop-shadow-lg" 
-                  blinking={true}
-                  variant="white"
-                />
-              </div>
-              
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  {greeting}, {teacher?.name || t('teacher')}!
-                </h1>
-                <p className="text-white/90 mt-1 font-medium">
-                  {format(new Date(), 'EEEE, MMMM d, yyyy')}
-                </p>
-              </div>
-            </div>
-            
-            {/* Notification button */}
-            <div className="flex gap-3">
-              <button className="p-3 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors backdrop-blur-sm">
-                <BellIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Modified Two-column layout for the header content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-            {/* Get Started - More compact */}
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-[#3ab8fe]/20 rounded-xl text-[#3ab8fe] mt-1 flex-shrink-0">
-                  <LightBulbIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <h3 className="font-bold text-[#0099e5] text-base">{t('getStarted')}</h3>
-                    <span className="ml-2 text-xs bg-[#3ab8fe] text-white px-2 py-0.5 rounded-full font-medium shadow-sm">{t('newTeacherWelcome')}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-700 font-medium">Complete onboarding to make the most of Spark</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Upcoming Events in header */}
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
-              <div className="flex items-start">
-                <div className="p-2 bg-[#3ab8fe]/20 rounded-xl text-[#3ab8fe] mt-1 mr-3 flex-shrink-0">
-                  <CalendarDaysIcon className="w-5 h-5" />
-                </div>
-                <div className="w-full">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-[#0099e5] text-base">Coming Up</h3>
-                    <Link href="/dashboard/teacher/schedule" className="text-xs text-[#3ab8fe] font-medium">
-                      View all
-                    </Link>
-                  </div>
-                  
-                  {upcomingEvents.length > 0 ? (
-                    <div className="mt-2 space-y-2">
-                      {upcomingEvents.slice(0, 2).map(event => (
-                        <div key={event.id} className="flex items-center text-sm">
-                          <span className="w-12 text-gray-700 font-medium">{format(new Date(event.date), 'EEE d')}</span>
-                          <span className="flex-1 text-gray-700 truncate">{event.title}</span>
-                          <span className="text-gray-500">{event.startTime}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-600">No upcoming events</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  const quickActions = [
+    {
+      title: 'Chat with Spark',
+      description: 'Get teaching assistance from your AI assistant',
+      href: '/dashboard/teacher/chat',
+      iconName: 'ChatBubbleLeftIcon',
+      iconBg: 'bg-gradient-to-br from-[#e6f6ff] to-[#cceeff]',
+      iconColor: 'text-[#3ab8fe]'
+    },
+    {
+      title: 'Create Lesson',
+      description: 'Create lesson plans with AI assistance',
+      href: '/dashboard/teacher/lessons',
+      iconName: 'BookOpenIcon',
+      iconBg: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      iconColor: 'text-blue-700'
+    },
+    {
+      title: 'Create Exam',
+      description: 'Generate quizzes and assessments',
+      href: '/dashboard/teacher/tools/exam-creator',
+      iconName: 'DocumentTextIcon',
+      iconBg: 'bg-gradient-to-br from-amber-50 to-amber-100',
+      iconColor: 'text-amber-700'
+    },
+    {
+      title: 'Add Students',
+      description: 'Manage your class roster',
+      href: '/dashboard/teacher/students',
+      iconName: 'UserGroupIcon',
+      iconBg: 'bg-gradient-to-br from-rose-50 to-rose-100',
+      iconColor: 'text-rose-700'
+    }
+  ];
 
-        {/* SECTION 2: Onboarding Section */}
-        {isNewTeacher && !allStepsCompleted && (
-          <div className="mb-8 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden relative">
-            {/* One-time subtle glow effect instead of continuous pulsing */}
-            {!showOnboarding && (
-              <div className="absolute inset-0 rounded-2xl bg-[#3ab8fe]/5"></div>
-            )}
-            
-            {/* Add highlight border when collapsed */}
-            <div 
-              className={`flex items-center justify-between p-4 cursor-pointer relative z-10 transition-all duration-300 ${
-                !showOnboarding ? 'bg-gradient-to-r from-[#3ab8fe]/5 to-sky-50 border-l-4 border-[#3ab8fe]' : 'bg-gradient-to-r from-white to-sky-50'
-              }`}
-              onClick={() => setShowOnboarding(!showOnboarding)}
-            >
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-[#3ab8fe]/10 rounded-xl text-[#3ab8fe]">
-                  <CheckCircleIcon className="w-5 h-5" />
+  const teachingTools = [
+    {
+      name: 'Quiz Show',
+      description: 'Create interactive quiz games with customizable categories and point values.',
+      href: routes.tools.examGame.quizShow,
+      iconName: 'ChartBarIcon',
+      bgColor: 'bg-[#3ab8fe]/10',
+      iconColor: 'text-[#3ab8fe]'
+    },
+    {
+      name: 'Word Scramble',
+      description: 'Create word scramble puzzles from your vocabulary lists and terms.',
+      href: '/dashboard/teacher/tools/exam-game',
+      iconName: 'SparklesIcon',
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600'
+    },
+    {
+      name: 'Word Search',
+      description: 'Generate printable word search puzzles from your vocabulary terms.',
+      href: '/dashboard/teacher/tools/exam-game',
+      iconName: 'PuzzlePieceIcon',
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600'
+    },
+    {
+      name: 'Timeline Creator',
+      description: 'Create interactive timelines for historical events and sequences.',
+      href: '/dashboard/teacher/tools/exam-game',
+      iconName: 'SparklesIcon',
+      bgColor: 'bg-amber-100',
+      iconColor: 'text-amber-600'
+    },
+    {
+      name: 'AI Assistant',
+      description: 'Get help with lesson planning, assessments, and teaching ideas.',
+      href: '/dashboard/teacher/chat',
+      iconName: 'ChatBubbleLeftIcon',
+      bgColor: 'bg-rose-100',
+      iconColor: 'text-rose-600'
+    },
+    {
+      name: 'Presentation Exporter',
+      description: 'Export your lessons and activities as PowerPoint presentations.',
+      href: '/dashboard/teacher/tools/exam-game',
+      iconName: 'ChartBarIcon',
+      bgColor: 'bg-teal-100',
+      iconColor: 'text-teal-600'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-grow flex flex-col gap-6 p-6">
+        {/* SECTION 1: Modern header with sleek card design and updated gradient background */}
+        <div className="bg-gradient-to-br from-[#111827] via-[#192339] to-[#111827] text-white p-8 rounded-xl mb-6 shadow-md overflow-hidden relative">
+          {/* Subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 to-purple-900/5 mix-blend-overlay"></div>
+          
+          {/* Glowing accent in top-right */}
+          <div className="absolute -top-10 right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-5">
+                <div className="hidden sm:block">
+                  <TeacherMascot width={60} height={60} variant="white" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">{t('Onboarding')}</h2>
-                <span className="ml-2 px-2 py-0.5 bg-[#3ab8fe]/10 text-[#3ab8fe] text-xs font-medium rounded-full">
-                  {onboardingSteps.filter(s => s.completed).length}/{onboardingSteps.length} {t('completed')}
-                </span>
-              </div>
-              <div className="text-gray-500">
-                {showOnboarding ? (
-                  <ChevronUpIcon className="w-5 h-5" />
-                ) : (
-                  <ChevronDownIcon className="w-5 h-5" />
-                )}
+                
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-2 tracking-wide">
+                    {greeting}, {teacher?.name || 'Teacher'}!
+                  </h1>
+                  <p className="text-gray-300 text-lg">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
+                </div>
               </div>
             </div>
             
-            {showOnboarding && (
-              <div className="p-6 pt-3">
-                <p className="text-gray-600 mb-6 text-sm leading-relaxed">{t('completeStepsBelow')}</p>
-                
-                <div className="space-y-4">
-                  {onboardingSteps.map((step) => (
-                    <div 
-                      key={step.id}
-                      className={`p-4 rounded-xl border ${
-                        step.completed 
-                          ? 'bg-green-50 border-green-200' 
-                          : 'bg-white border-gray-200 hover:border-[#3ab8fe] hover:shadow-sm'
-                      } transition-all`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2.5 rounded-xl ${
-                            step.completed ? 'bg-green-100 text-green-600' : 'bg-[#3ab8fe]/10 text-[#3ab8fe]'
-                          }`}>
-                            <step.icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900">{step.title}</h3>
-                            <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{step.description}</p>
-                          </div>
-                        </div>
-                        
-                        <Link 
-                          href={{ pathname: step.link }}
-                          className={`flex items-center gap-1 text-sm font-medium ${
-                            step.completed ? 'text-green-600' : 'text-[#3ab8fe] hover:text-[#0099e5]'
-                          }`}
-                        >
-                          {step.completed ? t('completed') : t('getStarted')}
-                          {!step.completed && <ArrowRightIcon className="w-4 h-4" />}
-                        </Link>
+            {/* Wrap the cards in a relative container to ensure they appear above the gradient */}
+            <div className="relative z-10">
+              {/* Rest of your card layout remains the same */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Get Started Card */}
+                <div className="group">
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-6 hover:bg-white/15 transition-all">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3ab8fe] to-[#3ab8fe]/80 flex items-center justify-center shadow-md">
+                        <LightBulbIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-white">Get Started</h2>
+                        <p className="text-white/90 text-base mt-1">Complete your setup</p>
                       </div>
                     </div>
-                  ))}
+                    
+                    <div className="mt-5 relative h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div className="absolute left-0 top-0 h-full w-[30%] bg-[#3ab8fe] rounded-full"></div>
+                    </div>
+                    
+                    <div className="mt-5 flex items-center">
+                      <button 
+                        onClick={() => router.push('/dashboard/teacher/onboarding' as Route)}
+                        className="transition-all inline-flex items-center justify-center px-6 py-3 bg-[#3ab8fe] text-white text-base font-medium rounded-lg hover:bg-[#2a9fe6] focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:ring-opacity-50"
+                        aria-label="Continue onboarding setup"
+                      >
+                        Continue Setup
+                      </button>
+                      <span className="ml-auto text-base text-white/80">1/3 completed</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Coming Up Card */}
+                <div className="group">
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-6 hover:bg-white/15 transition-all">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-md">
+                        <CalendarDaysIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-white">Coming Up</h2>
+                      </div>
+                    </div>
+                    
+                    <div className="py-4 text-white/90 flex items-center justify-center">
+                      <CalendarDaysIcon className="w-6 h-6 mr-3 opacity-80" />
+                      <span className="text-base">No upcoming events today</span>
+                    </div>
+                    
+                    <div className="mt-5 text-right">
+                      <Link 
+                        href="/dashboard/teacher/schedule"
+                        className="inline-flex items-center text-base text-white/90 hover:text-white transition-colors"
+                        aria-label="View your complete schedule"
+                      >
+                        View Schedule
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-        )}
-
-        {/* SECTION 3: Quick Actions - Updated with Chat with Spark as first item */}
-        <h2 className="text-xl font-bold text-gray-900 mb-4">{t('quickActions')}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Chat with Spark - Now first item with sky blue color */}
-          <Link 
-            href="/dashboard/teacher/chat"
-            className="bg-gradient-to-br from-[#e6f6ff] to-[#cceeff] hover:from-[#cceeff] hover:to-[#b3e6ff] p-6 rounded-xl border border-[#99d6ff] shadow-sm transition-all group"
-          >
-            <div className="flex flex-col h-full">
-              <div className="p-3 bg-[#3ab8fe]/20 rounded-xl w-fit mb-4 group-hover:bg-[#3ab8fe]/30 transition-colors">
-                <ChatBubbleLeftIcon className="w-6 h-6 text-[#3ab8fe]" />
-              </div>
-              <h3 className="font-medium text-gray-900 mb-2">Chat with Spark</h3>
-              <p className="text-sm text-gray-600 mt-auto leading-relaxed">Get teaching assistance from your AI assistant</p>
-            </div>
-          </Link>
-          
-          {/* Create Lesson - now second item */}
-          <Link 
-            href="/dashboard/teacher/lessons"
-            className="bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 p-6 rounded-xl border border-blue-200 shadow-sm transition-all group"
-          >
-            <div className="flex flex-col h-full">
-              <div className="p-3 bg-blue-200 rounded-xl w-fit mb-4 group-hover:bg-blue-300 transition-colors">
-                <BookOpenIcon className="w-6 h-6 text-blue-700" />
-              </div>
-              <h3 className="font-medium text-gray-900 mb-2">{t('createLesson')}</h3>
-              <p className="text-sm text-gray-600 mt-auto leading-relaxed">Create lesson plans with AI assistance</p>
-            </div>
-          </Link>
-          
-          {/* Create Exam */}
-          <Link 
-            href="/dashboard/teacher/tools/exam-creator"
-            className="bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 p-6 rounded-xl border border-amber-200 shadow-sm transition-all group"
-          >
-            <div className="flex flex-col h-full">
-              <div className="p-3 bg-amber-200 rounded-xl w-fit mb-4 group-hover:bg-amber-300 transition-colors">
-                <DocumentTextIcon className="w-6 h-6 text-amber-700" />
-              </div>
-              <h3 className="font-medium text-gray-900 mb-2">{t('createExam')}</h3>
-              <p className="text-sm text-gray-600 mt-auto leading-relaxed">Generate quizzes and assessments</p>
-            </div>
-          </Link>
-          
-          {/* Add Students */}
-          <Link 
-            href="/dashboard/teacher/students"
-            className="bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200 p-6 rounded-xl border border-rose-200 shadow-sm transition-all group"
-          >
-            <div className="flex flex-col h-full">
-              <div className="p-3 bg-rose-200 rounded-xl w-fit mb-4 group-hover:bg-rose-300 transition-colors">
-                <UserGroupIcon className="w-6 h-6 text-rose-700" />
-              </div>
-              <h3 className="font-medium text-gray-900 mb-2">{t('addStudents')}</h3>
-              <p className="text-sm text-gray-600 mt-auto leading-relaxed">Manage your class roster</p>
-            </div>
-          </Link>
         </div>
 
-        {/* SECTION 4: Teaching Tools */}
+        {/* SECTION 2: Quick Actions - Updated with Chat with Spark as first item */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-5 mt-8">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            {/* Chat with Spark - Now first item with sky blue color */}
+            <Link 
+              href="/dashboard/teacher/chat"
+              className="bg-gradient-to-br from-[#e6f6ff] to-[#cceeff] hover:from-[#cceeff] hover:to-[#b3e6ff] p-6 rounded-xl border border-[#99d6ff] shadow-sm transition-all group"
+            >
+              <div className="flex flex-col h-full">
+                <div className="p-3 bg-[#3ab8fe]/20 rounded-xl w-fit mb-4 group-hover:bg-[#3ab8fe]/30 transition-colors">
+                  {React.createElement(getIconComponent('ChatBubbleLeftIcon'), { className: 'w-6 h-6 text-[#3ab8fe]' })}
+                </div>
+                <h3 className="font-medium text-gray-900 mb-2">Chat with Spark</h3>
+                <p className="text-sm text-gray-600 mt-auto leading-relaxed">Get teaching assistance from your AI assistant</p>
+              </div>
+            </Link>
+            
+            {/* Create Lesson - now second item */}
+            <Link 
+              href="/dashboard/teacher/lessons"
+              className="bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 p-6 rounded-xl border border-blue-200 shadow-sm transition-all group"
+            >
+              <div className="flex flex-col h-full">
+                <div className="p-3 bg-blue-200 rounded-xl w-fit mb-4 group-hover:bg-blue-300 transition-colors">
+                  {React.createElement(getIconComponent('BookOpenIcon'), { className: 'w-6 h-6 text-blue-700' })}
+                </div>
+                <h3 className="font-medium text-gray-900 mb-2">{t('createLesson')}</h3>
+                <p className="text-sm text-gray-600 mt-auto leading-relaxed">Create lesson plans with AI assistance</p>
+              </div>
+            </Link>
+            
+            {/* Create Exam */}
+            <Link 
+              href="/dashboard/teacher/tools/exam-creator"
+              className="bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 p-6 rounded-xl border border-amber-200 shadow-sm transition-all group"
+            >
+              <div className="flex flex-col h-full">
+                <div className="p-3 bg-amber-200 rounded-xl w-fit mb-4 group-hover:bg-amber-300 transition-colors">
+                  {React.createElement(getIconComponent('DocumentTextIcon'), { className: 'w-6 h-6 text-amber-700' })}
+                </div>
+                <h3 className="font-medium text-gray-900 mb-2">{t('createExam')}</h3>
+                <p className="text-sm text-gray-600 mt-auto leading-relaxed">Generate quizzes and assessments</p>
+              </div>
+            </Link>
+            
+            {/* Add Students */}
+            <Link 
+              href="/dashboard/teacher/students"
+              className="bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200 p-6 rounded-xl border border-rose-200 shadow-sm transition-all group"
+            >
+              <div className="flex flex-col h-full">
+                <div className="p-3 bg-rose-200 rounded-xl w-fit mb-4 group-hover:bg-rose-300 transition-colors">
+                  {React.createElement(getIconComponent('UserGroupIcon'), { className: 'w-6 h-6 text-rose-700' })}
+                </div>
+                <h3 className="font-medium text-gray-900 mb-2">{t('addStudents')}</h3>
+                <p className="text-sm text-gray-600 mt-auto leading-relaxed">Manage your class roster</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* SECTION 3: Teaching Tools */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
           <div className="flex items-center gap-2 mb-6">
             <LightBulbIcon className="w-5 h-5 text-[#3ab8fe]" />
@@ -483,139 +536,97 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Link href={{ pathname: routes.tools.examGame.quizShow }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-[#3ab8fe] hover:bg-[#3ab8fe]/5 transition-colors flex flex-col h-full">
-                <div className="bg-[#3ab8fe]/10 p-3 rounded-xl w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#3ab8fe]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+            {teachingTools.map((tool, index) => (
+              <Link 
+                key={index} 
+                href={tool.href as Route}
+                className="p-4 border border-gray-200 rounded-xl bg-white hover:border-emerald-300 hover:bg-emerald-50/50 transition-all flex items-start gap-3"
+                aria-label={`${tool.name}: ${tool.description}`}
+              >
+                <div className={`p-3 rounded-xl ${tool.bgColor} flex-shrink-0`}>
+                  {React.createElement(getIconComponent(tool.iconName), { className: `w-6 h-6 ${tool.iconColor}` })}
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-[#3ab8fe]">Quiz Show</h3>
-                <p className="text-sm text-gray-600 mb-3 leading-relaxed">Create interactive quiz games with customizable categories and point values.</p>
-              </div>
-            </Link>
-            
-            <Link href={{ pathname: "/dashboard/teacher/tools/exam-game" }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
-                <div className="bg-green-100 p-3 rounded-lg w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                  </svg>
+                <div>
+                  <h3 className="font-medium text-gray-900 text-base">{tool.name}</h3>
+                  <p className="text-gray-600 text-base mt-1">{tool.description}</p>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-green-600">Word Scramble</h3>
-                <p className="text-sm text-gray-500 mb-3">Create word scramble puzzles from your vocabulary lists and terms.</p>
-              </div>
-            </Link>
-            
-            <Link href={{ pathname: "/dashboard/teacher/tools/exam-game" }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
-                <div className="bg-purple-100 p-3 rounded-lg w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-purple-600">Word Search</h3>
-                <p className="text-sm text-gray-500 mb-3">Generate printable word search puzzles from your vocabulary terms.</p>
-              </div>
-            </Link>
-            
-            <Link href={{ pathname: "/dashboard/teacher/tools/exam-game" }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
-                <div className="bg-amber-100 p-3 rounded-lg w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-amber-600">Timeline Creator</h3>
-                <p className="text-sm text-gray-500 mb-3">Create interactive timelines for historical events and sequences.</p>
-              </div>
-            </Link>
-            
-            <Link href={{ pathname: "/dashboard/teacher/chat" }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
-                <div className="bg-rose-100 p-3 rounded-lg w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-rose-600">AI Assistant</h3>
-                <p className="text-sm text-gray-500 mb-3">Get help with lesson planning, assessments, and teaching ideas.</p>
-              </div>
-            </Link>
-            
-            <Link href={{ pathname: "/dashboard/teacher/tools/exam-game" }} className="group">
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors flex flex-col h-full">
-                <div className="bg-teal-100 p-3 rounded-lg w-fit mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1 group-hover:text-teal-600">Presentation Exporter</h3>
-                <p className="text-sm text-gray-500 mb-3">Export your lessons and activities as PowerPoint presentations.</p>
-              </div>
-            </Link>
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* SECTION 5: Today's Schedule */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
+        {/* SECTION 4: Today's Schedule */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <CalendarDaysIcon className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">{t('todaySchedule')}</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Today's Schedule</h2>
             </div>
             <Link href="/dashboard/teacher/schedule" 
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-              {t('viewFullSchedule')}
-              <ArrowRightIcon className="w-3 h-3" />
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              aria-label="View your full schedule"
+            >
+              View Full Schedule
+              <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
           
-          <div className="space-y-3">
-            {todayEvents.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {todayEvents.map(event => (
-                  <div key={event.id} className="py-3 flex justify-between items-center">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${event.color}`}>
-                        {event.eventType === 'class' ? (
-                          <BookOpenIcon className="w-5 h-5" />
-                        ) : event.eventType === 'meeting' ? (
-                          <UsersIcon className="w-5 h-5" />
-                        ) : (
-                          <ClockIcon className="w-5 h-5" />
-                        )}
+          {todayEvents.length > 0 ? (
+            <div className="space-y-4">
+              {todayEvents.map((event, index) => (
+                <div key={index} className="p-4 border border-gray-100 rounded-xl bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-xl ${event.color} text-center flex-shrink-0`}>
+                        <ClockIcon className="w-6 h-6 mb-1" />
+                        <div className="text-sm font-medium">{event.startTime}</div>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{event.title}</div>
-                        <div className="text-sm text-gray-500">
-                          {event.startTime} - {event.endTime} • {event.room || ''}
+                        <h3 className="font-medium text-gray-900 text-lg">{event.title}</h3>
+                        <div className="flex items-center mt-2 text-gray-600 text-base gap-3">
+                          {event.room && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              {event.room}
+                            </span>
+                          )}
+                          {event.students && (
+                            <span className="flex items-center gap-1">
+                              <UsersIcon className="w-5 h-5 text-gray-500" />
+                              {event.students} students
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <Link href="/dashboard/teacher/schedule" 
-                      className="text-sm text-blue-600 hover:text-blue-700">
-                      Details
-                    </Link>
+                    <span className="text-gray-500 text-base">{event.endTime}</span>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <CalendarDaysIcon className="w-8 h-8 text-gray-400" />
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <CalendarDaysIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium">{t('noEventsToday')}</p>
-                <button 
-                  onClick={() => router.push('/dashboard/teacher/schedule')}
-                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  {t('addEvent')}
-                </button>
-              </div>
-            )}
-          </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Events Today</h3>
+              <p className="text-gray-500 text-base max-w-md mb-4">
+                Your schedule is clear for today. Add an event to get started.
+              </p>
+              <button 
+                onClick={() => router.push('/dashboard/teacher/schedule' as Route)}
+                className="px-5 py-3 bg-blue-600 text-white text-base rounded-lg hover:bg-blue-700"
+                aria-label="Add a new event to your schedule"
+              >
+                Add Event
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* SECTION 6: NEW REPORTS SECTION WITH "STILL COLLECTING" MESSAGE */}
+        {/* SECTION 5: NEW REPORTS SECTION WITH "STILL COLLECTING" MESSAGE */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mt-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -636,7 +647,7 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
           </div>
         </div>
 
-        {/* SECTION 7: Recent Activity */}
+        {/* SECTION 6: Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* Recent Chat History */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -677,7 +688,7 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <DocumentTextIcon className="w-5 h-5 text-purple-600" />
+                <DocumentIcon className="w-5 h-5 text-purple-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Saved Materials</h2>
               </div>
               <Link href="/dashboard/teacher/materials" 
@@ -690,8 +701,8 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
               {savedMaterials.map((material) => (
                 <div key={material.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/50 transition-colors">
                   <div className={`p-2 bg-${material.type === 'quiz' ? 'blue' : 'purple'}-100 rounded-xl`}>
-                    {material.type === 'quiz' ? <DocumentTextIcon className="w-5 h-5 text-blue-600" /> 
-                      : <CheckCircleIcon className="w-5 h-5 text-purple-600" />}
+                    {material.type === 'quiz' ? React.createElement(getIconComponent('DocumentTextIcon'), { className: 'w-5 h-5 text-blue-600' }) 
+                      : React.createElement(getIconComponent('CheckCircleIcon'), { className: 'w-5 h-5 text-purple-600' })}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-black">{material.title}</p>
@@ -706,16 +717,19 @@ export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents 
             </div>
           </div>
         </div>
-
-        {/* SECTION 8: Footer */}
-        <div className="mt-8 text-center border-t border-gray-200 pt-4 pb-6 text-gray-500 text-sm">
-          <p>
-            &copy; {new Date().getFullYear()} <a href="https://sparkskool.com" className="text-[#3ab8fe] hover:underline">SparkSkool</a>. All rights reserved.
-          </p>
-          <p className="mt-1">
-            Created by <a href="https://leapthelimit.com" className="text-[#3ab8fe] hover:underline">LeapTheLimit</a>
-          </p>
-        </div>
+      </div>
+      
+      {/* Footer with forced white background using inline style */}
+      <div 
+        className="mt-auto py-6 text-center text-gray-500 text-sm" 
+        style={{ backgroundColor: 'white' }}
+      >
+        <p>
+          &copy; {new Date().getFullYear()} <a href="https://sparkskool.com" className="text-[#3ab8fe] hover:underline">SparkSkool</a>. All rights reserved.
+        </p>
+        <p className="mt-1">
+          Created by <a href="https://leapthelimit.com" className="text-[#3ab8fe] hover:underline">LeapTheLimit</a>
+        </p>
       </div>
     </div>
   );
