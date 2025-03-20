@@ -491,7 +491,17 @@ export default function SlideCreator() {
         audience: audience,
         slidesForm: slidesForm,
         imageSource: imageSource,
-        isOnline: isOnline
+        isOnline: isOnline,
+        layoutDistribution: {
+          standard: 10,      // 10% bullet points
+          "text-heavy": 20,  // 20% text-heavy
+          "image-focus": 20, // 20% image-focused
+          quote: 10,         // 10% quotes
+          statistics: 15,    // 15% statistics
+          comparison: 10,    // 10% comparisons
+          timeline: 5,       // 5% timelines
+          example: 10        // 10% examples
+        }
       };
       
       console.log("Sending settings to API:", settings); // For debugging

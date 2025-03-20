@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // Add this before creating the formatted prompt
-    const totalSlides = settings?.pages || 15;
+    // Define totalSlides with a fallback to ensure it's available
+    const totalSlides = settings?.pages ? parseInt(settings.pages) : 15;
 
     // Initialize Groq client with browser flag to work in edge runtime
     const groq = new Groq({ 
@@ -78,59 +78,61 @@ export async function POST(req: Request) {
       dangerouslyAllowBrowser: true 
     });
     
-    // Create a structured prompt with all settings
+    // Build a very specific, detailed prompt
     const formattedPrompt = `
-Create a comprehensive, detailed, and visually diverse presentation on the following topic:
-
-${prompt}
-
-Presentation Requirements:
-- Number of slides: ${totalSlides}
-- Target audience: ${settings?.audience || 'General'}
-
-ABSOLUTELY CRITICAL LAYOUT REQUIREMENTS:
-I REQUIRE an EXACT and STRICT distribution of slide types - FAILURE TO FOLLOW WILL RESULT IN REJECTION:
-
-1. First slide: "title-slide" type (REQUIRED)
-2. Last slide: "standard" type for conclusion (REQUIRED)
-3. For the remaining ${totalSlides - 2} slides, you MUST follow this EXACT distribution:
-
-${Math.floor((totalSlides - 2) * 0.1)} slides: "standard" (bullet points) - MAXIMUM 10% of non-title slides
-${Math.floor((totalSlides - 2) * 0.2)} slides: "text-heavy" (paragraphs) - EXACTLY 20% 
-${Math.floor((totalSlides - 2) * 0.2)} slides: "image-focus" (visual focus) - EXACTLY 20%
-${Math.max(1, Math.floor((totalSlides - 2) * 0.1))} slides: "quote" (quotation) - EXACTLY 10%
-${Math.floor((totalSlides - 2) * 0.15)} slides: "statistics" (data visualization) - EXACTLY 15%
-${Math.floor((totalSlides - 2) * 0.1)} slides: "comparison" (side-by-side) - EXACTLY 10%
-${Math.max(1, Math.floor((totalSlides - 2) * 0.05))} slides: "timeline" (sequential events) - EXACTLY 5%
-${Math.floor((totalSlides - 2) * 0.1)} slides: "example" (case studies) - EXACTLY 10%
-
-DO NOT SUBSTITUTE OR CHANGE THESE EXACT VALUES. The "slideType" field MUST contain one of these specific values.
-
-CONTENT REQUIREMENTS BY SLIDE TYPE:
-- "text-heavy": MUST contain 2-3 full paragraphs of text (150+ words total)
-- "statistics": MUST include 4-6 data points with specific numbers/percentages 
-- "quote": MUST have a complete quote with attribution
-- "timeline": MUST show 5+ chronological events
-- "comparison": MUST have clear columns of contrasting points
-- "example": MUST contain real-world examples with details
-- "image-focus": MUST have minimal text with focus on image description
-
-FORMATTING INSTRUCTION:
-Return JSON with this EXACT structure and type names:
-{
-  "title": "Creative presentation title",
-  "sections": [
-    {
-      "id": 1,
-      "title": "Slide title",
-      "slideType": "MUST BE ONE OF: standard, text-heavy, image-focus, quote, statistics, comparison, timeline, example, title-slide",
-      "subtopics": ["Content point 1", "Content point 2", ...],
-      "imagePrompt": "Detailed image description for this slide"
-    },
-    ...more slides using the EXACT distribution specified above...
-  ]
-}
-`;
+      ${prompt}
+      
+      Generate a comprehensive presentation with ${totalSlides} slides on this topic.
+      
+      EXTREMELY IMPORTANT REQUIREMENTS:
+      1. EVERY slide MUST have a clear, descriptive title (5-10 words long)
+      2. EVERY slide MUST have a slideType explicitly assigned from this list:
+         - "standard" (bullet points)
+         - "text-heavy" (paragraphs)
+         - "image-focus" (visual emphasis)
+         - "quote" (quotation)
+         - "statistics" (data presentation)
+         - "comparison" (side-by-side)
+         - "timeline" (sequential events)
+         - "example" (case study)
+      
+      3. The slides MUST follow this EXACT distribution:
+         - Standard: ${Math.round(totalSlides * 0.1)} slides (10%)
+         - Text-heavy: ${Math.round(totalSlides * 0.2)} slides (20%)
+         - Image-focus: ${Math.round(totalSlides * 0.2)} slides (20%)
+         - Quote: ${Math.round(totalSlides * 0.1)} slides (10%)
+         - Statistics: ${Math.round(totalSlides * 0.15)} slides (15%)
+         - Comparison: ${Math.round(totalSlides * 0.1)} slides (10%)
+         - Timeline: ${Math.round(totalSlides * 0.05)} slides (5%)
+         - Example: ${Math.round(totalSlides * 0.1)} slides (10%)
+      
+      4. EVERY slide MUST have appropriate content for its type:
+         - Standard: 3-5 bullet points
+         - Text-heavy: 1-3 paragraphs
+         - Quote: A quotation and author
+         - Statistics: 3-5 data points with descriptions
+         - Etc.
+      
+      IMPORTANT: If you don't follow these rules EXACTLY, the presentation will be rejected.
+      
+      Format your response as a JSON object with:
+      {
+        "title": "The Main Presentation Title",
+        "sections": [
+          {
+            "title": "First Slide Title",
+            "slideType": "standard",
+            "subtopics": ["Bullet point 1", "Bullet point 2", "Bullet point 3"]
+          },
+          {
+            "title": "Second Slide Title - Text-Heavy",
+            "slideType": "text-heavy",
+            "subtopics": ["Paragraph 1", "Paragraph 2"]
+          }
+          // Continue with all slides
+        ]
+      }
+    `;
 
     try {
       // Make API call to Groq
