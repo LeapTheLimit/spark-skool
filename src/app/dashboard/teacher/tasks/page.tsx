@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   CheckIcon, 
   XMarkIcon, 
@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'react-hot-toast';
 
 // Make the types available for import in other files
 export type TaskCategory = 'general' | 'grading' | 'call' | 'note';
@@ -32,7 +33,7 @@ export interface Task {
 }
 
 // Add Tooltip component
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+const Tooltip = ({ children, text }: { children?: React.ReactNode, text: string }) => {
   const [isVisible, setIsVisible] = useState(false);
   
   return (
@@ -41,7 +42,7 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
       >
-        {children}
+        {children || <InformationCircleIcon className="w-4 h-4 text-gray-500" />}
       </div>
       
       {isVisible && (
@@ -55,13 +56,15 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
 };
 
 export default function TasksPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   const [taskCategory, setTaskCategory] = useState<'grading' | 'call' | 'general'>('general');
   const [taskPriority, setTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
   const [taskDeadline, setTaskDeadline] = useState<string>('');
   const [activeTaskFilter, setActiveTaskFilter] = useState('active');
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Load tasks from localStorage
   useEffect(() => {
@@ -78,6 +81,26 @@ export default function TasksPage() {
       setTasks(onlyTasks);
     }
   }, []);
+
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
+  
+  // Add internationalized date formatting helper
+  const formatDate = useCallback((date: Date) => {
+    const locale = language === 'en' ? 'en-US' : 
+                  language === 'ar' ? 'ar-SA' : 
+                  language === 'he' ? 'he-IL' : 'en-US';
+    
+    return date.toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }, [language]);
 
   // Task functions
   const handleAddTask = (e: React.FormEvent) => {
@@ -209,17 +232,15 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-6">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Tasks</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-8">{t('tasks')}</h1>
 
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <h2 className="text-lg font-semibold text-[#3ab8fe]">
-                Add New Task
+                {t('addNewTask')}
               </h2>
-              <Tooltip text="Create tasks to keep track of your work. Tasks can be categorized, prioritized, and given deadlines.">
-                <InformationCircleIcon className="w-5 h-5 text-gray-400 hover:text-[#3ab8fe] cursor-help" />
-              </Tooltip>
+              <Tooltip text={t('createTasksDescription')} />
             </div>
             
             <form onSubmit={handleAddTask} className="space-y-4 bg-[#f8fafc] p-4 rounded-xl border border-gray-100">
@@ -228,7 +249,7 @@ export default function TasksPage() {
                   type="text"
                   value={newTask}
                   onChange={(e) => setNewTask(e.target.value)}
-                  placeholder="What do you need to do?"
+                  placeholder={t('whatDoYouNeedToDo')}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium placeholder-gray-500"
                 />
               </div>
@@ -237,10 +258,8 @@ export default function TasksPage() {
                 {/* Category selector with tooltip */}
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-sm font-medium text-gray-700">Category</label>
-                    <Tooltip text="General: Regular tasks. Grading: Tasks related to student assessments. Call: Meetings and appointments.">
-                      <InformationCircleIcon className="w-4 h-4 text-gray-400 hover:text-[#3ab8fe] cursor-help" />
-                    </Tooltip>
+                    <label className="text-sm font-medium text-gray-700">{t('category')}</label>
+                    <Tooltip text={t('categoryDescription')} />
                   </div>
                   <div className="flex gap-2">
                     <button 
@@ -253,7 +272,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <CheckIcon className="w-4 h-4" />
-                      Task
+                      {t('task')}
                     </button>
                     <button 
                       type="button"
@@ -265,7 +284,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <CheckCircleIcon className="w-4 h-4" />
-                      Grading
+                      {t('grading')}
                     </button>
                     <button 
                       type="button"
@@ -277,7 +296,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <ClockIcon className="w-4 h-4" />
-                      Call
+                      {t('call')}
                     </button>
                   </div>
                 </div>
@@ -285,10 +304,8 @@ export default function TasksPage() {
                 {/* Priority selector with tooltip */}
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-sm font-medium text-gray-700">Priority</label>
-                    <Tooltip text="High: Urgent tasks that need immediate attention. Medium: Important but not urgent. Low: Tasks that can wait.">
-                      <InformationCircleIcon className="w-4 h-4 text-gray-400 hover:text-[#3ab8fe] cursor-help" />
-                    </Tooltip>
+                    <label className="text-sm font-medium text-gray-700">{t('priority')}</label>
+                    <Tooltip text={t('priorityDescription')} />
                   </div>
                   <div className="flex gap-2">
                     <button 
@@ -301,7 +318,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <ExclamationCircleIcon className="w-4 h-4" />
-                      High
+                      {t('high')}
                     </button>
                     <button 
                       type="button"
@@ -313,7 +330,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <ExclamationCircleIcon className="w-4 h-4" />
-                      Medium
+                      {t('medium')}
                     </button>
                     <button 
                       type="button"
@@ -325,7 +342,7 @@ export default function TasksPage() {
                       }`}
                     >
                       <ExclamationCircleIcon className="w-4 h-4" />
-                      Low
+                      {t('low')}
                     </button>
                   </div>
                 </div>
@@ -333,10 +350,8 @@ export default function TasksPage() {
                 {/* Deadline selector with tooltip */}
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-sm font-medium text-gray-700">Deadline (Optional)</label>
-                    <Tooltip text="Set a due date for your task. Tasks past their deadline will be highlighted.">
-                      <InformationCircleIcon className="w-4 h-4 text-gray-400 hover:text-[#3ab8fe] cursor-help" />
-                    </Tooltip>
+                    <label className="text-sm font-medium text-gray-700">{t('dueDate')}</label>
+                    <Tooltip text={t('dueDateDescription')} />
                   </div>
                   <div className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
                     <div className="bg-gray-100 p-2 flex items-center justify-center">
@@ -360,7 +375,7 @@ export default function TasksPage() {
                   disabled={!newTask.trim()}
                 >
                   <PlusIcon className="w-5 h-5" />
-                  Add Task
+                  {t('addTask')}
                 </button>
               </div>
             </form>
@@ -372,24 +387,24 @@ export default function TasksPage() {
                 {activeTaskFilter === 'completed' ? (
                   <>
                     <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                    Completed Tasks
+                    {t('completedTasks')}
                   </>
                 ) : activeTaskFilter === 'active' ? (
                   <>
                     <ClipboardIcon className="w-5 h-5 text-blue-500" />
-                    Active Tasks
+                    {t('activeTasks')}
                   </>
                 ) : activeTaskFilter === 'all' ? (
                   <>
                     <ClipboardDocumentIcon className="w-5 h-5 text-gray-500" />
-                    All Tasks
+                    {t('allTasks')}
                   </>
                 ) : (
                   <>
                     {activeTaskFilter === 'grading' && <CheckCircleIcon className="w-5 h-5 text-red-500" />}
                     {activeTaskFilter === 'call' && <ClockIcon className="w-5 h-5 text-blue-500" />}
                     {activeTaskFilter === 'general' && <CheckIcon className="w-5 h-5 text-green-500" />}
-                    {activeTaskFilter.charAt(0).toUpperCase() + activeTaskFilter.slice(1)} Tasks
+                    {activeTaskFilter.charAt(0).toUpperCase() + activeTaskFilter.slice(1)} {t('tasks')}
                   </>
                 )}
               </h3>
@@ -398,7 +413,7 @@ export default function TasksPage() {
                 {activeTaskFilter === 'completed' && taskCounts.completed > 0 && (
                   <button 
                     onClick={() => {
-                      if (confirm('Are you sure you want to clear all completed tasks?')) {
+                      if (confirm(t('clearCompletedTasksConfirm'))) {
                         const updatedTasks = tasks.filter(task => task.status !== 'completed');
                         setTasks(updatedTasks);
                         
@@ -414,7 +429,7 @@ export default function TasksPage() {
                     className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1"
                   >
                     <TrashIcon className="w-4 h-4" />
-                    Clear completed
+                    {t('clearCompleted')}
                   </button>
                 )}
               </div>
@@ -429,7 +444,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTaskFilter('active')}
               >
                 <CheckIcon className="w-4 h-4" />
-                Active Tasks
+                {t('activeTasks')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.active}
                 </span>
@@ -442,7 +457,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTaskFilter('completed')}
               >
                 <CheckCircleIcon className="w-4 h-4" />
-                Completed
+                {t('completed')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.completed}
                 </span>
@@ -454,7 +469,7 @@ export default function TasksPage() {
                 }`}
                 onClick={() => setActiveTaskFilter('all')}
               >
-                All Tasks
+                {t('allTasks')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.all}
                 </span>
@@ -469,7 +484,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTaskFilter('grading')}
               >
                 <CheckCircleIcon className="w-4 h-4" />
-                Grading
+                {t('grading')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.grading}
                 </span>
@@ -482,7 +497,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTaskFilter('call')}
               >
                 <ClockIcon className="w-4 h-4" />
-                Calls & Meetings
+                {t('callsMeetings')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.call}
                 </span>
@@ -495,7 +510,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTaskFilter('general')}
               >
                 <CheckIcon className="w-4 h-4" />
-                General
+                {t('general')}
                 <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
                   {taskCounts.general}
                 </span>
@@ -531,7 +546,7 @@ export default function TasksPage() {
                               ? 'bg-green-100 text-green-600 hover:bg-green-200' 
                               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                           }`}
-                          aria-label={task.status === 'completed' ? "Mark as incomplete" : "Mark as complete"}
+                          aria-label={task.status === 'completed' ? t('markAsIncomplete') : t('markAsComplete')}
                         >
                           {task.status === 'completed' ? (
                             <CheckCircleIcon className="w-5 h-5" />
@@ -551,13 +566,13 @@ export default function TasksPage() {
                               {task.status !== 'completed' && task.dueDate && new Date(task.dueDate) < new Date() && (
                                 <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-xs font-medium flex items-center">
                                   <ExclamationCircleIcon className="w-3 h-3 mr-1" />
-                                  Overdue
+                                  {t('overdue')}
                                 </span>
                               )}
                               <button
                                 onClick={() => deleteTask(task.id)}
                                 className="text-gray-400 hover:text-red-500 flex-shrink-0 p-1 hover:bg-gray-100 rounded-full transition-colors"
-                                aria-label="Delete task"
+                                aria-label={t('deleteTask')}
                               >
                                 <XMarkIcon className="w-5 h-5" />
                               </button>
@@ -578,9 +593,9 @@ export default function TasksPage() {
                               }`}>
                                 {getCategoryIcon(task.category)}
                                 <span className="font-medium">
-                                  {task.category === 'grading' ? 'Grading' :
-                                  task.category === 'call' ? 'Call/Meeting' :
-                                  'Task'}
+                                  {task.category === 'grading' ? t('grading') :
+                                  task.category === 'call' ? t('callMeeting') :
+                                  t('task')}
                                 </span>
                               </span>
                               
@@ -594,7 +609,7 @@ export default function TasksPage() {
                               }`}>
                                 {getPriorityIcon(task.priority)}
                                 <span className="font-medium">
-                                  {task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Low'}
+                                  {task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : t('low')}
                                 </span>
                               </span>
                             </div>
@@ -609,13 +624,15 @@ export default function TasksPage() {
                                     : 'bg-gray-50 text-gray-800 border border-gray-200'
                                 }`}>
                                   <CalendarIcon className="w-4 h-4" />
-                                  <span className="font-medium">Due: {format(new Date(task.dueDate), 'MMM d')}</span>
+                                  <span className="font-medium">
+                                    {t('dueDate')}: {formatDate(new Date(task.dueDate))}
+                                  </span>
                                 </span>
                               )}
                               
                               {/* Created date in more subtle styling */}
                               <span className="text-gray-500 text-sm ml-auto">
-                                Created: {format(new Date(task.createdAt), 'MMM d, yyyy')}
+                                {t('created')}: {formatDate(new Date(task.createdAt))}
                               </span>
                             </div>
                           </div>
@@ -635,13 +652,13 @@ export default function TasksPage() {
                   </div>
                   <h3 className="text-gray-700 font-medium">
                     {activeTaskFilter === 'completed' 
-                      ? 'No completed tasks yet' 
-                      : `No ${activeTaskFilter !== 'all' && activeTaskFilter !== 'active' ? activeTaskFilter : ''} tasks`}
+                      ? t('noCompletedTasksYet') 
+                      : `No ${activeTaskFilter !== 'all' && activeTaskFilter !== 'active' ? activeTaskFilter : ''} ${t('tasks')}`}
                   </h3>
                   <p className="text-gray-500 text-sm mt-1 max-w-md mx-auto">
                     {activeTaskFilter === 'completed' 
-                      ? 'When you complete tasks, they will appear here'
-                      : `Add your first ${activeTaskFilter !== 'all' && activeTaskFilter !== 'active' ? activeTaskFilter : ''} task to keep track of your to-dos`}
+                      ? t('whenCompletedTasks')
+                      : t('addFirstTask')}
                   </p>
                 </div>
               )}

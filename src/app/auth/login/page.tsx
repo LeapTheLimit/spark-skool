@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { Route } from 'next';
+import { toast } from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 import TeacherMascot from '@/components/TeacherMascot';
 import MascotImage from '@/components/MascotImage';
+import type { Route } from 'next';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,27 +16,50 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { t, language } = useLanguage();
+
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error(t('pleaseEnterEmailAndPassword'));
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // For demonstration purposes, storing in localStorage
-      // In a real app, you would validate with a backend API
+      // Simulate API call for authentication
+      // Replace with your actual authentication logic
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const userData = {
-        name: 'Demo Teacher',
+        id: '1',
+        name: 'John Doe',
         email: email,
-        school: 'Demo School',
-        subject: 'All Subjects',
+        subject: 'Science',
+        school: 'Spark High School',
+        language: language // Store the selected language in user data
       };
       
+      // Store user data in localStorage
       localStorage.setItem('currentUser', JSON.stringify(userData));
       
-      // Redirect to teacher dashboard after successful login
-      router.push('/dashboard/teacher' as Route);
+      // Show success message
+      toast.success(t('loginSuccessful'));
+      
+      // Redirect to dashboard
+      router.push('/dashboard/teacher');
     } catch (error) {
       console.error('Login error:', error);
+      toast.error(t('loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -44,10 +70,8 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col md:flex-row items-center justify-center px-4 sm:px-6 lg:px-8">
         {/* Left side with mascot */}
         <div className="w-full md:w-1/2 text-center md:text-left text-white p-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Welcome <span className="text-[#3ab8fe]">Back</span>
-          </h1>
-          <p className="text-xl mb-16">Sign in to your AI copilot</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Meet <span className="text-[#3ab8fe]">Spark</span></h1>
+          <p className="text-base text-gray-300 mb-4">{t('yourClassroomAICopilot')}</p>
           
           <div className="flex justify-center md:justify-start">
             {/* Primary option: Use TeacherMascot SVG */}
@@ -74,7 +98,7 @@ export default function LoginPage() {
         {/* Right side with login form */}
         <div className="w-full md:w-1/2 md:max-w-md">
           <div className="bg-gray-900/80 border border-gray-800 shadow-xl rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-8">Sign in to your account</h2>
+            <h2 className="text-2xl font-bold text-white mb-8">{t('signInToYourAccount')}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -130,52 +154,47 @@ export default function LoginPage() {
                     className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-700 rounded bg-gray-800"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
-                    Remember me
+                    {t('rememberMe')}
                   </label>
                 </div>
                 
                 <div className="text-sm">
                   <Link href={'/auth/forgot-password' as Route} className="text-blue-400 hover:text-blue-300">
-                    Forgot password?
+                    {t('forgotYourPassword')}
                   </Link>
                 </div>
               </div>
               
               <div className="text-center text-gray-400 text-sm">
-                No credit card required
+                {t('noCreditCardRequired')}
               </div>
               
               <div>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-white bg-[#3ab8fe] hover:bg-[#2a9fe6] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className="w-full py-2.5 sm:py-3 px-4 bg-[#3ab8fe] hover:bg-[#3ab8fe]/90
+                    text-white font-bold rounded-full shadow-lg shadow-[#3ab8fe]/20
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3ab8fe]
+                    disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {isLoading ? (
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : 'Sign in'}
+                  {isLoading ? t('signingIn') : t('signIn')}
                 </button>
               </div>
             </form>
             
-            <div className="mt-4 text-center">
-              <span className="text-gray-400">Don't have an account?</span>{' '}
-              <Link href={'/auth/register' as Route} className="text-blue-400 hover:text-blue-300">
-                Sign up
-              </Link>
+            <div className="text-center text-sm text-gray-400 mt-4">
+              {t('dontHaveAccount')} <Link href="/auth/register" className="text-[#3ab8fe] hover:text-[#3ab8fe]/80 transition-colors">{t('createAccount')}</Link>
             </div>
             
             <div className="mt-6 text-center text-xs text-gray-500">
-              By signing in, you agree to the{' '}
+              {t('bySigningInYouAgree')}{' '}
               <Link href={'/terms' as Route} className="text-gray-400 hover:text-gray-300">
-                Terms of Use
+                {t('termsOfUse')}
               </Link>{' '}
-              and{' '}
+              {t('and')}{' '}
               <Link href={'/privacy' as Route} className="text-gray-400 hover:text-gray-300">
-                Privacy Policy
+                {t('privacyPolicy')}
               </Link>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 import { 
   CalendarIcon, 
   PlusIcon, 
@@ -45,7 +46,7 @@ const colorOptions = [
 ];
 
 export default function SchedulePage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showClassModal, setShowClassModal] = useState(false);
@@ -165,6 +166,43 @@ export default function SchedulePage() {
       console.error('Failed to save schedule settings:', error);
     }
   }, [workingDays, workDayStart, workDayEnd, workingHoursStep]);
+
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
+  
+  // Add internationalized date formatting
+  const formatWeekday = useCallback((date: Date) => {
+    const locale = language === 'en' ? 'en-US' : 
+                 language === 'ar' ? 'ar-SA' : 
+                 language === 'he' ? 'he-IL' : 'en-US';
+    
+    return date.toLocaleDateString(locale, { weekday: 'long' });
+  }, [language]);
+  
+  const formatMonth = useCallback((date: Date) => {
+    const locale = language === 'en' ? 'en-US' : 
+                 language === 'ar' ? 'ar-SA' : 
+                 language === 'he' ? 'he-IL' : 'en-US';
+    
+    return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  }, [language]);
+  
+  const formatTime = useCallback((time: string) => {
+    const [hours, minutes] = time.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10));
+    date.setMinutes(parseInt(minutes, 10));
+    
+    const locale = language === 'en' ? 'en-US' : 
+                 language === 'ar' ? 'ar-SA' : 
+                 language === 'he' ? 'he-IL' : 'en-US';
+    
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  }, [language]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -352,7 +390,7 @@ export default function SchedulePage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Your Schedule</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('schedule')}</h1>
           
           <div className="flex items-center gap-4">
             {/* View controls */}
@@ -367,7 +405,7 @@ export default function SchedulePage() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  Day
+                  {t('day')}
                 </button>
                 <button 
                   onClick={() => setViewMode('week')}
@@ -377,7 +415,7 @@ export default function SchedulePage() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  Week
+                  {t('week')}
                 </button>
                 <button 
                   onClick={() => setViewMode('month')}
@@ -387,7 +425,7 @@ export default function SchedulePage() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  Month
+                  {t('month')}
                 </button>
                 <button 
                   onClick={() => setViewMode('year')}
@@ -397,7 +435,7 @@ export default function SchedulePage() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  Year
+                  {t('year')}
                 </button>
               </div>
               
@@ -410,7 +448,7 @@ export default function SchedulePage() {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>Add Event</span>
+                <span>{t('addEvent')}</span>
               </button>
 
               {/* Schedule Settings button */}
@@ -419,7 +457,7 @@ export default function SchedulePage() {
                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
               >
                 <Cog6ToothIcon className="w-4 h-4" />
-                <span>Schedule Settings</span>
+                <span>{t('scheduleSettings')}</span>
               </button>
             </div>
           </div>
@@ -452,7 +490,7 @@ export default function SchedulePage() {
                 onClick={goToToday}
                 className="py-1.5 px-3 text-sm font-medium text-blue-700 hover:bg-blue-50 rounded-md"
               >
-                Today
+                {t('today')}
               </button>
               <button 
                 onClick={() => handleNavigate('next')}
@@ -492,7 +530,7 @@ export default function SchedulePage() {
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                Add Your First Class
+                {t('addYourFirstClass')}
               </button>
             </div>
           </div>
@@ -726,7 +764,7 @@ export default function SchedulePage() {
                     onClick={() => setCurrentDate(new Date())}
                     className="px-3 py-1 text-sm font-medium text-blue-700 hover:bg-blue-50 rounded"
                   >
-                    Today
+                    {t('today')}
                   </button>
                   <button
                     onClick={() => setCurrentDate(addDays(currentDate, 1))}

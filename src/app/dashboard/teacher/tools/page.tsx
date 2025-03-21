@@ -726,6 +726,13 @@ export default function ToolsPage() {
 
   const [showNewBadge] = useState(true);
 
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
+
   return (
     <div className={`min-h-screen bg-gray-50 p-6 overflow-auto max-h-screen ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="max-w-7xl mx-auto">

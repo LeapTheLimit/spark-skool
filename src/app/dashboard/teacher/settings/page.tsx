@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import {
@@ -21,6 +21,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 
+// Define the allowed language types to match those in LanguageContext
+type SupportedLanguage = 'en' | 'ar' | 'he';
+
 interface UserProfile {
   name: string;
   email: string;
@@ -29,7 +32,7 @@ interface UserProfile {
   avatar?: string;
   classLevel?: string | string[];
   timezone: string;
-  language: string;
+  language: SupportedLanguage; // Update to use the strict type
   bio?: string;
   notifications: {
     email: boolean;
@@ -46,6 +49,42 @@ interface AppSettings {
   background: string;
 }
 
+// Type for fallback translations
+type TranslationKeys = 
+  'settings' | 'profile' | 'localizationSettings' | 'notifications' | 
+  'appSettings' | 'logout' | 'editProfile' | string; // Allow any string for flexibility
+
+// Define fallback translations with proper typing
+const fallbackTranslations: Record<SupportedLanguage, Record<TranslationKeys, string>> = {
+  en: {
+    settings: 'Settings',
+    profile: 'Profile',
+    localizationSettings: 'Localization Settings',
+    notifications: 'Notifications',
+    appSettings: 'App Settings',
+    logout: 'Logout',
+    editProfile: 'Edit Profile',
+  },
+  ar: {
+    settings: 'الإعدادات',
+    profile: 'الملف الشخصي',
+    localizationSettings: 'إعدادات اللغة والمنطقة',
+    notifications: 'الإشعارات',
+    appSettings: 'إعدادات التطبيق',
+    logout: 'تسجيل الخروج',
+    editProfile: 'تعديل الملف الشخصي',
+  },
+  he: {
+    settings: 'הגדרות',
+    profile: 'פרופיל',
+    localizationSettings: 'הגדרות שפה ואזור',
+    notifications: 'התראות',
+    appSettings: 'הגדרות יישום',
+    logout: 'התנתק',
+    editProfile: 'ערוך פרופיל',
+  }
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'localization' | 'notifications'>('profile');
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -61,7 +100,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { t, language, setLanguage } = useLanguage();
-  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(language as SupportedLanguage);
   const router = useRouter();
   const { settings: themeSettings, updateSettings: updateThemeSettings } = useTheme();
 
@@ -225,15 +264,35 @@ export default function SettingsPage() {
     { id: 'warm', color: 'bg-orange-50', label: 'Warm', preview: 'bg-orange-50' }
   ];
 
-  // Use useMemo for defaultProfile
-  const defaultProfile = useMemo(() => ({
+  // Create the fallback translation functions inside the component
+  // where they have access to the language variable
+  const getFallbackTranslation = (key: string): string => {
+    // Type assertion for language to match our supported languages
+    const currentLang = language as SupportedLanguage;
+    
+    if (fallbackTranslations[currentLang] && fallbackTranslations[currentLang][key]) {
+      return fallbackTranslations[currentLang][key];
+    }
+    // Return the key itself if no translation found
+    return key;
+  };
+
+  // Use this fallback when the t function doesn't have a translation
+  const tWithFallback = (key: string): string => {
+    const translation = t(key);
+    // If t returns the key itself, it means no translation was found
+    return translation === key ? getFallbackTranslation(key) : translation;
+  };
+
+  // Use useMemo for defaultProfile with proper typing
+  const defaultProfile = useMemo<UserProfile>(() => ({
     name: '',
     email: '',
     subjects: [],
     school: '',
     bio: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    language: language,
+    language: language as SupportedLanguage,
     notifications: {
       email: true,
       push: true,
@@ -270,7 +329,7 @@ export default function SettingsPage() {
         
         setProfile(user);
         setEditedProfile(user);
-        setSelectedLanguage(user.language || language);
+        setSelectedLanguage(user.language || language as SupportedLanguage);
       } else {
         // If no user data, initialize with defaults
         setProfile(defaultProfile);
@@ -290,11 +349,49 @@ export default function SettingsPage() {
       setProfile(defaultProfile);
       setEditedProfile(defaultProfile);
     }
-  }, [defaultProfile]);
+  }, [defaultProfile, language]);
 
   useEffect(() => {
-    setSelectedLanguage(language);
+    setSelectedLanguage(language as SupportedLanguage);
+    
+    // Update app settings with current language
+    setSettings(prev => ({ ...prev, language }));
+    
+    // Fixed: Properly type check and handle edited profile updates
+    if (editedProfile) {
+      setEditedProfile({
+        ...editedProfile,
+        language: language as SupportedLanguage
+      });
+    }
+  }, [language, editedProfile]);
+
+  // Add a useEffect to set the document dir attribute based on language
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    
+    // Add a class to handle RTL-specific styling if needed
+    if (isRtl) {
+      document.documentElement.classList.add('rtl');
+    } else {
+      document.documentElement.classList.remove('rtl');
+    }
   }, [language]);
+
+  // Update useEffect to sync theme settings from ThemeContext on component mount
+  useEffect(() => {
+    // Sync theme settings from the global theme context
+    if (themeSettings) {
+      setSettings(prev => ({
+        ...prev,
+        theme: themeSettings.theme || 'system',
+        colorScheme: themeSettings.colorScheme || 'blue',
+        background: themeSettings.background || 'white'
+      }));
+    }
+  }, [themeSettings]);
 
   // Handle profile input changes
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -362,30 +459,47 @@ export default function SettingsPage() {
     }
   };
 
-  // Save app settings
-  const handleSaveSettings = (newSettings: Partial<AppSettings>) => {
+  // Make sure theme changes update both local and global state
+  const handleSaveSettings = useCallback((newSettings: Partial<AppSettings>) => {
     // Update local state
     setSettings(prev => ({ ...prev, ...newSettings }));
     
     // Update global theme settings
     updateThemeSettings(newSettings);
     
+    // If changing theme, update UI immediately
+    if (newSettings.theme) {
+      document.documentElement.classList.remove('dark', 'light');
+      if (newSettings.theme !== 'system') {
+        document.documentElement.classList.add(newSettings.theme);
+      } else {
+        // Check system preference
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.add('light');
+        }
+      }
+    }
+    
     toast.success(t('settingsUpdated'));
-  };
+  }, [t, updateThemeSettings]);
 
-  // Handle language change
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLanguage = e.target.value as any;
+  // Optimize handleLanguageChange with useCallback - fixed to use proper types
+  const handleLanguageChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLanguage = e.target.value as SupportedLanguage;
     setSelectedLanguage(newLanguage);
+    setLanguage(newLanguage);
     handleSaveSettings({ language: newLanguage });
     
+    // Fixed: Add proper type handling when updating the profile language
     if (editedProfile) {
       setEditedProfile({
         ...editedProfile,
         language: newLanguage
       });
     }
-  };
+  }, [editedProfile, handleSaveSettings, setLanguage]);
 
   // Handle timezone change
   const handleTimezoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -506,72 +620,21 @@ export default function SettingsPage() {
     });
   };
 
-  return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-black mb-6">{t('settings')}</h1>
-      
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Sidebar */}
-        <div className="w-full md:w-64 bg-white rounded-xl shadow-sm p-4 h-fit">
-          <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
-                activeTab === 'profile' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
-              }`}
-            >
-              <UserIcon className="w-5 h-5 mr-3" />
-              {t('profile')}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('localization')}
-              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
-                activeTab === 'localization' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
-              }`}
-            >
-              <GlobeAltIcon className="w-5 h-5 mr-3" />
-              {t('localizationSettings')}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
-                activeTab === 'notifications' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
-              }`}
-            >
-              <BellIcon className="w-5 h-5 mr-3" />
-              {t('notifications')}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('app')}
-              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
-                activeTab === 'app' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
-              }`}
-            >
-              <Cog6ToothIcon className="w-5 h-5 mr-3" />
-              {t('appSettings')}
-            </button>
-          </nav>
-          
-          {/* Logout button in sidebar */}
-          <div className="mt-8 pt-4 border-t border-gray-100">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-              </svg>
-              {t('logout')}
-            </button>
-          </div>
-        </div>
-        
-        {/* Main Content */}
-        <div className="flex-1">
-          {activeTab === 'profile' && (
+  // Add this helper function for localized date formatting
+  const formatLocalizedDate = (date: Date, options?: Intl.DateTimeFormatOptions) => {
+    // Get the locale from the language setting
+    const locale = language === 'en' ? 'en-US' : 
+                   language === 'ar' ? 'ar-SA' : 
+                   language === 'he' ? 'he-IL' : 'en-US';
+    
+    return date.toLocaleDateString(locale, options);
+  };
+
+  // Optimize the settings tab rendering with useMemo
+  const renderSettingsTab = useMemo(() => {
+    switch(activeTab) {
+      case 'profile':
+        return (
             <div className="bg-white rounded-xl shadow-sm">
               {/* Profile Header with Avatar */}
               <div className="relative h-32 bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-xl">
@@ -882,15 +945,15 @@ export default function SettingsPage() {
                       onClick={saveSettings}
                       className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      {t('Save Profile')}
+                    {t('saveChanges')}
                     </button>
                   </div>
                 )}
               </div>
             </div>
-          )}
-          
-          {activeTab === 'localization' && (
+        );
+      case 'localization':
+        return (
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-bold text-black mb-6">{t('localizationSettings')}</h2>
               
@@ -903,20 +966,12 @@ export default function SettingsPage() {
                     id="language"
                     name="language"
                     value={selectedLanguage}
-                    onChange={(e) => {
-                      setSelectedLanguage(e.target.value as any);
-                      if (editedProfile) {
-                        setEditedProfile({
-                          ...editedProfile,
-                          language: e.target.value
-                        });
-                      }
-                    }}
+                  onChange={handleLanguageChange}
                     className="w-full p-2.5 bg-gray-100 border border-gray-300 text-black rounded-lg focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="en">English</option>
-                    <option value="ar">العربية (Arabic)</option>
-                    <option value="he">עברית (Hebrew)</option>
+                  <option value="en">{t('english')}</option>
+                  <option value="ar">{t('arabic')}</option>
+                  <option value="he">{t('hebrew')}</option>
                   </select>
                 </div>
                 
@@ -976,11 +1031,14 @@ export default function SettingsPage() {
                   </select>
                   
                   <p className="mt-2 text-sm text-black">
-                    {t('currentTime')}: {new Date().toLocaleString(undefined, {
+                  {t('currentTime')}: {new Date().toLocaleString(
+                    language === 'en' ? 'en-US' : language === 'ar' ? 'ar-SA' : 'he-IL', 
+                    {
                       timeZone: editedProfile?.timezone,
                       dateStyle: 'full',
                       timeStyle: 'medium'
-                    })}
+                    }
+                  )}
                   </p>
                 </div>
                 
@@ -992,9 +1050,9 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
-          )}
-          
-          {activeTab === 'notifications' && (
+        );
+      case 'notifications':
+        return (
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-bold text-black mb-6">{t('notifications')}</h2>
               
@@ -1063,9 +1121,9 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
-          )}
-          
-          {activeTab === 'app' && (
+        );
+      case 'app':
+        return (
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-bold text-black mb-6">{t('appSettings')}</h2>
               
@@ -1166,7 +1224,78 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          )}
+        );
+      default:
+        return null;
+    }
+  }, [activeTab, profile, editedProfile, isEditing, language, handleLanguageChange]);
+
+  return (
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold text-black mb-6">{t('settings')}</h1>
+      
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar */}
+        <div className="w-full md:w-64 bg-white rounded-xl shadow-sm p-4 h-fit">
+          <nav className="space-y-1">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
+                activeTab === 'profile' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
+              }`}
+            >
+              <UserIcon className="w-5 h-5 mr-3" />
+              {t('profile')}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('localization')}
+              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
+                activeTab === 'localization' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
+              }`}
+            >
+              <GlobeAltIcon className="w-5 h-5 mr-3" />
+              {t('localizationSettings')}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
+                activeTab === 'notifications' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
+              }`}
+            >
+              <BellIcon className="w-5 h-5 mr-3" />
+              {t('notifications')}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('app')}
+              className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
+                activeTab === 'app' ? 'bg-blue-50 text-blue-600' : 'text-black hover:bg-gray-50'
+              }`}
+            >
+              <Cog6ToothIcon className="w-5 h-5 mr-3" />
+              {t('appSettings')}
+            </button>
+          </nav>
+          
+          {/* Logout button in sidebar */}
+          <div className="mt-8 pt-4 border-t border-gray-100">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              {t('logout')}
+            </button>
+          </div>
+        </div>
+        
+        {/* Main Content */}
+        <div className="flex-1">
+          {renderSettingsTab}
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { Providers } from '@/components/providers/Providers';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import GlobalLanguageSwitcher from '@/components/GlobalLanguageSwitcher';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -58,6 +59,7 @@ export default function RootLayout({
                 <div className="flex-1 overflow-y-auto invisible-scrollbar">
                   {children}
                 </div>
+                <GlobalLanguageSwitcher />
               </Providers>
             </ErrorBoundary>
           </LanguageProvider>

@@ -272,7 +272,7 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
 };
 
 export default function NotesPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [noteColor, setNoteColor] = useState('yellow');
@@ -451,11 +451,18 @@ export default function NotesPage() {
     }
   }, []);
 
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Notes</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('notes')}</h1>
           
           <div className="bg-white rounded-full shadow-sm border flex p-1">
             <button
@@ -527,7 +534,7 @@ export default function NotesPage() {
                     disabled={!newNote.trim()}
                   >
                     <PlusIcon className="w-5 h-5" />
-                    Add Note
+                    {t('addNote')}
                   </button>
                 </div>
               </form>

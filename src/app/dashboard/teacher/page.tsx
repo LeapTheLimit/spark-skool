@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import TeacherDashboard from './components/TeacherDashboard';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function TeacherPortal() {
   const [teacher, setTeacher] = useState(null);
   const router = useRouter();
+  const { language } = useLanguage();
   
   useEffect(() => {
     // Check for user data on client side
@@ -27,6 +29,13 @@ export default function TeacherPortal() {
       router.push('/auth/login' as Route);
     }
   }, [router]);
+
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
 
   // Show loading state while checking auth
   if (!teacher) {
