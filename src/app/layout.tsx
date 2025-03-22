@@ -8,6 +8,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import GlobalLanguageSwitcher from '@/components/GlobalLanguageSwitcher';
+import '@/styles/globals.css';
+import '@/styles/rtl-styles.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

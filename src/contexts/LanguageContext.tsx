@@ -492,9 +492,8 @@ export const translations: Translations = {
     yourUltimateClassroomAICopilot: 'Your ultimate classroom AI copilot',
     yourClassroomAICopilot: 'Your classroom AI copilot',
     student: 'Student',
- 
     createEngagingPresentations: 'Create engaging presentations and visual aids in seconds',
-
+  
     
     // Class levels
     college: 'College',
@@ -502,6 +501,203 @@ export const translations: Translations = {
     verifying: 'Verifying...',
 
     signingIn: 'Signing in...',
+
+    // Add these translations to the English section
+    comingUp: 'Coming Up',
+
+    completeYourSetup: 'Complete your setup',
+    continueSetup: 'Continue Setup',
+
+    noUpcomingEvents: 'No upcoming events today',
+    viewSchedule: 'View Schedule',
+
+    chatWithSpark: 'Chat with Spark',
+    getTeachingAssistance: 'Get teaching assistance from your AI assistant',
+
+    manageYourClassRoster: 'Manage your class roster',
+ 
+    generateQuizzesAndAssessments: 'Generate quizzes and assessments',
+  
+    createLessonPlansWithAI: 'Create lesson plans with AI assistance',
+ 
+    schedule: 'Schedule',
+    notes: 'Notes',
+
+    helpAndSupport: 'Help & Support',
+    superpowers: 'Superpowers',
+
+    backToDashboard: 'Back to Dashboard',
+    profileUpdatedSuccessfully: 'Profile updated successfully',
+    failedToSaveProfile: 'Failed to save profile',
+    failedToSaveSettings: 'Failed to save settings',
+    selectColorScheme: 'Choose your accent color',
+    emailNotifications: 'Email Notifications',
+    pushNotifications: 'Push Notifications',
+    smsNotifications: 'SMS Notifications',
+    languageChanged: 'Language changed successfully',
+
+    // Time-based greetings
+    morningGreeting: 'Good morning',
+    afternoonGreeting: 'Good afternoon',
+    eveningGreeting: 'Good evening',
+    
+    // Dashboard sections
+
+    
+  
+    createLessonDesc: 'Create lesson plans with AI assistance',
+    createQuiz: 'Create quiz',
+    createQuizDesc: 'Generate quizzes and assessments',
+
+    addStudentsDesc: 'Manage your class roster',
+    
+    // Subject options
+    subjectsHeader: 'Subjects',
+    addSubject: 'Add Subject',
+   
+    
+    // School info
+    schoolLabel: 'School',
+    
+    // Class levels
+    classLevelsHeader: 'Class Levels',
+
+    // Onboarding
+    completeProfile: 'Complete Profile',
+    addProfileDetails: 'Add your name, school, and contact info',
+    addSubjects: 'Add Teaching Subjects',
+    selectTeachingSubjects: 'Select the subjects you teach',
+    setupSchedule: 'Setup Schedule',
+    addYourClassSchedule: 'Add your teaching schedule',
+   
+    setup: 'Setup',
+    
+    // Subjects selection (from the second image)
+    
+    // Add to English translations
+    noProfileToSave: 'No profile to save',
+    pleaseCompleteRequiredFields: 'Please complete all required fields',
+    
+    // Add in the English translations section
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+
+    // Add these translations to the English section
+    // Schedule page translations
+
+    day: 'Day',
+    week: 'Week',
+    month: 'Month',
+    year: 'Year',
+    addEvent: 'Add Event',
+    scheduleSettings: 'Schedule Settings',
+
+    addYourFirstClass: 'Add Your First Class',
+    time: 'Time',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    eventType: 'Event Type',
+    room: 'Room',
+    color: 'Color',
+
+    recurring: 'Recurring',
+    recurrencePattern: 'Recurrence Pattern',
+    numberOfOccurrences: 'Number of occurrences',
+    until: 'Until',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    workingDays: 'Working Days',
+    workingHours: 'Working Hours',
+    class: 'Class',
+    meeting: 'Meeting',
+    break: 'Break',
+    officeHours: 'Office Hours',
+    other: 'Other',
+  
+    update: 'Update',
+ 
+    deleteConfirmation: 'Are you sure you want to delete this class?',
+    yourSchedule: 'Your Schedule',
+    allEvents: 'All',
+    googleCalendarIntegrationTitle: 'Google Calendar Integration Coming Soon',
+    googleCalendarIntegrationText: 'Soon you\'ll be able to sync your class schedule with Google Calendar and receive reminders!',
+    noClassesScheduled: 'No classes scheduled',
+    actions: 'Actions',
+
+    colorOptions: 'Color Options',
+    blue: 'Blue', 
+    purple: 'Purple',
+    green: 'Green',
+    amber: 'Amber',
+    rose: 'Rose',
+    title: 'Title',
+    description: 'Description',
+    date: 'Date',
+    eventDetails: 'Event Details',
+    repeat: 'Repeat',
+    numberOfStudents: 'Number of Students',
+
+    edited: 'Edited',
+    weekOf: 'Week of',
+
+    loading: 'Loading...',
+
+    continueWork: 'Continue',
+    noRecentTools: 'No recently used tools',
+
+    superpowersDescription: 'Spark superpowers tools to enhance your teaching and save hours of work',
+
+    comingSoon: 'COMING SOON',
+
+    all: 'All',
+    pinned: 'Pinned',
+    archived: 'Archived',
+    addNote: 'Add Note',
+
+    // Add tool name and description translations to the English section
+    // Tool Names and Descriptions
+    GradeWizard: 'GradeWizard',
+    gradeWizardDescription: 'AI-Powered Exam Grading',
+    examGradingDescription: 'Grade exams at superhuman speed with AI assistance and detailed analytics',
+
+    ExamCrafter: 'ExamCrafter',
+    examCrafterDescription: 'Professional Exam Creation',
+    examCreationDescription: 'Craft perfect exams with AI assistance and customizable templates',
+
+    GameMaster: 'GameMaster',
+    gameMasterDescription: 'Interactive Learning Games',
+    gameDescription: 'Create engaging exam games with AI-powered question generation and interactive formats',
+
+    SlideDesigner: 'SlideDesigner',
+    slideDesignerDescription: 'Dynamic Presentations',
+    slideDescription: 'Create captivating slides with AI assistance and beautiful templates',
+
+    AssignmentMaker: 'AssignmentMaker',
+    assignmentMakerDescription: 'Customized Learning Tasks',
+    assignmentDescription: 'Generate customized homework assignments aligned with your lesson objectives',
+
+    FeedbackGenius: 'FeedbackGenius',
+    feedbackGeniusDescription: 'Personalized Student Insights',
+    feedbackDescription: 'Create personalized feedback for students with AI assistance to save time',
+
+    DataVision: 'DataVision',
+    dataVisionDescription: 'Performance Analytics',
+    analyticsDescription: 'Visualize classroom performance data with actionable teaching insights',
+
+    LessonArchitect: 'LessonArchitect',
+    lessonArchitectDescription: 'Curriculum Planning',
+    lessonDescription: 'Design comprehensive lesson plans aligned with your curriculum standards',
+
+    RubricSmith: 'RubricSmith',
+    rubricSmithDescription: 'Assessment Criteria Builder',
+    rubricDescription: 'Create detailed grading rubrics for assignments and projects',
+
   },
   ar: {
     // Dashboard & Common
@@ -843,8 +1039,8 @@ export const translations: Translations = {
     materialLoadedAsContext: 'تم تحميل المادة كسياق للإنشاء بالذكاء الاصطناعي',
     textExtractedFromFile: 'تم استخراج النص من الملف وإضافته كسياق',
     goodMorning: 'صباح الخير',
-    goodAfternoon: 'صباح الخير',
-    goodEvening: 'صباح الخير',
+    goodAfternoon: 'مساء الخير',
+    goodEvening: 'مساء الخير',
     timezone: 'منطقة زمنية',
     currentTime: 'الوقت الحالي',
     localizationSettings: 'إعدادات الموقع',
@@ -961,13 +1157,207 @@ export const translations: Translations = {
     createEngagingPresentations: 'إنشاء عروض تقديمية جذابة ووسائل بصرية في ثوانٍ',
 
     
-    // Class levels
- 
+  
     college: 'الكلية',
     
     verifying: 'جارٍ التحقق...',
 
     signingIn: 'جاري تسجيل الدخول...',
+
+    // Add Arabic translations
+    comingUp: 'القادم',
+
+    completeYourSetup: 'أكمل الإعداد الخاص بك',
+    continueSetup: 'متابعة الإعداد',
+
+    noUpcomingEvents: 'لا توجد أحداث قادمة اليوم',
+    viewSchedule: 'عرض الجدول',
+ 
+    chatWithSpark: 'الدردشة مع سبارك',
+    getTeachingAssistance: 'الحصول على مساعدة تعليمية من مساعدك الذكي',
+  
+    manageYourClassRoster: 'إدارة قائمة الفصل الخاصة بك',
+  
+    generateQuizzesAndAssessments: 'إنشاء اختبارات وتقييمات',
+
+    createLessonPlansWithAI: 'إنشاء خطط دروس بمساعدة الذكاء الاصطناعي',
+
+    schedule: 'الجدول الزمني',
+    notes: 'الملاحظات',
+ 
+    helpAndSupport: 'المساعدة والدعم',
+    superpowers: 'قدرات خارقة',
+
+    backToDashboard: 'العودة إلى لوحة التحكم',
+    profileUpdatedSuccessfully: 'تم تحديث الملف الشخصي بنجاح',
+    failedToSaveProfile: 'فشل في حفظ الملف الشخصي',
+    failedToSaveSettings: 'فشل في حفظ الإعدادات',
+    selectColorScheme: 'اختر لون التمييز الخاص بك',
+    emailNotifications: 'إشعارات البريد الإلكتروني',
+    pushNotifications: 'الإشعارات المنبثقة',
+    smsNotifications: 'إشعارات الرسائل القصيرة',
+    languageChanged: 'تم تغيير اللغة بنجاح',
+
+    // Time-based greetings
+    morningGreeting: 'صباح الخير',
+    afternoonGreeting: 'مساء الخير',
+    eveningGreeting: 'مساء الخير',
+    
+    // Dashboard sections
+
+    // Teacher dashboard actions
+ 
+    createLessonDesc: 'إنشاء خطط دروس بمساعدة الذكاء الاصطناعي',
+    createQuiz: 'إنشاء اختبار',
+    createQuizDesc: 'إنشاء اختبارات وتقييمات',
+
+    addStudentsDesc: 'إدارة قائمة الفصل الخاص بك',
+    
+    // Subject options
+    subjectsHeader: 'المواد الدراسية',
+    addSubject: 'إضافة مادة',
+  
+    
+    // School info
+    schoolLabel: 'المدرسة',
+    
+    // Class levels
+    classLevelsHeader: 'مستويات الصف',
+
+    // Onboarding
+    completeProfile: 'إكمال الملف الشخصي',
+    addProfileDetails: 'أضف اسمك ومدرستك ومعلومات الاتصال الخاصة بك',
+    addSubjects: 'إضافة المواد التدريسية',
+    selectTeachingSubjects: 'حدد المواد التي تدرسها',
+    setupSchedule: 'إعداد الجدول',
+    addYourClassSchedule: 'أضف جدول التدريس الخاص بك',
+ 
+    setup: 'إعداد',
+  
+    // Add to Arabic translations
+    noProfileToSave: 'لا يوجد ملف شخصي للحفظ',
+    pleaseCompleteRequiredFields: 'الرجاء إكمال جميع الحقول المطلوبة',
+ 
+    // Add in the Arabic translations section
+    monday: 'الاثنين',
+    tuesday: 'الثلاثاء',
+    wednesday: 'الأربعاء',
+    thursday: 'الخميس',
+    friday: 'الجمعة',
+    saturday: 'السبت',
+    sunday: 'الأحد',
+ 
+    // Add these translations to the Arabic section
+    // Schedule page translations in Arabic
+
+    day: 'يوم',
+    week: 'أسبوع',
+    month: 'شهر',
+    year: 'سنة',
+    addEvent: 'إضافة حدث',
+    scheduleSettings: 'إعدادات الجدول',
+
+    addYourFirstClass: 'أضف فصلك الأول',
+    time: 'الوقت',
+    startTime: 'وقت البدء',
+    endTime: 'وقت الانتهاء',
+    eventType: 'نوع الحدث',
+    room: 'الغرفة',
+    color: 'اللون',
+  
+    recurring: 'متكرر',
+    recurrencePattern: 'نمط التكرار',
+    numberOfOccurrences: 'عدد المرات',
+    until: 'حتى',
+    daily: 'يوميًا',
+    weekly: 'أسبوعيًا',
+    monthly: 'شهريًا',
+    workingDays: 'أيام العمل',
+    workingHours: 'ساعات العمل',
+    class: 'فصل',
+    meeting: 'اجتماع',
+    break: 'استراحة',
+    officeHours: 'ساعات العمل',
+    other: 'أخرى',
+
+    update: 'تحديث',
+  
+    deleteConfirmation: 'هل أنت متأكد أنك تريد حذف هذا الفصل؟',
+    yourSchedule: 'جدولك الزمني',
+    allEvents: 'الكل',
+    googleCalendarIntegrationTitle: 'تكامل تقويم Google قادم قريبًا',
+    googleCalendarIntegrationText: 'قريبًا ستتمكن من مزامنة جدول حصصك مع تقويم Google وتلقي تذكيرات!',
+    noClassesScheduled: 'لا توجد فصول مجدولة',
+    actions: 'إجراءات',
+ 
+    colorOptions: 'خيارات الألوان',
+    blue: 'أزرق', 
+    purple: 'بنفسجي',
+    green: 'أخضر',
+    amber: 'كهرماني',
+    rose: 'وردي',
+    title: 'العنوان',
+    description: 'الوصف',
+    date: 'التاريخ',
+    eventDetails: 'تفاصيل الحدث',
+    repeat: 'تكرار',
+    numberOfStudents: 'عدد الطلاب',
+ 
+    edited: 'تم التحرير',
+    weekOf: 'أسبوع',
+
+    loading: 'جاري التحميل...',
+
+    continueWork: 'متابعة',
+    noRecentTools: 'لا توجد أدوات مستخدمة مؤخرًا',
+
+    superpowersDescription: 'أدوات سبارك لتعزيز التدريس وتوفير ساعات من العمل',
+
+    comingSoon: 'قريبًا',
+
+    all: 'الكل',
+    pinned: 'مثبت',
+    archived: 'مؤرشف',
+    addNote: 'إضافة ملاحظة',
+
+    // Add Arabic translations
+    // Tool Names and Descriptions
+    GradeWizard: 'معالج التقييم',
+    gradeWizardDescription: 'تقييم الاختبارات بتقنية الذكاء الاصطناعي',
+    examGradingDescription: 'قيّم الاختبارات بسرعة فائقة باستخدام الذكاء الاصطناعي والتحليلات المفصلة',
+
+    ExamCrafter: 'صانع الاختبارات',
+    examCrafterDescription: 'إنشاء اختبارات احترافية',
+    examCreationDescription: 'قم بإنشاء اختبارات مثالية بمساعدة الذكاء الاصطناعي وقوالب قابلة للتخصيص',
+
+    GameMaster: 'صانع الألعاب',
+    gameMasterDescription: 'ألعاب تعليمية تفاعلية',
+    gameDescription: 'إنشاء ألعاب اختبارات جذابة مع توليد أسئلة بالذكاء الاصطناعي وتنسيقات تفاعلية',
+
+    SlideDesigner: 'مصمم الشرائح',
+    slideDesignerDescription: 'عروض تقديمية ديناميكية',
+    slideDescription: 'إنشاء شرائح جذابة بمساعدة الذكاء الاصطناعي وقوالب جميلة',
+
+    AssignmentMaker: 'صانع الواجبات',
+    assignmentMakerDescription: 'مهام تعليمية مخصصة',
+    assignmentDescription: 'إنشاء واجبات منزلية مخصصة تتماشى مع أهداف دروسك',
+
+    FeedbackGenius: 'معالج الملاحظات',
+    feedbackGeniusDescription: 'رؤى شخصية للطلاب',
+    feedbackDescription: 'إنشاء ملاحظات شخصية للطلاب بمساعدة الذكاء الاصطناعي لتوفير الوقت',
+
+    DataVision: 'رؤية البيانات',
+    dataVisionDescription: 'تحليلات الأداء',
+    analyticsDescription: 'تصور بيانات أداء الفصل الدراسي مع رؤى تعليمية قابلة للتنفيذ',
+
+    LessonArchitect: 'مهندس الدروس',
+    lessonArchitectDescription: 'تخطيط المناهج',
+    lessonDescription: 'تصميم خطط دروس شاملة تتماشى مع معايير المناهج الدراسية',
+
+    RubricSmith: 'صانع المعايير',
+    rubricSmithDescription: 'بناء معايير التقييم',
+    rubricDescription: 'إنشاء معايير تقييم مفصلة للواجبات والمشاريع',
+
   },
   he: {
     // Dashboard & Common
@@ -1239,7 +1629,7 @@ export const translations: Translations = {
     generalChat: 'צ\'אט כללי',
     recentMaterials: 'חומרים אחרונים',
     examGrading: 'בדיקת מבחנים',
-    examGradingDesc: 'בדיקת מבחנים במהירות בעזרת בינה מלאכותית וניתוח מפורט',
+    examGradingDesc: 'בדיקת מבחנים במהירות על-אנושית עם סיוע AI וניתוחים מפורטים',
     examCreator: 'מנשר המבחנים',
     examCreatorDesc: 'יצירת מבחנים מקצועיים עם בינה מלאכותית ושיתופם עם תלמידים',
     gamifyExam: 'הפוך מבחן למשחק',
@@ -1308,12 +1698,12 @@ export const translations: Translations = {
     hard: 'Hard',
     materialLoadedAsContext: 'Material loaded as context for AI generation',
     textExtractedFromFile: 'Text extracted from file and added as context',
-    goodMorning: 'Good morning',
-    goodAfternoon: 'Good afternoon',
-    goodEvening: 'Good evening',
-    timezone: 'Timezone',
-    currentTime: 'Current time',
-    localizationSettings: 'Localization Settings',
+    goodMorning: 'בוקר טוב',
+    goodAfternoon: 'צהריים טובים',
+    goodEvening: 'ערב טוב',
+    timezone: 'מזעור זמן',
+    currentTime: 'זמן נוכחי',
+    localizationSettings: 'הגדרות מקומיות',
     contactSupportToChangeEmail: 'צור קשר עם התמיכה כדי לשנות את כתובת הדוא"ל שלך',
     classLevels: 'רמות כיתה',
     addClass: 'הוסף כיתה',
@@ -1332,8 +1722,8 @@ export const translations: Translations = {
     categoryDescription: 'בחר קטגוריה למשימה שלך',
     task: 'משימה',
     grading: 'ציון',
-    call: 'שיחה',
-    callMeeting: 'שיחה/פגישה',
+    call: 'מكالمה',
+    callMeeting: 'מקלמה/אגטמאל',
     priority: 'עדיפות',
     priorityDescription: 'קבע את רמת העדיפות למשימה זו',
     dueDateDescription: 'מתי צריך להשלים את המשימה הזו?',
@@ -1377,7 +1767,7 @@ export const translations: Translations = {
     enterYourEmailToResetPassword: 'הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה',
     pleaseEnterYourEmail: 'נא להזין את האימייל שלך',
     resetLinkSent: 'קישור לאיפוס נשלח',
-    resetLinkSentText: 'שלחנו קישור לאיפוס סיסמה לכתובת האימייל שלך. בדוק את תיבת הדואר הנכנס.',
+    resetLinkSentText: 'לקדנו קישור לאיפוס סיסמה לכתובת האימייל שלך. בדוק את תיבת הדואר הנכנס.',
     failedToSendResetLink: 'שליחת קישור האיפוס נכשלה',
     backToLogin: 'חזרה להתחברות',
     invalidResetToken: 'טוקן איפוס לא חוקי או שפג תוקפו',
@@ -1386,9 +1776,6 @@ export const translations: Translations = {
     newPassword: 'סיסמה חדשה',
     passwordTooShort: 'הסיסמה חייבת להיות לפחות 8 תווים',
     passwordResetSuccessfully: 'הסיסמה אופסה בהצלחה',
-    passwordResetSuccessText: 'הסיסמה שלך אופסה בהצלחה. תועבר לדף ההתחברות.',
-    failedToResetPassword: 'איפוס הסיסמה נכשל',
-    resetPassword: 'אפס סיסמה',
     termsOfUse: 'תנאי השימוש',
     privacyPolicy: 'מדיניות הפרטיות',
     welcomeBack: 'ברוך הבא',
@@ -1401,39 +1788,123 @@ export const translations: Translations = {
     invalidToken: 'אסימון לא חוקי',
     invalidTokenDescription: 'אסימון איפוס הסיסמה אינו חוקי או שפג תוקפו.',
     requestNewResetLink: 'בקש קישור איפוס חדש',
-  
-    orSignIn: 'או שיש לך כבר חשבון?',
+    failedToResetPassword: 'فشل في إعادة تعيين كلمة المرور',
+    passwordResetSuccessText: 'تم إعادة تعيين كلمة المرور الخاصة بك بنجاح.',
+    resetPassword: 'إعادة تعيين كلمة المرور',
 
-    signUp: 'הרשמה',
+    orSignIn: 'أو لديك حساب بالفعل؟',
 
-    byRegistering: 'בהתחברות, אתה מסכים ל',
+    signUp: 'التسجيل',
+
+    byRegistering: 'بالتسجيل، فإنك توافق على',
 
  
-    iAmA: 'אני',
-    schoolVerification: 'אימות בית ספר',
-    studentVerificationDescription: 'הזן את קוד בית הספר שלך כדי לאמת את הרישום שלך',
-    enterSchoolCode: 'הזן קוד בית ספר',
-    verify: 'אמת',
-    verified: 'מאומת',
-    schoolName: 'שם בית הספר',
-    subjectTaught: 'מקצוע נלמד',
-    creatingAccount: 'יוצר חשבון...',
-    alreadyMember: 'כבר חבר?',
-    classLevel: 'רמת כיתה',
-    yourUltimateClassroomAICopilot: 'עוזר הבינה המלאכותית האולטימטיבי לכיתה שלך',
-    yourClassroomAICopilot: 'עוזר הבינה המלאכותית לכיתה שלך',
-    student: 'תלמיד',
+    iAmA: 'أنا',
+    schoolVerification: 'التحقق من المدرسة',
+    studentVerificationDescription: 'أدخل رمز مدرستك للتحقق من تسجيلك',
+    enterSchoolCode: 'أدخل رمز المدرسة',
+    verify: 'تحقق',
+    verified: 'تم التحقق',
+    schoolName: 'اسم المدرسة',
+    subjectTaught: 'المادة التي تُدرس',
+    creatingAccount: 'جاري إنشاء الحساب...',
+    alreadyMember: 'هل لديك حساب بالفعل؟',
+    classLevel: 'مستوى الصف',
+    yourUltimateClassroomAICopilot: 'مساعدك المثالي بالذكاء الاصطناعي في الفصل الدراسي',
+    yourClassroomAICopilot: 'مساعدك بالذكاء الاصطناعي في الفصل الدراسي',
+    student: 'طالب',
 
-    createEngagingPresentations: 'צור מצגות מרתקות ועזרים חזותיים בשניות',
+    createEngagingPresentations: 'إنشاء عروض تقديمية جذابة ووسائل بصرية في ثوانٍ',
 
+    
+  
+    college: 'الكلية',
+    
+    verifying: 'جارٍ التحقق...',
+
+    signingIn: 'جاري تسجيل الدخول...',
+
+    // Add Hebrew translations
+    comingUp: 'מתקרב',
+
+    completeYourSetup: 'השלם את ההתקנה שלך',
+    continueSetup: 'המשך הגדרה',
+
+    noUpcomingEvents: 'אין אירועים קרובים היום',
+    viewSchedule: 'צפה בלוח הזמנים',
+
+    chatWithSpark: 'שוחח עם ספארק',
+    getTeachingAssistance: 'קבל סיוע בהוראה מעוזר הבינה המלאכותית שלך',
+
+    manageYourClassRoster: 'נהל את רשימת הכיתה שלך',
+
+    generateQuizzesAndAssessments: 'צור בחנים והערכות',
+
+    createLessonPlansWithAI: 'צור מערכי שיעור בעזרת בינה מלאכותית',
+   
+    schedule: 'לוח זמנים',
+    notes: 'הערות',
+  
+    helpAndSupport: 'עזרה ותמיכה',
+    superpowers: 'כוחות על',
+
+    backToDashboard: 'חזרה ללוח הבקרה',
+    profileUpdatedSuccessfully: 'הפרופיל עודכן בהצלחה',
+    failedToSaveProfile: 'שמירת הפרופיל נכשלה',
+    failedToSaveSettings: 'שמירת ההגדרות נכשלה',
+    selectColorScheme: 'בחר את צבע ההדגשה שלך',
+    emailNotifications: 'התראות אימייל',
+    pushNotifications: 'התראות פוש',
+    smsNotifications: 'התראות SMS',
+    languageChanged: 'השפה שונתה בהצלחה',
+
+    // Time-based greetings
+    morningGreeting: 'בוקר טוב',
+    afternoonGreeting: 'צהריים טובים',
+    eveningGreeting: 'ערב טוב',
+    
+
+    
+
+    createLessonDesc: 'צור מערכי שיעור בעזרת בינה מלאכותית',
+    createQuiz: 'צור מבחן',
+    createQuizDesc: 'יצירת מבחנים והערכות',
+
+    addStudentsDesc: 'נהל את רשימת הכיתה שלך',
+    
+    // Subject options
+    subjectsHeader: 'מקצועות',
+    addSubject: 'הוסף מקצוע',
+
+    
+    // School info
+    schoolLabel: 'בית ספר',
     
     // Class levels
+    classLevelsHeader: 'רמות כיתה',
 
-    college: 'מכללה',
+    // Onboarding
+    completeProfile: 'השלם פרופיל',
+    addProfileDetails: 'הוסף את שמך, בית הספר ופרטי יצירת קשר',
+    addSubjects: 'הוסף מקצועות הוראה',
+    selectTeachingSubjects: 'בחר את המקצועות שאתה מלמד',
+    setupSchedule: 'הגדר לוח זמנים',
+    addYourClassSchedule: 'הוסף את לוח הזמנים שלך להוראה',
+
+    setup: 'הגדרה',
     
-    verifying: 'מאמת...',
+    // Add to Hebrew translations
+    noProfileToSave: 'אין פרופיל לשמירה',
+    pleaseCompleteRequiredFields: 'אנא מלא את כל השדות הנדרשים',
 
-    signingIn: 'מתחבר...',
+    // Add in the Hebrew translations section
+    monday: 'יום שני',
+    tuesday: 'יום שלישי',
+    wednesday: 'יום רביעי',
+    thursday: 'יום חמישי',
+    friday: 'יום שישי',
+    saturday: 'יום שבת',
+    sunday: 'יום ראשון',
   }
 };
 
@@ -1445,7 +1916,10 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Use a more specific type for language state
+  // At the top of the LanguageProvider function, add:
+  const languages: Language[] = ['en', 'ar', 'he'];
+
+  // And update the useState initialization:
   const [language, setLanguageState] = useState<Language>(() => {
     // Initialize from localStorage if available, otherwise default to 'en'
     if (typeof window !== 'undefined') {
@@ -1456,14 +1930,34 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   });
 
   // Update setLanguage to trigger re-render
-  const setLanguage = useCallback((newLang: Language) => {
-    setLanguageState(newLang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('language', newLang);
-      // Force a page refresh to ensure all components update
-      window.location.reload();
+  const setLanguage = useCallback((lang: Language) => {
+    if (languages.includes(lang)) {
+      setLanguageState(lang);
+      localStorage.setItem('language', lang);
+      
+      // Set RTL direction for Arabic and Hebrew
+      const isRtl = lang === 'ar' || lang === 'he';
+      document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+      document.documentElement.lang = lang;
+      
+      // Apply RTL class for styling
+      if (isRtl) {
+        document.documentElement.classList.add('rtl');
+      } else {
+        document.documentElement.classList.remove('rtl');
+      }
     }
-  }, []);
+  }, [languages]);
+
+  // Update useEffect to apply RTL changes when language changes
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    
+    // Also set html lang attribute for accessibility
+    document.documentElement.lang = language;
+  }, [language]);
 
   // Memoize the translation function to prevent unnecessary re-renders
   const t = useCallback((key: string, params?: TranslationParams) => {

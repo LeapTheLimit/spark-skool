@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useContentEditablePlaceholder } from '@/hooks/useContentEditablePlaceholder';
 
 // Add these types at the top of the file
 interface Note {
@@ -278,6 +279,7 @@ export default function NotesPage() {
   const [noteColor, setNoteColor] = useState('yellow');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'pinned' | 'archived'>('all');
+  const [isRTL, setIsRTL] = useState(false);
 
   // Load notes from localStorage
   useEffect(() => {
@@ -456,60 +458,70 @@ export default function NotesPage() {
     // Set document direction based on language
     const isRtl = language === 'ar' || language === 'he';
     document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    setIsRTL(isRtl);
   }, [language]);
 
+  // In your component, replace the current ref and event handlers
+  const { ref: noteInputRef, contentEditableProps } = useContentEditablePlaceholder({
+    onInput: (content) => setNewNote(content)
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">{t('notes')}</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('notes')}</h1>
           
-          <div className="bg-white rounded-full shadow-sm border flex p-1">
+          <div className="bg-white rounded-full shadow-sm border flex p-1 w-full sm:w-auto">
             <button
-              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
                 viewMode === 'all' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('all')}
             >
-              All
+              {t('all')}
             </button>
             <button
-              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
                 viewMode === 'pinned' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('pinned')}
             >
-              Pinned
+              {t('pinned')}
             </button>
             <button
-              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
                 viewMode === 'archived' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('archived')}
             >
-              Archived
+              {t('archived')}
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
           {viewMode !== 'archived' && (
             <div className="mb-8">
               <form onSubmit={handleAddNote} className="space-y-4">
                 <div className="relative bg-white rounded-lg shadow-sm">
                   <div 
-                    ref={newNoteRef}
-                    contentEditable
-                    onInput={(e) => setNewNote(e.currentTarget.innerHTML)}
-                    className={`w-full p-6 min-h-[120px] border ${
+                    {...contentEditableProps}
+                    className={`${contentEditableProps.className} w-full p-6 min-h-[120px] border ${
                       noteColor === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
                       noteColor === 'blue' ? 'bg-blue-50 border-blue-200' :
                       noteColor === 'green' ? 'bg-green-50 border-green-200' :
                       noteColor === 'pink' ? 'bg-pink-50 border-pink-200' :
                       'bg-purple-50 border-purple-200'
-                    } rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3ab8fe] text-gray-800 empty:before:content-['Add_a_new_note...'] empty:before:text-gray-500 empty:before:opacity-100`}
+                    } rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3ab8fe] text-gray-800 empty-content`}
+                    style={{ 
+                      direction: isRTL ? 'rtl' : 'ltr',
+                      textAlign: isRTL ? 'right' : 'left'
+                    }}
+                    data-placeholder={t('addANewNote')}
                   />
-                  <div className="absolute top-3 right-3 flex space-x-2">
+                  
+                  <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex space-x-2 ${isRTL ? 'space-x-reverse' : ''}`}>
                     {['yellow', 'blue', 'green', 'pink', 'purple'].map(color => (
                       <button
                         key={color}
@@ -527,7 +539,7 @@ export default function NotesPage() {
                   </div>
                 </div>
                 
-                <div className="flex justify-end">
+                <div className={`flex justify-${isRTL ? 'start' : 'end'}`}>
                   <button
                     type="submit"
                     className="px-4 py-2 bg-[#3ab8fe] text-white rounded-lg hover:bg-[#0099e5] transition-colors flex items-center gap-2"
@@ -593,17 +605,17 @@ export default function NotesPage() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700">
                   {viewMode === 'pinned' 
-                    ? 'No pinned notes yet' 
+                    ? t('noPinnedNotes', { defaultValue: 'No pinned notes yet' })
                     : viewMode === 'archived' 
-                      ? 'No archived notes' 
-                      : 'No notes yet'}
+                      ? t('noArchivedNotes', { defaultValue: 'No archived notes' })
+                      : t('noNotesYet', { defaultValue: 'No notes yet' })}
                 </h3>
                 <p className="text-gray-500 mt-1 max-w-md mx-auto">
                   {viewMode === 'pinned' 
-                    ? 'Click the pin icon on a note to pin it here' 
+                    ? t('pinnedDescription', { defaultValue: 'Click the pin icon on a note to pin it here' })
                     : viewMode === 'archived' 
-                      ? 'Archived notes will appear here' 
-                      : 'Add your first note to keep track of important information'}
+                      ? t('archivedDescription', { defaultValue: 'Archived notes will appear here' })
+                      : t('addFirstNoteDescription', { defaultValue: 'Add your first note to keep track of important information' })}
                 </p>
               </div>
             )}

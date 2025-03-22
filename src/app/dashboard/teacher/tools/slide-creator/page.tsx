@@ -1254,10 +1254,13 @@ export default function SlideCreator() {
               {slideImages[outlineItems[currentSlideIndex]?.id] && (
                     <div className="mt-4">
                   <p className="text-sm text-black mb-2">Current Slide Image:</p>
-                  <img 
+                  <Image 
                     src={slideImages[outlineItems[currentSlideIndex]?.id]}
                     alt={outlineItems[currentSlideIndex]?.title}
+                    width={500}
+                    height={300}
                     className="w-full h-auto rounded-lg border"
+                    style={{ objectFit: 'contain' }}
                   />
                   <button
                     onClick={() => {
@@ -1374,9 +1377,11 @@ export default function SlideCreator() {
         
         {previewImage && (
           <div className="mt-2 relative">
-            <img 
+            <Image 
               src={previewImage} 
               alt="Preview" 
+              width={500}
+              height={300}
               className="h-20 w-auto rounded border border-gray-200" 
             />
                 <button 

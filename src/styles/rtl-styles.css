@@ -1,0 +1,42 @@
+/* Add styles for RTL placeholder text */
+[dir="rtl"] [contentEditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #a0aec0;
+  opacity: 0.6;
+  text-align: right;
+}
+
+[dir="ltr"] [contentEditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #a0aec0;
+  opacity: 0.6;
+  text-align: left;
+}
+
+/* Fix RTL button alignments */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Fix RTL margins */
+[dir="rtl"] .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+/* Fix card directions in RTL */
+[dir="rtl"] .card-flip {
+  transform: scaleX(-1);
+}
+
+/* Add a generic class for empty content placeholder */
+.empty-content:empty:before {
+  content: attr(data-placeholder);
+  color: #a0aec0;
+  opacity: 0.6;
+} 

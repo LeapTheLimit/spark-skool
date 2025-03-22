@@ -301,7 +301,7 @@ export default function SchedulePage() {
   };
 
   const handleDeleteClass = (id: number) => {
-    if (confirm('Are you sure you want to delete this class?')) {
+    if (confirm(t('deleteConfirmation'))) {
       setClasses(prev => prev.filter(cls => cls.id !== id));
     }
   };
@@ -362,11 +362,11 @@ export default function SchedulePage() {
 
   // Add event type options
   const eventTypeOptions = [
-    { label: 'Class', value: 'class', icon: BookOpenIcon },
-    { label: 'Meeting', value: 'meeting', icon: UsersIcon },
-    { label: 'Break', value: 'break', icon: ClockIcon },
-    { label: 'Office Hours', value: 'office-hours', icon: CalendarIcon },
-    { label: 'Other', value: 'other', icon: PlusIcon }
+    { label: t('class'), value: 'class', icon: BookOpenIcon },
+    { label: t('meeting'), value: 'meeting', icon: UsersIcon },
+    { label: t('break'), value: 'break', icon: ClockIcon },
+    { label: t('officeHours'), value: 'office-hours', icon: CalendarIcon },
+    { label: t('other'), value: 'other', icon: PlusIcon }
   ];
 
   // Function to get the icon for an event type
@@ -389,77 +389,74 @@ export default function SchedulePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">{t('schedule')}</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">{t('schedule')}</h1>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full sm:w-auto">
             {/* View controls */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              {/* View switcher */}
-              <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
-                <button 
-                  onClick={() => setViewMode('day')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                    viewMode === 'day' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {t('day')}
-                </button>
-                <button 
-                  onClick={() => setViewMode('week')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                    viewMode === 'week' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {t('week')}
-                </button>
-                <button 
-                  onClick={() => setViewMode('month')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                    viewMode === 'month' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {t('month')}
-                </button>
-                <button 
-                  onClick={() => setViewMode('year')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                    viewMode === 'year' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {t('year')}
-                </button>
-              </div>
-              
-              {/* Add class button */}
+            <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex flex-wrap">
               <button 
-                onClick={() => {
-                  resetForm();
-                  setShowClassModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                onClick={() => setViewMode('day')}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium ${
+                  viewMode === 'day' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>{t('addEvent')}</span>
+                {t('day')}
               </button>
-
-              {/* Schedule Settings button */}
-              <button
-                onClick={() => setShowScheduleSettings(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              <button 
+                onClick={() => setViewMode('week')}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium ${
+                  viewMode === 'week' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <Cog6ToothIcon className="w-4 h-4" />
-                <span>{t('scheduleSettings')}</span>
+                {t('week')}
+              </button>
+              <button 
+                onClick={() => setViewMode('month')}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium ${
+                  viewMode === 'month' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {t('month')}
+              </button>
+              <button 
+                onClick={() => setViewMode('year')}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium ${
+                  viewMode === 'year' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {t('year')}
               </button>
             </div>
+            
+            {/* Add class button */}
+            <button 
+              onClick={() => {
+                resetForm();
+                setShowClassModal(true);
+              }}
+              className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs md:text-sm"
+            >
+              <PlusIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span>{t('addEvent')}</span>
+            </button>
+
+            {/* Schedule Settings button */}
+            <button
+              onClick={() => setShowScheduleSettings(true)}
+              className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-xs md:text-sm"
+            >
+              <Cog6ToothIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span>{t('scheduleSettings')}</span>
+            </button>
           </div>
         </div>
 
@@ -472,7 +469,7 @@ export default function SchedulePage() {
               </div>
               <h2 className="text-lg font-medium text-gray-900">
                 {viewMode === 'week' 
-                  ? `Week of ${format(currentDate, 'MMMM d, yyyy')}` 
+                  ? `${t('weekOf')} ${format(currentDate, 'MMMM d, yyyy')}` 
                   : viewMode === 'month'
                     ? format(currentDate, 'MMMM yyyy')
                     : format(currentDate, 'yyyy')}
@@ -510,8 +507,8 @@ export default function SchedulePage() {
             </svg>
           </div>
           <div>
-            <p className="text-amber-800 font-medium">Google Calendar Integration Coming Soon</p>
-            <p className="text-amber-700 text-sm mt-1">Soon you'll be able to sync your class schedule with Google Calendar and receive reminders!</p>
+            <p className="text-amber-800 font-medium">{t('googleCalendarIntegrationTitle')}</p>
+            <p className="text-amber-700 text-sm mt-1">{t('googleCalendarIntegrationText')}</p>
           </div>
         </div>
         
@@ -519,7 +516,7 @@ export default function SchedulePage() {
         {classes.length === 0 && (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
             <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No classes scheduled</h3>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">{t('noClassesScheduled')}</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by adding your first class!</p>
             <div className="mt-6">
               <button
@@ -540,18 +537,18 @@ export default function SchedulePage() {
         {viewMode === 'week' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Time slots header */}
-            <div className={`grid grid-cols-${daysOfWeek.length + 1} border-b`}>
-              <div className="p-4 border-r text-center font-medium text-gray-500 bg-gray-50">Time</div>
+            <div className="grid border-b" style={{ gridTemplateColumns: `auto repeat(${daysOfWeek.length}, 1fr)` }}>
+              <div className="p-4 border-r text-center font-medium text-gray-500 bg-gray-50">{t('time')}</div>
               {daysOfWeek.map(day => (
                 <div key={day} className="p-4 border-r text-center font-medium text-gray-700 bg-gray-50 last:border-r-0">
-                  {day}
+                  {t(day.toLowerCase())}
                 </div>
               ))}
             </div>
             
             {/* Time slots */}
             {timeSlots.map(hour => (
-              <div key={hour} className={`grid grid-cols-${daysOfWeek.length + 1} border-b last:border-b-0`}>
+              <div key={hour} className="grid border-b last:border-b-0" style={{ gridTemplateColumns: `auto repeat(${daysOfWeek.length}, 1fr)` }}>
                 <div className="py-6 px-4 border-r text-center text-sm text-gray-500 bg-gray-50">
                   {hour % 12 || 12}:00 {hour >= 12 ? 'PM' : 'AM'}
                 </div>
@@ -855,104 +852,102 @@ export default function SchedulePage() {
         )}
         
         {/* Update the event list heading and add filtering */}
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Your Schedule</h2>
-            
-            {/* Add event type filter */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">Filter by:</span>
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                <button 
-                  onClick={() => setEventTypeFilter('all')}
-                  className={`px-3 py-1.5 text-sm font-medium ${
-                    eventTypeFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+        <div className="flex justify-between items-center mb-4 flex-col sm:flex-row gap-3">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">{t('yourSchedule')}</h2>
+          
+          {/* Add event type filter */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs md:text-sm text-gray-600 whitespace-nowrap">{t('filterBy')}:</span>
+            <div className="flex flex-wrap border border-gray-300 rounded-lg overflow-hidden">
+              <button 
+                onClick={() => setEventTypeFilter('all')}
+                className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium ${
+                  eventTypeFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {t('allEvents')}
+              </button>
+              {eventTypeOptions.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setEventTypeFilter(option.value)}
+                  className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium flex items-center ${
+                    eventTypeFilter === option.value ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  All
+                  <option.icon className="w-3.5 h-3.5 mr-1" />
+                  {option.label}s
                 </button>
-                {eventTypeOptions.map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => setEventTypeFilter(option.value)}
-                    className={`px-3 py-1.5 text-sm font-medium flex items-center ${
-                      eventTypeFilter === option.value ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <option.icon className="w-3.5 h-3.5 mr-1" />
-                    {option.label}s
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  {eventTypeFilter === 'all' || eventTypeFilter === 'class' ? (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students</th>
-                  ) : null}
-                  {eventTypeFilter === 'all' || ['class', 'meeting', 'office-hours'].includes(eventTypeFilter) ? (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                  ) : null}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {classes
-                  .filter(cls => eventTypeFilter === 'all' || cls.eventType === eventTypeFilter)
-                  .map(cls => (
-                    <tr key={cls.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className={`w-3 h-3 rounded-full ${cls.color.replace('text-', 'bg-').replace(/bg-.*?-100/g, (match) => match.replace('100', '600'))} mr-3`}></div>
-                          <div className="flex gap-2 items-center">
-                            {getEventIcon(cls.eventType || 'class')}
-                            <div>
-                              <div className="font-medium text-gray-900">{cls.title}</div>
-                              {cls.description && (
-                                <div className="text-sm text-gray-500">{cls.description}</div>
-                              )}
-                            </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                {eventTypeFilter === 'all' || eventTypeFilter === 'class' ? (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students</th>
+                ) : null}
+                {eventTypeFilter === 'all' || ['class', 'meeting', 'office-hours'].includes(eventTypeFilter) ? (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                ) : null}
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {classes
+                .filter(cls => eventTypeFilter === 'all' || cls.eventType === eventTypeFilter)
+                .map(cls => (
+                  <tr key={cls.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full ${cls.color.replace('text-', 'bg-').replace(/bg-.*?-100/g, (match) => match.replace('100', '600'))} mr-3`}></div>
+                        <div className="flex gap-2 items-center">
+                          {getEventIcon(cls.eventType || 'class')}
+                          <div>
+                            <div className="font-medium text-gray-900">{cls.title}</div>
+                            {cls.description && (
+                              <div className="text-sm text-gray-500">{cls.description}</div>
+                            )}
                           </div>
                         </div>
-                      </td>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                      {format(new Date(cls.date), 'MMM d, yyyy')} ({cls.day})
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cls.startTime} - {cls.endTime}</td>
+                    {(eventTypeFilter === 'all' || eventTypeFilter === 'class') && (
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                        {format(new Date(cls.date), 'MMM d, yyyy')} ({cls.day})
+                        {cls.eventType === 'class' ? cls.students : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cls.startTime} - {cls.endTime}</td>
-                      {(eventTypeFilter === 'all' || eventTypeFilter === 'class') && (
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                          {cls.eventType === 'class' ? cls.students : '-'}
-                        </td>
-                      )}
-                      {(eventTypeFilter === 'all' || ['class', 'meeting', 'office-hours'].includes(eventTypeFilter)) && (
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cls.room || '-'}</td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
-                          onClick={() => handleEditClass(cls.id)}
-                          className="text-blue-600 hover:text-blue-800 mr-3"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteClass(cls.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                    {(eventTypeFilter === 'all' || ['class', 'meeting', 'office-hours'].includes(eventTypeFilter)) && (
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">{cls.room || '-'}</td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button 
+                        onClick={() => handleEditClass(cls.id)}
+                        className="text-blue-600 hover:text-blue-800 mr-3"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClass(cls.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1138,7 +1133,7 @@ export default function SchedulePage() {
                       ))}
                     </select>
                     <div className={`mt-2 p-2 rounded ${formData.color}`}>
-                      Preview
+                      {t('preview')}
                     </div>
                   </div>
                   
@@ -1153,7 +1148,7 @@ export default function SchedulePage() {
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label htmlFor="isRecurring" className="ml-2 block text-sm font-medium text-gray-700">
-                        Recurring {getEventTypeName(formData.eventType || 'class')}
+                        {t('recurring')} {getEventTypeName(formData.eventType || 'class')}
                       </label>
                     </div>
                     
@@ -1161,7 +1156,7 @@ export default function SchedulePage() {
                       <div className="mt-3 space-y-4">
                         <div>
                           <label htmlFor="recurrencePattern" className="block text-sm font-medium text-gray-700">
-                            Repeat
+                            {t('recurrencePattern')}
                           </label>
                           <select
                             id="recurrencePattern"
@@ -1170,19 +1165,19 @@ export default function SchedulePage() {
                             onChange={handleInputChange}
                             className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent text-gray-800 font-medium"
                           >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
+                            <option value="daily">{t('daily')}</option>
+                            <option value="weekly">{t('weekly')}</option>
+                            <option value="monthly">{t('monthly')}</option>
                           </select>
                         </div>
                         
                         <div>
                           <div className="flex items-center justify-between">
                             <label htmlFor="recurrenceCount" className="block text-sm font-medium text-gray-700">
-                              Number of occurrences
+                              {t('numberOfOccurrences')}
                             </label>
                             <span className="text-sm text-gray-500">
-                              Until {format(addWeeks(formData.date || new Date(), formData.recurrenceCount || 0), 'MMM d, yyyy')}
+                              {t('until')} {format(addWeeks(formData.date || new Date(), formData.recurrenceCount || 0), 'MMM d, yyyy')}
                             </span>
                           </div>
                           <input
@@ -1206,15 +1201,15 @@ export default function SchedulePage() {
                       onClick={() => setShowClassModal(false)}
                       className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                       type="submit"
                       className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       {isEditMode 
-                        ? `Update ${getEventTypeName(formData.eventType || 'class')}` 
-                        : `Add ${getEventTypeName(formData.eventType || 'class')}`}
+                        ? t('update') 
+                        : t('add')}
                     </button>
                   </div>
                 </div>
@@ -1241,7 +1236,7 @@ export default function SchedulePage() {
             <div className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-base font-medium text-gray-900 mb-3">Working Days</h4>
+                  <h4 className="text-base font-medium text-gray-900 mb-3">{t('workingDays')}</h4>
                   <div className="flex flex-wrap gap-2">
                     {allDaysOfWeek.map(day => (
                       <button
@@ -1260,7 +1255,7 @@ export default function SchedulePage() {
                 </div>
                 
                 <div>
-                  <h4 className="text-base font-medium text-gray-900 mb-3">Working Hours</h4>
+                  <h4 className="text-base font-medium text-gray-900 mb-3">{t('workingHours')}</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">

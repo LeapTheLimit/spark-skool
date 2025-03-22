@@ -20,26 +20,13 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import Link from 'next/link';
+import { UserProfile, getUserSettings, saveUser, saveUserSettings } from '@/services/userService';
+import { isProfileComplete, markProfileComplete } from '@/utils/profileUtils';
+import SubjectSelector from './components/SubjectSelector';
 
 // Define the allowed language types to match those in LanguageContext
 type SupportedLanguage = 'en' | 'ar' | 'he';
-
-interface UserProfile {
-  name: string;
-  email: string;
-  subjects: string[];
-  school: string;
-  avatar?: string;
-  classLevel?: string | string[];
-  timezone: string;
-  language: SupportedLanguage; // Update to use the strict type
-  bio?: string;
-  notifications: {
-    email: boolean;
-    push: boolean;
-    sms: boolean;
-  };
-}
 
 interface AppSettings {
   theme: 'light' | 'dark' | 'system';
@@ -286,6 +273,7 @@ export default function SettingsPage() {
 
   // Use useMemo for defaultProfile with proper typing
   const defaultProfile = useMemo<UserProfile>(() => ({
+    id: 'default-teacher-id',
     name: '',
     email: '',
     subjects: [],
@@ -293,6 +281,7 @@ export default function SettingsPage() {
     bio: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     language: language as SupportedLanguage,
+    classLevel: [],
     notifications: {
       email: true,
       push: true,
@@ -398,10 +387,21 @@ export default function SettingsPage() {
     if (!editedProfile) return;
     
     const { name, value } = e.target;
-    setEditedProfile({
-      ...editedProfile,
-      [name]: value
-    });
+    
+    // Special handling for subjects field
+    if (name === 'subjects') {
+      // Handle subjects as an array
+      setEditedProfile({
+        ...editedProfile,
+        subjects: value.split(',').map(s => s.trim()).filter(s => s)
+      });
+    } else {
+      // Regular fields
+      setEditedProfile({
+        ...editedProfile,
+        [name]: value
+      });
+    }
   };
 
   // Handle file upload for avatar
@@ -437,53 +437,111 @@ export default function SettingsPage() {
     });
   };
 
+  // Add this validation function somewhere in your component
+  const validateProfile = (profile: UserProfile | null): boolean => {
+    if (!profile) return false;
+    if (!profile.name || !profile.email) {
+      toast.error(t('pleaseCompleteRequiredFields'));
+      return false;
+    }
+    return true;
+  };
+
   // Save profile changes
   const handleSaveProfile = async () => {
     try {
-      if (!editedProfile) return;
-
-      // Save to localStorage
-      localStorage.setItem('currentUser', JSON.stringify(editedProfile));
+      if (!editedProfile) {
+        toast.error(t('noProfileToSave'));
+        return;
+      }
       
-      // Update state
-      setProfile(editedProfile);
-      setIsEditing(false);
+      // Validate the profile
+      if (!validateProfile(editedProfile)) {
+        return;
+      }
       
-      // Trigger update event for sidebar
-      window.dispatchEvent(new Event('storage'));
+      // Log what we're trying to save
+      console.log('Attempting to save profile:', editedProfile);
       
-      toast.success('Profile updated successfully');
+      // Get the user ID
+      const userId = editedProfile.id || 'teacher-id';
+      
+      // Make sure the ID is included in the saved profile
+      const profileToSave = {
+        ...editedProfile,
+        id: userId
+      };
+      
+      // Save using our service
+      const success = await saveUser(profileToSave);
+      
+      if (success) {
+        // Update local state
+        setProfile(profileToSave);
+        setIsEditing(false);
+        
+        // Check if profile is now complete and mark it if so
+        if (isProfileComplete(profileToSave)) {
+          markProfileComplete();
+        }
+        
+        toast.success(t('profileUpdatedSuccessfully'));
+        
+        // Save a copy to session storage as backup
+        sessionStorage.setItem('lastSavedProfile', JSON.stringify(profileToSave));
+      } else {
+        toast.error(t('failedToSaveProfile'));
+        console.error('Failed to save profile - saveUser returned false');
+      }
     } catch (error) {
       console.error('Failed to save profile:', error);
-      toast.error('Failed to save profile');
+      toast.error(`${t('failedToSaveProfile')}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  // Make sure theme changes update both local and global state
-  const handleSaveSettings = useCallback((newSettings: Partial<AppSettings>) => {
+  // Update the settings save function
+  const handleSaveSettings = useCallback(async (newSettings: Partial<AppSettings>) => {
+    try {
     // Update local state
     setSettings(prev => ({ ...prev, ...newSettings }));
     
     // Update global theme settings
     updateThemeSettings(newSettings);
     
-    // If changing theme, update UI immediately
-    if (newSettings.theme) {
-      document.documentElement.classList.remove('dark', 'light');
-      if (newSettings.theme !== 'system') {
-        document.documentElement.classList.add(newSettings.theme);
+      // Get the user ID
+      const userId = profile?.id || 'teacher-id';
+      
+      // Save settings to Redis and localStorage
+      const success = await saveUserSettings(userId, {
+        ...settings,
+        ...newSettings
+      });
+      
+      if (success) {
+    toast.success(t('settingsUpdated'));
       } else {
-        // Check system preference
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.classList.add('dark');
+        toast.error(t('failedToSaveSettings'));
+      }
+      
+      // If changing theme, update UI immediately
+      if (newSettings.theme) {
+        document.documentElement.classList.remove('dark', 'light');
+        if (newSettings.theme !== 'system') {
+          document.documentElement.classList.add(newSettings.theme);
         } else {
-          document.documentElement.classList.add('light');
+          // Check system preference
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.add('light');
+          }
         }
       }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast.error(t('failedToSaveSettings'));
     }
-    
-    toast.success(t('settingsUpdated'));
-  }, [t, updateThemeSettings]);
+  }, [profile, settings, t, updateThemeSettings]);
 
   // Optimize handleLanguageChange with useCallback - fixed to use proper types
   const handleLanguageChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -521,7 +579,21 @@ export default function SettingsPage() {
 
   // Save settings
   const saveSettings = () => {
-    handleSaveProfile();
+    if (activeTab === 'profile') {
+      handleSaveProfile();
+    } else if (activeTab === 'localization') {
+      // Save language and timezone
+      if (editedProfile) {
+        handleSaveProfile();
+      }
+      handleSaveSettings({ language: selectedLanguage });
+    } else if (activeTab === 'notifications') {
+      // Save notification settings
+      handleSaveProfile();
+    } else if (activeTab === 'app') {
+      // App settings are saved directly when clicking on options
+      toast.success(t('settingsUpdated'));
+    }
   };
 
   // Handle adding a new class level
@@ -602,12 +674,21 @@ export default function SettingsPage() {
   // Add subject handler
   const handleAddSubject = (subject: string) => {
     if (!editedProfile) return;
-    if (!editedProfile.subjects.includes(subject)) {
+    if (!subject.trim()) return;
+    
+    // Make sure subjects is initialized as an array
+    const currentSubjects = Array.isArray(editedProfile.subjects) ? 
+      [...editedProfile.subjects] : 
+      (editedProfile.subjects ? [editedProfile.subjects] : []);
+    
+    // Only add if not already in the list
+    if (!currentSubjects.includes(subject.trim())) {
       setEditedProfile({
         ...editedProfile,
-        subjects: [...editedProfile.subjects, subject]
+        subjects: [...currentSubjects, subject.trim()]
       });
     }
+    
     setSubjectInput('');
   };
 
@@ -628,6 +709,35 @@ export default function SettingsPage() {
                    language === 'he' ? 'he-IL' : 'en-US';
     
     return date.toLocaleDateString(locale, options);
+  };
+
+  // Add this helper function in your component file
+  const updateProfile = (prev: UserProfile | null, updates: Partial<UserProfile>): UserProfile => {
+    if (!prev) {
+      // Default profile with required fields
+      return {
+        id: 'default-teacher-id',
+        name: '',
+        email: '',
+        subjects: [],
+        school: '',
+        classLevel: [],
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: 'en',
+        notifications: {
+          email: true,
+          push: true,
+          sms: false
+        },
+        ...updates // Apply updates on top of defaults
+      };
+    }
+    
+    // Update existing profile safely
+    return {
+      ...prev,
+      ...updates
+    };
   };
 
   // Optimize the settings tab rendering with useMemo
@@ -777,148 +887,66 @@ export default function SettingsPage() {
                     </div>
                     
                     <div>
-                      <label htmlFor="subjects" className="block text-sm font-medium text-black mb-2">
-                        {t('subjects')}
-                      </label>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {editedProfile?.subjects.map((subject) => (
-                          <div 
-                            key={subject}
-                            className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2"
-                          >
-                            <span>{subject}</span>
-                            <button 
-                              onClick={() => handleRemoveSubject(subject)}
-                              className="hover:text-blue-900"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={subjectInput}
-                          onChange={(e) => setSubjectInput(e.target.value)}
-                          placeholder={t('enterSubject')}
-                          className="flex-1 p-2.5 bg-gray-100 border border-gray-300 text-black rounded-lg"
-                        />
-                        <button
-                          onClick={() => handleAddSubject(subjectInput)}
-                          disabled={!subjectInput.trim()}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          {t('add')}
-                        </button>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {subjectSuggestions.map((subject) => (
-                          <button
-                            key={subject}
-                            onClick={() => handleAddSubject(subject)}
-                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-black rounded-full text-sm"
-                          >
-                            {subject}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="school" className="block text-sm font-medium text-black mb-2">
-                        {t('school')}
+                      <label htmlFor="school" className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('schoolLabel')}
                       </label>
                       <input
                         id="school"
-                        type="text"
                         name="school"
+                        type="text"
                         value={editedProfile?.school || ''}
                         onChange={handleProfileChange}
-                        className="w-full p-2.5 bg-gray-100 border border-gray-300 text-black rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={t('schoolLabel')}
                       />
                     </div>
                     
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-black">
-                          {t('classLevels')}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleAddClassLevel}
-                          className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                          </svg>
-                          {t('addClass')}
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {editedProfile?.classLevel && (
-                          Array.isArray(editedProfile.classLevel) ? (
-                            editedProfile.classLevel.map((level, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={level}
-                                  onChange={(e) => handleClassLevelChange(index, e.target.value)}
-                                  placeholder={t('enterClassLevel')}
-                                  className="flex-1 p-2.5 bg-gray-100 border border-gray-300 text-black rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                  list="grade-suggestions"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveClassLevel(index)}
-                                  className="p-2 text-red-600 hover:text-red-800 rounded-lg hover:bg-red-50"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={editedProfile.classLevel}
-                                onChange={(e) => handleClassLevelChange(0, e.target.value)}
-                                placeholder={t('enterClassLevel')}
-                                className="flex-1 p-2.5 bg-gray-100 border border-gray-300 text-black rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                list="grade-suggestions"
-                              />
-                            </div>
-                          )
-                        )}
-                        
-                        {/* Datalist for grade level suggestions */}
-                        <datalist id="grade-suggestions">
-                          {gradeLevelSuggestions.map((grade, index) => (
-                            <option key={index} value={grade} />
-                          ))}
-                        </datalist>
-                      </div>
-                      
-                      {/* Quick grade level suggestions */}
-                      <div className="mt-2">
-                        <p className="text-sm text-black mb-2">{t('quickAdd')}:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {['1st Grade', '5th Grade', '7th Grade', '9th Grade', '11th Grade', 'AP Physics'].map((grade) => (
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">{t('subjectsHeader')}</h3>
+                      <SubjectSelector
+                        subjects={editedProfile?.subjects || []}
+                        onChange={(subjects) => {
+                          setEditedProfile(prev => updateProfile(prev, { subjects }));
+                        }}
+                        defaultSubjects={subjectSuggestions}
+                      />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">{t('classLevelsHeader')}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {gradeLevelSuggestions.map(level => {
+                          const isSelected = Array.isArray(editedProfile?.classLevel) 
+                            ? editedProfile?.classLevel?.includes(level)
+                            : editedProfile?.classLevel === level;
+                          
+                          return (
                             <button
-                              key={grade}
+                              key={level}
+                              onClick={() => {
+                                // If classLevel is a string, convert to array
+                                const currentLevels = Array.isArray(editedProfile?.classLevel)
+                                  ? [...editedProfile?.classLevel]
+                                  : editedProfile?.classLevel ? [editedProfile.classLevel] : [];
+                                
+                                // Toggle selection
+                                const updatedLevels = isSelected
+                                  ? currentLevels.filter(l => l !== level)
+                                  : [...currentLevels, level];
+                                
+                                setEditedProfile(prev => updateProfile(prev, { classLevel: updatedLevels }));
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-sm border ${
+                                isSelected
+                                  ? 'bg-blue-100 text-blue-700 border-blue-300'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                              }`}
                               type="button"
-                              onClick={() => handleAddClassLevelWithSuggestion(grade)}
-                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-black rounded-full text-sm"
                             >
-                              {grade}
+                              {level}
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
                     </div>
                     
@@ -1230,9 +1258,61 @@ export default function SettingsPage() {
     }
   }, [activeTab, profile, editedProfile, isEditing, language, handleLanguageChange]);
 
+  // Add the missing dependencies to useMemo
+  const formContent = useMemo(() => {
+    // ...existing code...
+  }, [
+    backgroundOptions, 
+    colorSchemes, 
+    gradeLevelSuggestions,
+    handleNotificationToggle, 
+    handleProfileChange, 
+    handleSaveSettings, 
+    saveSettings, 
+    selectedLanguage, 
+    settings.background, 
+    settings.colorScheme, 
+    settings.theme,
+    subjectSuggestions, 
+    t, 
+    timezones,
+    // If any other dependencies were already there, keep them
+  ]);
+
+  // Add this useEffect to log saving events
+  useEffect(() => {
+    // Debug helper for localStorage
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      console.log(`[LocalStorage] Setting ${key}:`, value);
+      originalSetItem.apply(this, [key, value]);
+    };
+    
+    return () => {
+      // Restore original function when component unmounts
+      localStorage.setItem = originalSetItem;
+    };
+  }, []);
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-black mb-6">{t('settings')}</h1>
+      {/* Add this new dashboard navigation button */}
+      <div className="mb-8 flex justify-center">
+        <a 
+          href="/dashboard/teacher" 
+          className="px-6 py-3 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center w-full md:w-auto"
+          style={{ minWidth: "200px" }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          {t('backToDashboard')}
+        </a>
+      </div>
+      
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-black">{t('settings')}</h1>
+      </div>
       
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}

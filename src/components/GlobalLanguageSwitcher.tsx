@@ -1,15 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function GlobalLanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   
-  // Close dropdown when clicking outside
+  // Only show in auth pages
+  const isAuthPage = pathname?.includes('/auth/');
+  
+  // Close dropdown when clicking outside - now this hook runs unconditionally
   useEffect(() => {
+    if (!isAuthPage) return; // Early return within the hook instead
+    
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -20,7 +27,10 @@ export default function GlobalLanguageSwitcher() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isAuthPage]); // Add isAuthPage as a dependency
+
+  // Don't render anything if not on an auth page
+  if (!isAuthPage) return null;
 
   return (
     <div className="fixed bottom-8 right-8 z-50" ref={dropdownRef}>
