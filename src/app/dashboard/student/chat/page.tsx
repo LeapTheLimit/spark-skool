@@ -311,29 +311,59 @@ export default function ChatPage() {
 
       {/* Main chat area */}
       <div className="flex h-[calc(100%-6rem)]">
-        {/* History panel - only shown when history button is clicked */}
-        {showHistory && (
-          <div className="w-[280px] bg-white/80 h-full border-r border-gray-200 overflow-auto p-4">
-            <h3 className="font-medium text-lg mb-4 text-black">Chat History</h3>
-            
-            {chatHistory.length === 0 ? (
-              <p className="text-gray-500 text-sm">No saved chats yet</p>
-            ) : (
-              <div className="space-y-2">
-                {chatHistory.map((chat) => (
-                  <button
-                    key={chat.id}
-                    onClick={() => loadChat(chat)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
+        <AnimatePresence>
+          {showHistory && (
+            <>
+              {/* Mobile backdrop overlay */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/30 z-10 md:hidden"
+                onClick={() => setShowHistory(false)}
+              />
+              
+              {/* History panel */}
+              <motion.div 
+                initial={{ x: "-100%", opacity: 0.5 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "-100%", opacity: 0.5 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="fixed md:relative inset-0 z-20 md:w-[280px] bg-white md:bg-white/80 h-full border-r border-gray-200 overflow-auto p-4"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium text-lg text-black">Chat History</h3>
+                  <button 
+                    onClick={() => setShowHistory(false)}
+                    className="p-2 rounded-full hover:bg-gray-100 md:hidden"
                   >
-                    <div className="font-medium text-black truncate">{chat.title}</div>
-                    <div className="text-xs text-gray-500">{new Date(chat.createdAt).toLocaleString()}</div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                </div>
+              
+                {chatHistory.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No saved chats yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {chatHistory.map((chat) => (
+                      <button
+                        key={chat.id}
+                        onClick={() => loadChat(chat)}
+                        className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="font-medium text-black truncate">{chat.title}</div>
+                        <div className="text-xs text-gray-500">{new Date(chat.createdAt).toLocaleString()}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
         
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">

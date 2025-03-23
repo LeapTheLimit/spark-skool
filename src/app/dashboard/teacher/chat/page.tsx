@@ -13,7 +13,7 @@ import { triggerDashboardUpdate } from '@/services/dashboardService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DocumentIcon, ClipboardIcon, ChatBubbleLeftIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 import SparkMascot from '@/components/SparkMascot';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TeacherPreferences {
   teachingStyle?: string;
@@ -113,6 +113,7 @@ export default function TeacherChat() {
   }>({
     completed: []
   });
+  const [showHistory, setShowHistory] = useState(false);
 
   // Add translations for chat interface
   const chatTranslations = {
@@ -907,15 +908,55 @@ export default function TeacherChat() {
           />
         </div>
         
+        {/* Mobile History Panel */}
+        <AnimatePresence>
+          {hasStartedConversation && showHistory && (
+            <>
+              {/* Mobile backdrop overlay */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/30 z-10 md:hidden"
+                onClick={() => setShowHistory(false)}
+              />
+              
+              {/* History panel */}
+              <motion.div 
+                initial={{ x: "100%", opacity: 0.5 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "100%", opacity: 0.5 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="fixed top-0 right-0 z-20 w-[280px] bg-white h-full border-l border-gray-200 overflow-auto p-4 md:hidden"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium text-lg text-black">{t('chatHistory')}</h3>
+                  <button 
+                    onClick={() => setShowHistory(false)}
+                    className="p-2 rounded-full hover:bg-gray-100"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <PreviewPanel 
+                  userId="teacher-id" 
+                  onNewChat={handleNewChat}
+                  messages={messages}
+                  onLoadChat={handleLoadChat}
+                  compactMode={true}
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        
         {/* Mobile Preview Panel Toggle */}
         {hasStartedConversation && (
           <button 
             className="md:hidden fixed right-4 top-4 z-10 bg-white p-2 rounded-full shadow-md"
-            onClick={() => {
-              // You could implement a sliding panel here or modal for mobile
-              // This is a placeholder for functionality
-              toast("History view is coming to mobile soon", { icon: '📱' });
-            }}
+            onClick={() => setShowHistory(!showHistory)}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

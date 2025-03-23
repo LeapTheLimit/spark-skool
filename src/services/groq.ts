@@ -164,7 +164,7 @@ export const extractQuestionsFromText = async (text: string, context?: string | 
     }
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
@@ -397,7 +397,7 @@ Question Type: ${question.type}`
 export const analyzeExamContext = async (text: string): Promise<string> => {
   return withRetry(() => 
     groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
@@ -416,7 +416,7 @@ export const analyzeExamContext = async (text: string): Promise<string> => {
 export const generateFeedback = async (question: Question, studentAnswer: string): Promise<string> => {
   return withRetry(() => 
     groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
@@ -435,7 +435,7 @@ export const generateFeedback = async (question: Question, studentAnswer: string
 export const suggestImprovement = async (question: Question, studentAnswer: string): Promise<string> => {
   return withRetry(() => 
     groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "system",
