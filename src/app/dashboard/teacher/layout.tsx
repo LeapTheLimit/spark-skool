@@ -11,9 +11,20 @@ export default function TeacherLayout({
 }) {
   // Client-side only rendering to prevent hydration mismatches
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
   if (!isMounted) {
@@ -30,12 +41,12 @@ export default function TeacherLayout({
   }
   
   return (
-    <div className="flex h-screen bg-[#111827] p-6">
-      <TeacherSidebar />
+    <div className="flex h-full">
+      {/* Only render the sidebar on desktop */}
+      {!isMobile && <TeacherSidebar />}
+      
       <div className="flex flex-1 bg-white rounded-3xl overflow-hidden relative">
-        {/* Mascot positioned in the bottom right */}
-        {/* <div className="absolute bottom-4 right-4 z-10"><svg width="100" height="100" viewBox="0 0 570 466" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">...</svg></div> */}
-        
+        {/* Main content */}
         <main className="flex-1 overflow-auto">
           {children}
         </main>

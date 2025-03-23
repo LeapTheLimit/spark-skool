@@ -32,6 +32,7 @@ export type ToolType = 'Lesson Planning' | 'Assessment Generator' | 'Student Fee
 type ToolInstructions = Record<ToolType, string>;
 
 export interface ChatMessage {
+  timestamp: (timestamp: any) => import("react").ReactNode | Iterable<import("react").ReactNode>;
   role: 'user' | 'assistant' | 'system';
   content: string;
   language?: Language;
@@ -243,6 +244,26 @@ export const sendChatMessage = async (messages: ChatMessage[], tool?: ToolType) 
     // Add tool-specific instructions if a tool is selected
     if (tool) {
       systemContent += "\n\n" + getToolPrompt(tool, preferences);
+    }
+
+    // Check if API key is available
+    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+      console.warn('No GROQ API key found. Using mock response.');
+      // Return a mock response instead of making an API call
+      await delay(1500); // Simulate network delay
+      
+      const lastMessage = messages[messages.length - 1]?.content || '';
+      
+      // Generate a simple mock response
+      if (lastMessage.toLowerCase().includes('hello') || lastMessage.toLowerCase().includes('hi')) {
+        return "Hello! I'm Spark, your educational assistant. How can I help you with your learning today?";
+      } else if (lastMessage.toLowerCase().includes('who are you')) {
+        return "I'm Spark, an AI designed to help teachers and students. I can assist with lesson planning, answer questions, help with assignments, and more!";
+      } else if (lastMessage.toLowerCase().includes('help')) {
+        return "I'd be happy to help! I can assist with:\n\n- Answering questions about school subjects\n- Explaining difficult concepts\n- Generating practice questions\n- Providing feedback on your work\n- Creating learning materials\n\nJust let me know what you need help with!";
+      } else {
+        return `I've received your message: "${lastMessage.slice(0, 50)}${lastMessage.length > 50 ? '...' : ''}"\n\nI'm processing your request and will help you with this. Please note that I'm currently running in mock mode without an API connection, but in the full version, I would provide a complete response tailored to your specific question.`;
+      }
     }
 
     // Clean messages for API

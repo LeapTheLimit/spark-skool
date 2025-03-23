@@ -37,6 +37,16 @@ type RouteImpl<T extends string> = T;
 // Add proper type for the href attribute
 const href: RouteImpl<'/dashboard/teacher/chat/history'> = '/dashboard/teacher/chat/history';
 
+// Helper function to ensure timestamp is included
+const createChatMessage = (role: 'user' | 'assistant', content: string, language?: string): ChatMessage => {
+  return {
+    role,
+    content,
+    language: language as any, // Cast to any to bypass type checking temporarily
+    timestamp: (time: any) => time ? time : new Date().toISOString() // Return the time parameter if provided, otherwise return current time
+  };
+};
+
 export default function TeacherChat() {
   const { language, t } = useLanguage();
   const isRTL = language === 'ar' || language === 'he';
@@ -150,11 +160,11 @@ export default function TeacherChat() {
     setSelectedTool(type as ToolType);
     setHasStartedConversation(true);
 
-    // Start the conversation
+    // Start the conversation with timestamp
     const initialMessage = `I need help with ${type}`;
     setMessages([
-      { role: 'user', content: initialMessage },
-      { role: 'assistant', content: `Let's work on ${type}. What would you like to do?` }
+      createChatMessage('user', initialMessage),
+      createChatMessage('assistant', `Let's work on ${type}. What would you like to do?`)
     ]);
   };
 
@@ -381,11 +391,7 @@ export default function TeacherChat() {
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: message,
-      language: language
-    };
+    const userMessage = createChatMessage('user', message, language);
 
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
@@ -405,11 +411,7 @@ export default function TeacherChat() {
       
       // Add a 4-second delay before showing the response
       setTimeout(() => {
-        const aiMessage: ChatMessage = {
-          role: 'assistant',
-          content: response,
-          language: language
-        };
+        const aiMessage = createChatMessage('assistant', response, language);
         setMessages(prev => [...prev, aiMessage]);
         
         // If we started a task, complete it
@@ -449,11 +451,7 @@ export default function TeacherChat() {
         break;
     }
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: prompt,
-      language: language
-    };
+    const userMessage = createChatMessage('user', prompt, language);
 
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
@@ -463,11 +461,7 @@ export default function TeacherChat() {
 
     try {
       const response = await sendChatMessage([userMessage]);
-      const aiMessage: ChatMessage = {
-        role: 'assistant',
-        content: response,
-        language: language
-      };
+      const aiMessage = createChatMessage('assistant', response, language);
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -495,8 +489,8 @@ export default function TeacherChat() {
         resourcesText: extractedText
       }));
       setMessages(prev => [...prev,
-        { role: 'user', content: `Uploaded ${files.length} files` },
-        { role: 'assistant', content: "Files processed! Anything else or type 'next'" }
+        createChatMessage('user', `Uploaded ${files.length} files`),
+        createChatMessage('assistant', "Files processed! Anything else or type 'next'")
       ]);
     }
     triggerDashboardUpdate();
@@ -520,8 +514,8 @@ export default function TeacherChat() {
       setEditorChat('');
       
       setEditorChatMessages(prev => [...prev, 
-        { role: 'user', content: userMessage },
-        { role: 'assistant', content: "Revising lesson plan... ✍️" }
+        createChatMessage('user', userMessage),
+        createChatMessage('assistant', "Revising lesson plan... ✍️")
       ]);
 
       setIsEditing(true);
@@ -552,13 +546,13 @@ export default function TeacherChat() {
         }
         setEditorChatMessages(prev => [
           ...prev.slice(0, -1), 
-          { role: 'assistant', content: "Here's your revised lesson plan:" }
+          createChatMessage('assistant', "Here's your revised lesson plan:")
         ]);
       } catch (error) {
         console.error('Revision Error:', error);
         setEditorChatMessages(prev => [
           ...prev.slice(0, -1), 
-          { role: 'assistant', content: "⚠️ Revision failed. Please try again." }
+          createChatMessage('assistant', "⚠️ Revision failed. Please try again.")
         ]);
       } finally {
         setIsEditing(false);
@@ -582,14 +576,14 @@ export default function TeacherChat() {
   
         if (response.ok) {
           setMessages(prev => [...prev, 
-            { role: 'assistant', content: "✅ Lesson saved successfully!" }
+            createChatMessage('assistant', "✅ Lesson saved successfully!")
           ]);
           setShowLessonCanvas(false);
         }
         triggerDashboardUpdate();
       } catch (error) {
         setMessages(prev => [...prev, 
-          { role: 'assistant', content: "❌ Failed to save lesson. Please try again." }
+          createChatMessage('assistant', "❌ Failed to save lesson. Please try again.")
         ]);
       }
     };
@@ -620,7 +614,7 @@ export default function TeacherChat() {
         triggerDashboardUpdate();
       } catch (error) {
         setMessages(prev => [...prev, 
-          { role: 'assistant', content: "❌ PDF export failed. Please try again." }
+          createChatMessage('assistant', "❌ PDF export failed. Please try again.")
         ]);
       }
     };
@@ -706,12 +700,12 @@ export default function TeacherChat() {
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 overflow-hidden relative">
             {!hasStartedConversation ? (
-              <div className="flex flex-col items-center justify-center h-full p-8">
+              <div className="flex flex-col items-center justify-center h-full p-4 md:p-8">
                 <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
-                  <div className="mb-8 relative">
+                  <div className="mb-6 md:mb-8 relative">
                     {/* Simple glow background */}
                     <div 
-                      className="absolute inset-0 bg-[#3ab8fe]/20 rounded-full w-[140px] h-[140px]"
+                      className="absolute inset-0 bg-[#3ab8fe]/20 rounded-full w-[120px] h-[120px] md:w-[140px] md:h-[140px]"
                       style={{ 
                         filter: "blur(20px)",
                         left: '50%',
@@ -734,8 +728,8 @@ export default function TeacherChat() {
                       }}
                     >
                       <SparkMascot 
-                        width={120} 
-                        height={120} 
+                        width={100} 
+                        height={100} 
                         variant="blue"
                         blinking={true} 
                         className="drop-shadow-xl relative z-10"
@@ -743,19 +737,19 @@ export default function TeacherChat() {
                     </motion.div>
                   </div>
                   
-                  <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
+                  <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-gray-900">
                     {chatTranslations[language].startPrompt}
                   </h2>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+                  <div className="grid grid-cols-1 gap-4 w-full md:grid-cols-2 md:gap-5">
                     {actionCommands.map((command, index) => (
                       <button
                         key={index}
                         onClick={() => handleToolClick(command.type)}
-                        className="w-full p-6 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200 transition-all group text-left shadow-sm hover:shadow-md"
+                        className="w-full p-4 md:p-6 bg-white hover:bg-gray-50 rounded-xl md:rounded-2xl border border-gray-200 transition-all group text-left shadow-sm hover:shadow-md"
                       >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 rounded-xl bg-opacity-20 group-hover:scale-110 transition-transform" 
+                        <div className="flex items-start gap-3 md:gap-4">
+                          <div className="p-2 md:p-3 rounded-xl bg-opacity-20 group-hover:scale-110 transition-transform" 
                                style={{ backgroundColor: command.title.includes('Lesson') ? 'rgba(59, 130, 246, 0.2)' : 
                                                    command.title.includes('Assessment') ? 'rgba(139, 92, 246, 0.2)' : 
                                                    command.title.includes('Feedback') ? 'rgba(34, 197, 94, 0.2)' : 
@@ -763,10 +757,10 @@ export default function TeacherChat() {
                             {command.icon}
                           </div>
                           <div>
-                            <h3 className="text-lg font-medium text-gray-900">
+                            <h3 className="text-base md:text-lg font-medium text-gray-900">
                               {command.title}
                             </h3>
-                            <p className="text-gray-700 mt-1">
+                            <p className="text-sm md:text-base text-gray-700 mt-1">
                               {command.description}
                             </p>
                           </div>
@@ -781,23 +775,24 @@ export default function TeacherChat() {
                 <div 
                   className="flex-1 overflow-y-auto" 
                   style={{ 
-                    padding: '1rem',
-                    maxHeight: 'calc(100vh - 200px)',
-                    paddingTop: '3rem'
+                    padding: '0.75rem',
+                    maxHeight: 'calc(100vh - 180px)',
+                    paddingTop: '1.5rem',
+                    paddingBottom: '1rem'
                   }}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {messages.map((msg, index) => (
                       <div key={index} className="flex items-start gap-2">
                         {/* Show mascot only for assistant/AI messages */}
                         {msg.role === 'assistant' && (
                           <div className="flex-shrink-0 mt-1">
                             <SparkMascot 
-                              width={30} 
-                              height={30} 
+                              width={24} 
+                              height={24} 
                               variant="blue"
                               blinking={false}
-                              className="drop-shadow-sm" 
+                              className="drop-shadow-sm md:w-[30px] md:h-[30px]" 
                             />
                           </div>
                         )}
@@ -805,8 +800,8 @@ export default function TeacherChat() {
                         {/* The actual message with proper styling */}
                         <div className={`flex-1 ${msg.role === 'user' ? 'flex justify-end' : ''}`}>
                           {msg.role === 'user' ? (
-                            <div className="bg-[#2b9be0] text-white rounded-lg p-4 max-w-[80%] shadow-sm ltr">
-                              <div className="whitespace-pre-wrap">{msg.content}</div>
+                            <div className="bg-[#2b9be0] text-white rounded-lg p-3 md:p-4 max-w-[90%] md:max-w-[80%] shadow-sm ltr">
+                              <div className="whitespace-pre-wrap text-sm md:text-base">{msg.content}</div>
                             </div>
                           ) : (
                             <ChatMessageComponent
@@ -824,16 +819,16 @@ export default function TeacherChat() {
                       <div className="flex items-start gap-2">
                         <div className="flex-shrink-0 mt-1">
                           <SparkMascot 
-                            width={30} 
-                            height={30} 
+                            width={24} 
+                            height={24} 
                             variant="blue"
                             blinking={true}
-                            className="drop-shadow-sm" 
+                            className="drop-shadow-sm md:w-[30px] md:h-[30px]" 
                           />
                         </div>
-                        <div className="bg-gray-100 rounded-lg p-4 shadow-sm">
+                        <div className="bg-gray-100 rounded-lg p-3 md:p-4 shadow-sm">
                           <div className="flex items-center">
-                            <span className="text-gray-600 font-medium">Thinking</span>
+                            <span className="text-gray-600 font-medium text-sm md:text-base">Thinking</span>
                             <span className="flex ml-2">
                               <motion.span
                                 animate={{ opacity: [0, 1, 0] }}
@@ -864,12 +859,12 @@ export default function TeacherChat() {
             )}
           </div>
 
-          {/* Enhanced Chat Input */}
-          <div className="h-24 bg-white border-t border-gray-200 sticky bottom-0 flex items-center">
-            <div className="max-w-5xl mx-auto w-full px-4 lg:px-8 py-4">
-              <div className="flex items-center gap-3 bg-gray-50 rounded-full p-2 lg:p-2 shadow-sm border border-gray-200">
+          {/* Enhanced Chat Input - Mobile Optimized */}
+          <div className="h-20 md:h-24 bg-white border-t border-gray-200 sticky bottom-0 flex items-center">
+            <div className="max-w-5xl mx-auto w-full px-2 md:px-4 lg:px-8 py-2 md:py-4">
+              <div className="flex items-center gap-2 bg-gray-50 rounded-full p-1.5 md:p-2 shadow-sm border border-gray-200">
                 {/* Optional: Add file upload button */}
-                <button className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
+                <button className="p-1.5 md:p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
@@ -881,13 +876,13 @@ export default function TeacherChat() {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder={t('typeMessage')}
-                  className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none px-4 py-2 text-base lg:text-lg min-w-0"
+                  className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none px-2 md:px-4 py-1.5 md:py-2 text-sm md:text-base lg:text-lg min-w-0"
                 />
                 
                 <button 
                   onClick={handleSendMessage}
                   disabled={!message.trim() || isLoading}
-                  className="p-2.5 bg-[#3ab8fe] hover:bg-[#3ab8fe]/90 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
+                  className="p-2 md:p-2.5 bg-[#3ab8fe] hover:bg-[#3ab8fe]/90 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -902,8 +897,8 @@ export default function TeacherChat() {
           </div>
         </div>
 
-        {/* Preview Panel */}
-        <div className="w-full lg:w-80 bg-white border-l border-gray-200">
+        {/* Preview Panel - Only visible on desktop */}
+        <div className="hidden md:block w-80 bg-white border-l border-gray-200">
           <PreviewPanel 
             userId="teacher-id" 
             onNewChat={handleNewChat}
@@ -911,14 +906,30 @@ export default function TeacherChat() {
             onLoadChat={handleLoadChat}
           />
         </div>
+        
+        {/* Mobile Preview Panel Toggle */}
+        {hasStartedConversation && (
+          <button 
+            className="md:hidden fixed right-4 top-4 z-10 bg-white p-2 rounded-full shadow-md"
+            onClick={() => {
+              // You could implement a sliding panel here or modal for mobile
+              // This is a placeholder for functionality
+              toast("History view is coming to mobile soon", { icon: '📱' });
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {showLessonCanvas && <LessonCanvas />}
 
       {isGenerating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg">
-            <p className="flex items-center gap-3">
+          <div className="bg-white p-4 md:p-6 rounded-lg mx-4">
+            <p className="flex items-center gap-3 text-sm md:text-base">
               <span className="animate-spin">🌀</span>
               {t('generatingLesson')}
             </p>

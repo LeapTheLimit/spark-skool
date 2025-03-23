@@ -7,6 +7,15 @@ import { toast } from 'react-hot-toast';
 import RichTextEditor from './RichTextEditor';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Helper function to ensure timestamp is included
+const createChatMessage = (role: 'user' | 'assistant', content: string): ChatMessage => {
+  return {
+    role,
+    content,
+    timestamp: (time: any) => time ? time : new Date().toISOString()
+  };
+};
+
 interface LessonCanvasProps {
   content?: string;
   onClose: () => void;
@@ -26,8 +35,8 @@ export default function LessonCanvas({ content = '', onClose, onSave }: LessonCa
     setIsRequesting(true);
     try {
       const messages: ChatMessage[] = [
-        { role: 'assistant', content: editedContent },
-        { role: 'user', content: `Please revise this content: ${revisionPrompt}` }
+        createChatMessage('assistant', editedContent),
+        createChatMessage('user', `Please revise this content: ${revisionPrompt}`)
       ];
       
       const revisedContent = await sendChatMessage(messages, undefined);

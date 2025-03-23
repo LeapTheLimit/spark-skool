@@ -37,8 +37,6 @@ import TeacherMascot from '@/components/TeacherMascot';
 import type { Route } from 'next';
 import type { UrlObject } from 'url';
 import type { ComponentType } from 'react';
-import { getTimeBasedGreeting, formatDateByLanguage } from '@/utils/timeUtils';
-import { isProfileComplete, getProfileStatus } from '@/utils/profileUtils';
 
 interface TeacherDashboardProps {
   teacher: {
@@ -169,22 +167,22 @@ const onboardingSteps = [
     description: 'addProfileDetails',
     icon: UserIcon,
     link: '/dashboard/teacher/settings',
-    completed: getProfileStatus()
+    completed: false
   },
   {
-    id: 'subjects',
-    title: 'addSubjects',
-    description: 'selectTeachingSubjects',
+    id: 'assistant',
+    title: 'personalizeAssistant',
+    description: 'customizeAI', 
+    icon: ChatBubbleLeftIcon,
+    link: '/dashboard/teacher/chat',
+    completed: false
+  },
+  {
+    id: 'lesson',
+    title: 'createFirstLesson',
+    description: 'useLessonPlanner',
     icon: BookOpenIcon,
-    link: '/dashboard/teacher/settings',
-    completed: getProfileStatus()
-  },
-  {
-    id: 'schedule',
-    title: 'setupSchedule',
-    description: 'addYourClassSchedule',
-    icon: CalendarDaysIcon,
-    link: '/dashboard/teacher/schedule',
+    link: '/dashboard/teacher/lessons',
     completed: false
   }
 ];
@@ -223,106 +221,24 @@ const getIconComponent = (iconName: string) => {
   return iconMap[iconName] || ChartBarIcon; // Default fallback
 };
 
-// Add this function near the top of the file to fetch upcoming events
-const useUpcomingEvents = () => {
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  
-  useEffect(() => {
-    try {
-      // Load classes from localStorage
-      const savedClasses = localStorage.getItem('teacherClasses');
-      if (savedClasses) {
-        const allClasses = JSON.parse(savedClasses);
-        
-        // Find upcoming classes (today and future)
-        const now = new Date();
-        const upcoming = allClasses
-          .filter((cls: any) => {
-            const classDate = new Date(cls.date);
-            const [hours, minutes] = cls.startTime.split(':').map(Number);
-            classDate.setHours(hours, minutes);
-            return classDate > now;
-          })
-          .sort((a: any, b: any) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            const [hoursA, minutesA] = a.startTime.split(':').map(Number);
-            const [hoursB, minutesB] = b.startTime.split(':').map(Number);
-            dateA.setHours(hoursA, minutesA);
-            dateB.setHours(hoursB, minutesB);
-            return dateA.getTime() - dateB.getTime();
-          })
-          .slice(0, 3); // Get only the next 3 events
-          
-        setUpcomingEvents(upcoming);
-      }
-    } catch (error) {
-      console.error('Error loading upcoming events:', error);
-    }
-  }, []);
-  
-  return upcomingEvents;
-};
-
-// Add this function before the return statement in the TeacherDashboard component
-const getEventIcon = (eventType: string) => {
-  switch (eventType) {
-    case 'class':
-      return <BookOpenIcon className="w-4 h-4 text-white" />;
-    case 'meeting':
-      return <UsersIcon className="w-4 h-4 text-white" />;
-    case 'break':
-      return <ClockIcon className="w-4 h-4 text-white" />;
-    case 'office-hours':
-      return <CalendarDaysIcon className="w-4 h-4 text-white" />;
-    default:
-      return <CalendarDaysIcon className="w-4 h-4 text-white" />;
-  }
-};
-
-export default function TeacherDashboard({ 
-  teacher, 
-  todayEvents, 
-  upcomingEvents: propUpcomingEvents // Rename the prop locally 
-}: TeacherDashboardProps) {
+export default function TeacherDashboard({ teacher, todayEvents, upcomingEvents }: TeacherDashboardProps) {
   const { recentChats, savedMaterials, recentGrades } = useRecentActivity(teacher?.email || '');
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const router = useRouter();
-  
-  // Move hook call to the top level to avoid conditional execution
-  const fetchedUpcomingEvents = useUpcomingEvents();
 
   // Add state for tracking onboarding steps completion
-  const [onboardingSteps, setOnboardingSteps] = useState([
-    {
-      id: 'profile',
-      title: 'completeProfile',
-      description: 'addProfileDetails',
-      icon: UserIcon,
-      link: '/dashboard/teacher/settings',
-      completed: getProfileStatus()
-    },
-    {
-      id: 'subjects',
-      title: 'addSubjects',
-      description: 'selectTeachingSubjects',
-      icon: BookOpenIcon,
-      link: '/dashboard/teacher/settings',
-      completed: getProfileStatus()
-    },
-    {
-      id: 'schedule',
-      title: 'setupSchedule',
-      description: 'addYourClassSchedule',
-      icon: CalendarDaysIcon,
-      link: '/dashboard/teacher/schedule',
-      completed: false
-    }
-  ]);
-
-  // Get completion percentage
-  const completedStepsCount = onboardingSteps.filter(step => step.completed).length;
-  const completionPercentage = Math.round((completedStepsCount / onboardingSteps.length) * 100);
+  const [steps, setSteps] = useState(onboardingSteps);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Check if all steps are completed
+  const allStepsCompleted = steps.every(step => step.completed);
+  
+  // Function to mark a step as completed
+  const completeStep = (stepId: string) => {
+    setSteps(prev => prev.map(step => 
+      step.id === stepId ? { ...step, completed: true } : step
+    ));
+  };
 
   if (!teacher) {
     return null; // Or a loading state
@@ -473,11 +389,9 @@ export default function TeacherDashboard({
                 
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-2 tracking-wide">
-                    {getTimeBasedGreeting(language, teacher.name)}
+                    {greeting}, {teacher?.name || 'Teacher'}!
                   </h1>
-                  <p className="text-gray-300 text-lg">
-                    {formatDateByLanguage(new Date(), language)}
-                  </p>
+                  <p className="text-gray-300 text-lg">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
                 </div>
               </div>
             </div>
@@ -494,61 +408,24 @@ export default function TeacherDashboard({
                         <LightBulbIcon className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-white">{t('getStarted')}</h2>
-                        <p className="text-white/90 text-base mt-1">{t('completeYourSetup')}</p>
+                        <h2 className="text-xl font-semibold text-white">Get Started</h2>
+                        <p className="text-white/90 text-base mt-1">Complete your setup</p>
                       </div>
                     </div>
                     
-                    {/* Onboarding steps progress */}
-                    <div className="space-y-3 my-4">
-                      {onboardingSteps.map((step, index) => (
-                        <div key={step.id} className="flex items-center gap-3">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
-                            step.completed 
-                              ? 'bg-green-500 border-green-400 text-white' 
-                              : 'border-white/30 text-white/80'
-                          }`}>
-                            {step.completed ? (
-                              <CheckCircleIcon className="w-5 h-5" />
-                            ) : (
-                              <span>{index + 1}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 text-white/90">
-                            <div className="font-medium">{t(step.title)}</div>
-                            <div className="text-sm opacity-80">{t(step.description)}</div>
-                          </div>
-                          <Link 
-                            href={(step.link || '/dashboard/teacher/settings') as Route}
-                            className={`px-3 py-1.5 rounded text-sm font-medium ${
-                              step.completed 
-                                ? 'bg-green-600/20 text-green-300' 
-                                : 'bg-white/20 text-white hover:bg-white/30'
-                            }`}
-                          >
-                            {step.completed ? t('completed') : t('setup')}
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                    
                     <div className="mt-5 relative h-2 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="absolute left-0 top-0 h-full bg-[#3ab8fe] rounded-full"
-                        style={{ width: `${completionPercentage}%` }}
-                      ></div>
+                      <div className="absolute left-0 top-0 h-full w-[30%] bg-[#3ab8fe] rounded-full"></div>
                     </div>
                     
                     <div className="mt-5 flex items-center">
-                      <Link 
-                        href={(onboardingSteps.find(step => !step.completed)?.link || '/dashboard/teacher/settings') as Route}
+                      <button 
+                        onClick={() => router.push('/dashboard/teacher/onboarding' as Route)}
                         className="transition-all inline-flex items-center justify-center px-6 py-3 bg-[#3ab8fe] text-white text-base font-medium rounded-lg hover:bg-[#2a9fe6] focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:ring-opacity-50"
+                        aria-label="Continue onboarding setup"
                       >
-                        {t('continueSetup')}
-                      </Link>
-                      <span className="ml-auto text-base text-white/80">
-                        {completedStepsCount}/{onboardingSteps.length} {t('completed')}
-                      </span>
+                        Continue Setup
+                      </button>
+                      <span className="ml-auto text-base text-white/80">1/3 completed</span>
                     </div>
                   </div>
                 </div>
@@ -561,32 +438,14 @@ export default function TeacherDashboard({
                         <CalendarDaysIcon className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-white">{t('comingUp')}</h2>
+                        <h2 className="text-xl font-semibold text-white">Coming Up</h2>
                       </div>
                     </div>
                     
-                    {fetchedUpcomingEvents.length > 0 ? (
-                      <div className="space-y-3">
-                        {fetchedUpcomingEvents.slice(0, 2).map((event, index) => (
-                          <div key={index} className="flex items-center gap-3 text-white/90 border-b border-white/10 pb-2 last:border-b-0">
-                            <div className="p-2 rounded bg-white/10">
-                              {getEventIcon(event.eventType || 'class')}
-                            </div>
-                            <div>
-                              <div className="font-medium">{event.title}</div>
-                              <div className="text-sm opacity-80">
-                                {formatDateByLanguage(new Date(event.date), language, 'E, MMM d')} · {event.startTime}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-4 text-white/90 flex items-center justify-center">
-                        <CalendarDaysIcon className="w-6 h-6 mr-3 opacity-80" />
-                        <span className="text-base">{t('noUpcomingEvents')}</span>
-                      </div>
-                    )}
+                    <div className="py-4 text-white/90 flex items-center justify-center">
+                      <CalendarDaysIcon className="w-6 h-6 mr-3 opacity-80" />
+                      <span className="text-base">No upcoming events today</span>
+                    </div>
                     
                     <div className="mt-5 text-right">
                       <Link 
@@ -594,7 +453,7 @@ export default function TeacherDashboard({
                         className="inline-flex items-center text-base text-white/90 hover:text-white transition-colors"
                         aria-label="View your complete schedule"
                       >
-                        {t('viewSchedule')}
+                        View Schedule
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>

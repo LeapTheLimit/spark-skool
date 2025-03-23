@@ -19,6 +19,15 @@ import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
 import { triggerDashboardUpdate } from '@/services/dashboardService';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Helper function to ensure timestamp is included
+const createChatMessage = (role: 'user' | 'assistant' | 'system', content: string): ChatMessage => {
+  return {
+    role,
+    content,
+    timestamp: (time: any) => time ? time : new Date().toISOString()
+  };
+};
+
 interface ChatMessageProps {
   message: ChatMessage;
   userId: string;
@@ -127,7 +136,7 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
         title: content.split('\n')[0].slice(0, 50),
         content: content,
         createdAt: new Date().toISOString(),
-        messages: [{ role: 'assistant', content }]
+        messages: [createChatMessage('assistant', content)]
       };
       
       chatHistory.unshift(newChat);

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 import { 
   PencilIcon, 
   XMarkIcon, 
@@ -17,7 +18,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useContentEditablePlaceholder } from '@/hooks/useContentEditablePlaceholder';
 
 // Add these types at the top of the file
 interface Note {
@@ -29,6 +29,9 @@ interface Note {
   pinned: boolean;
   archived: boolean;
   lastEdited?: string;
+  title?: string;
+  updatedAt: string;
+  tags?: string[];
 }
 
 interface NoteModalProps {
@@ -64,8 +67,10 @@ const PinIcon = ({ className = "w-5 h-5" }) => (
     />
   </svg>
 );
+
 // Note Modal for editing
 const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteModalProps) => {
+  const { t } = useLanguage();
   const [editedContent, setEditedContent] = useState(note.content);
   const [editedColor, setEditedColor] = useState(note.color || 'yellow');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -151,7 +156,7 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
             <button
               onClick={() => applyFormatting('insertUnorderedList')}
               className="p-2 rounded-full hover:bg-white/30 text-gray-700"
-              title="Bullet List"
+              title={t('bulletList')}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -163,7 +168,7 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
                 applyFormatting('insertHTML', checkbox);
               }}
               className="p-2 rounded-full hover:bg-white/30 text-gray-700"
-              title="Add Checkbox"
+              title={t('addCheckbox')}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -173,21 +178,21 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
             <button
               onClick={() => onPin(note.id)}
               className={`p-2 rounded-full hover:bg-white/30 ${note.pinned ? 'text-amber-600' : 'text-gray-700'}`}
-              title={note.pinned ? "Unpin Note" : "Pin Note"}
+              title={note.pinned ? t('unpinNote') : t('pinNote')}
             >
               <PinIcon className="w-5 h-5" />
             </button>
             <button
               onClick={() => onArchive(note.id)}
               className={`p-2 rounded-full hover:bg-white/30 ${note.archived ? 'text-blue-600' : 'text-gray-700'}`}
-              title={note.archived ? "Unarchive Note" : "Archive Note"}
+              title={note.archived ? t('unarchiveNote') : t('archiveNote')}
             >
               <ArchiveBoxIcon className="w-5 h-5" />
             </button>
             <button
               onClick={() => onDelete(note.id)}
               className="p-2 rounded-full hover:bg-white/30 text-red-500"
-              title="Delete Note"
+              title={t('deleteNote')}
             >
               <TrashIcon className="w-5 h-5" />
             </button>
@@ -202,23 +207,23 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
         
         {/* Simplified formatting toolbar */}
         <div className="border-b p-2 flex gap-1 bg-gray-50">
-          <button onClick={() => applyFormatting('bold')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title="Bold">
+          <button onClick={() => applyFormatting('bold')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title={t('bold')}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 12H14C16.2091 12 18 10.2091 18 8C18 5.79086 16.2091 4 14 4H6V12ZM6 12H15C17.2091 12 19 13.7909 19 16C19 18.2091 17.2091 20 15 20H6V12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={() => applyFormatting('italic')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title="Italic">
+          <button onClick={() => applyFormatting('italic')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title={t('italic')}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M19 4H10M14 20H5M15 4L9 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={() => applyFormatting('underline')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title="Underline">
+          <button onClick={() => applyFormatting('underline')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title={t('underline')}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M7 5V11C7 14.3137 9.68629 17 13 17C16.3137 17 19 14.3137 19 11V5M5 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <div className="w-px h-6 bg-gray-300 mx-1 self-center"></div>
-          <button onClick={() => applyFormatting('insertUnorderedList')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title="Bullet List">
+          <button onClick={() => applyFormatting('insertUnorderedList')} className="p-2 rounded hover:bg-gray-100 text-gray-700" title={t('bulletList')}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -226,7 +231,7 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
           <button onClick={() => {
             const checkbox = '<input type="checkbox" class="mr-2 h-4 w-4">';
             applyFormatting('insertHTML', checkbox);
-          }} className="p-2 rounded hover:bg-gray-100 text-gray-700" title="Add Checkbox">
+          }} className="p-2 rounded hover:bg-gray-100 text-gray-700" title={t('addCheckbox')}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
               <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -253,10 +258,10 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
           'bg-purple-50'
         }`}>
           <div>
-            Created: {format(new Date(note.createdAt), 'MMM d, yyyy')}
+            {t('created')}: {format(new Date(note.createdAt), 'MMM d, yyyy')}
             {note.lastEdited && (
               <span className="ml-3">
-                Edited: {format(new Date(note.lastEdited), 'MMM d, yyyy')}
+                {t('edited')}: {format(new Date(note.lastEdited), 'MMM d, yyyy')}
               </span>
             )}
           </div>
@@ -264,7 +269,7 @@ const NoteModal = ({ note, onClose, onSave, onDelete, onArchive, onPin }: NoteMo
             onClick={handleSave}
             className="px-4 py-1 bg-[#3ab8fe] text-white rounded-lg hover:bg-[#0099e5] transition-colors text-sm"
           >
-            Save
+            {t('save')}
           </button>
         </div>
       </div>
@@ -279,18 +284,53 @@ export default function NotesPage() {
   const [noteColor, setNoteColor] = useState('yellow');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'pinned' | 'archived'>('all');
-  const [isRTL, setIsRTL] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
+  // Add RTL support
+  useEffect(() => {
+    // Set document direction based on language
+    const isRtl = language === 'ar' || language === 'he';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [language]);
+  
+  // Filter notes based on view mode and search query
+  const filteredNotes = notes.filter(note => {
+    // First filter by view mode
+    const modeMatches = viewMode === 'pinned' 
+      ? note.pinned && !note.archived 
+      : viewMode === 'archived' 
+        ? note.archived 
+        : !note.archived;
+    
+    // Then filter by search query
+    const searchMatches = !searchQuery || 
+      note.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      note.content?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return modeMatches && searchMatches;
+  });
+  
+  // Sort notes with pinned ones at the top
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
+    // First by pinned status (pinned first)
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    // Then by creation date (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  
   // Load notes from localStorage
   useEffect(() => {
-    const savedTasks = localStorage.getItem('teacherTasks');
-    if (savedTasks) {
-      // Only get items with category = 'note'
-      const parsedTasks = JSON.parse(savedTasks);
-      const onlyNotes = parsedTasks.filter((task: any) => task.category === 'note');
-      setNotes(onlyNotes);
+    const savedNotes = localStorage.getItem('teacherNotes');
+    if (savedNotes) {
+      try {
+        setNotes(JSON.parse(savedNotes));
+      } catch (error) {
+        console.error('Failed to parse notes:', error);
+        toast.error(t('failedToLoadNotes'));
+      }
     }
-  }, []);
+  }, [t]);
 
   // Enhanced process content function to properly convert markdown to HTML
   const processContent = (content: string) => {
@@ -325,30 +365,31 @@ export default function NotesPage() {
     e.preventDefault();
     if (!newNote.trim()) return;
     
-    const note = {
+    const note: Note = {
       id: Date.now().toString(),
       content: newNote,
       category: 'note',
       createdAt: new Date().toISOString(),
       color: noteColor,
       pinned: false,
-      archived: false
+      archived: false,
+      title: '',
+      updatedAt: new Date().toISOString(),
+      tags: []
     };
     
-    // Get all existing tasks and notes
-    const savedTasks = localStorage.getItem('teacherTasks');
-    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    setNotes(prevNotes => {
+      const updatedNotes = [note, ...prevNotes];
+      localStorage.setItem('teacherNotes', JSON.stringify(updatedNotes));
+      return updatedNotes;
+    });
     
-    // Add the new note
-    const updatedAllTasks = [...allTasks, note];
-    localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
-    
-    // Update the current view
-    setNotes([...notes, note]);
     setNewNote('');
     // Randomly select a new color for the next note
     const colors = ['yellow', 'blue', 'green', 'pink', 'purple'];
     setNoteColor(colors[Math.floor(Math.random() * colors.length)]);
+    
+    toast.success(t('noteAdded'));
   };
   
   const updateNote = (updatedNote: Note) => {
@@ -359,41 +400,41 @@ export default function NotesPage() {
     setNotes(updatedNotes);
     
     // Update localStorage
-    const savedTasks = localStorage.getItem('teacherTasks');
-    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    const updatedAllTasks = allTasks.map((task: any) => 
-      task.id === updatedNote.id ? { ...task, ...updatedNote } : task
-    );
-    localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
+    localStorage.setItem('teacherNotes', JSON.stringify(updatedNotes));
     
     setSelectedNote(null);
+    toast.success(t('noteSaved'));
   };
   
   const deleteNote = (id: string) => {
-    // Update UI
-    const updatedNotes = notes.filter(note => note.id !== id);
-    setNotes(updatedNotes);
-    
-    // Update localStorage
-    const savedTasks = localStorage.getItem('teacherTasks');
-    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    const updatedAllTasks = allTasks.filter((task: any) => task.id !== id);
-    localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
-    
-    setSelectedNote(null);
+    if (confirm(t('confirmDeleteNote'))) {
+      // Update UI
+      const updatedNotes = notes.filter(note => note.id !== id);
+      setNotes(updatedNotes);
+      
+      // Update localStorage
+      localStorage.setItem('teacherNotes', JSON.stringify(updatedNotes));
+      
+      setSelectedNote(null);
+      toast.success(t('noteDeleted'));
+    }
   };
   
   const togglePinNote = (id: string) => {
     const note = notes.find(n => n.id === id);
     if (note) {
-      updateNote({ ...note, pinned: !note.pinned });
+      const updated = { ...note, pinned: !note.pinned };
+      updateNote(updated);
+      toast.success(note.pinned ? t('noteUnpinned') : t('notePinned'));
     }
   };
   
   const toggleArchiveNote = (id: string) => {
     const note = notes.find(n => n.id === id);
     if (note) {
-      updateNote({ ...note, archived: !note.archived });
+      const updated = { ...note, archived: !note.archived };
+      updateNote(updated);
+      toast.success(note.archived ? t('noteUnarchived') : t('noteArchived'));
     }
   };
 
@@ -408,22 +449,6 @@ export default function NotesPage() {
     };
     return colorStyles[color] || colorStyles.yellow;
   };
-  
-  // Filter notes based on view mode
-  const filteredNotes = notes.filter(note => {
-    if (viewMode === 'pinned') return note.pinned && !note.archived;
-    if (viewMode === 'archived') return note.archived;
-    return !note.archived; // 'all' mode shows non-archived notes
-  });
-  
-  // Sort notes with pinned ones at the top
-  const sortedNotes = [...filteredNotes].sort((a, b) => {
-    // First by pinned status (pinned first)
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    // Then by creation date (newest first)
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
 
   // Add CSS for the placeholder text
   const newNoteRef = useRef<HTMLDivElement>(null);
@@ -453,28 +478,15 @@ export default function NotesPage() {
     }
   }, []);
 
-  // Add RTL support
-  useEffect(() => {
-    // Set document direction based on language
-    const isRtl = language === 'ar' || language === 'he';
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-    setIsRTL(isRtl);
-  }, [language]);
-
-  // In your component, replace the current ref and event handlers
-  const { ref: noteInputRef, contentEditableProps } = useContentEditablePlaceholder({
-    onInput: (content) => setNewNote(content)
-  });
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-sky-50/30 p-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('notes')}</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">{t('notes')}</h1>
           
-          <div className="bg-white rounded-full shadow-sm border flex p-1 w-full sm:w-auto">
+          <div className="bg-white rounded-full shadow-sm border flex p-1">
             <button
-              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
                 viewMode === 'all' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('all')}
@@ -482,7 +494,7 @@ export default function NotesPage() {
               {t('all')}
             </button>
             <button
-              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
                 viewMode === 'pinned' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('pinned')}
@@ -490,7 +502,7 @@ export default function NotesPage() {
               {t('pinned')}
             </button>
             <button
-              className={`flex-1 sm:flex-auto px-2 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium ${
                 viewMode === 'archived' ? 'bg-[#3ab8fe] text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setViewMode('archived')}
@@ -500,28 +512,25 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+        <div className="bg-white rounded-xl p-6 shadow-sm">
           {viewMode !== 'archived' && (
             <div className="mb-8">
               <form onSubmit={handleAddNote} className="space-y-4">
                 <div className="relative bg-white rounded-lg shadow-sm">
                   <div 
-                    {...contentEditableProps}
-                    className={`${contentEditableProps.className} w-full p-6 min-h-[120px] border ${
+                    ref={newNoteRef}
+                    contentEditable
+                    onInput={(e) => setNewNote(e.currentTarget.innerHTML)}
+                    className={`w-full p-6 min-h-[120px] border ${
                       noteColor === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
                       noteColor === 'blue' ? 'bg-blue-50 border-blue-200' :
                       noteColor === 'green' ? 'bg-green-50 border-green-200' :
                       noteColor === 'pink' ? 'bg-pink-50 border-pink-200' :
                       'bg-purple-50 border-purple-200'
-                    } rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3ab8fe] text-gray-800 empty-content`}
-                    style={{ 
-                      direction: isRTL ? 'rtl' : 'ltr',
-                      textAlign: isRTL ? 'right' : 'left'
-                    }}
-                    data-placeholder={t('addANewNote')}
+                    } rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3ab8fe] text-gray-800 empty:before:content-[attr(data-placeholder)] empty:before:text-gray-500 empty:before:opacity-100`}
+                    data-placeholder={t('addNewNotePlaceholder')}
                   />
-                  
-                  <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex space-x-2 ${isRTL ? 'space-x-reverse' : ''}`}>
+                  <div className={`absolute top-3 ${language === 'ar' || language === 'he' ? 'left-3' : 'right-3'} flex space-x-2`}>
                     {['yellow', 'blue', 'green', 'pink', 'purple'].map(color => (
                       <button
                         key={color}
@@ -539,7 +548,7 @@ export default function NotesPage() {
                   </div>
                 </div>
                 
-                <div className={`flex justify-${isRTL ? 'start' : 'end'}`}>
+                <div className="flex justify-end">
                   <button
                     type="submit"
                     className="px-4 py-2 bg-[#3ab8fe] text-white rounded-lg hover:bg-[#0099e5] transition-colors flex items-center gap-2"
@@ -570,7 +579,7 @@ export default function NotesPage() {
                   
                   {note.archived && (
                     <div className="absolute top-2 left-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-xs font-medium">
-                      Archived
+                      {t('archived')}
                     </div>
                   )}
                   
@@ -605,17 +614,17 @@ export default function NotesPage() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700">
                   {viewMode === 'pinned' 
-                    ? t('noPinnedNotes', { defaultValue: 'No pinned notes yet' })
+                    ? t('noPinnedNotes') 
                     : viewMode === 'archived' 
-                      ? t('noArchivedNotes', { defaultValue: 'No archived notes' })
-                      : t('noNotesYet', { defaultValue: 'No notes yet' })}
+                      ? t('noArchivedNotes') 
+                      : t('noNotesYet')}
                 </h3>
                 <p className="text-gray-500 mt-1 max-w-md mx-auto">
                   {viewMode === 'pinned' 
-                    ? t('pinnedDescription', { defaultValue: 'Click the pin icon on a note to pin it here' })
+                    ? t('clickPinToPinNote') 
                     : viewMode === 'archived' 
-                      ? t('archivedDescription', { defaultValue: 'Archived notes will appear here' })
-                      : t('addFirstNoteDescription', { defaultValue: 'Add your first note to keep track of important information' })}
+                      ? t('archivedNotesAppearHere') 
+                      : t('addFirstNotePrompt')}
                 </p>
               </div>
             )}
@@ -639,22 +648,19 @@ export default function NotesPage() {
         <div className="fixed bottom-6 right-6">
           <button
             onClick={() => {
-              if (confirm('Are you sure you want to permanently delete all archived notes?')) {
+              if (confirm(t('confirmDeleteAllArchivedNotes'))) {
                 // Delete all archived notes
                 const nonArchivedNotes = notes.filter(note => !note.archived);
                 setNotes(nonArchivedNotes);
                 
                 // Update localStorage
-                const savedTasks = localStorage.getItem('teacherTasks');
-                const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
-                const updatedAllTasks = allTasks.filter((task: any) => 
-                  task.category !== 'note' || !task.archived
-                );
-                localStorage.setItem('teacherTasks', JSON.stringify(updatedAllTasks));
+                localStorage.setItem('teacherNotes', JSON.stringify(nonArchivedNotes));
+                
+                toast.success(t('allArchivedNotesDeleted'));
               }
             }}
             className="bg-red-500 text-white p-3 rounded-full shadow-lg hover:bg-red-600 transition-colors"
-            title="Delete All Archived"
+            title={t('deleteAllArchived')}
           >
             <TrashIcon className="w-6 h-6" />
           </button>

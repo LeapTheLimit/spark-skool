@@ -1,14 +1,26 @@
 'use client';
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { 
   Cog6ToothIcon,
   PaperClipIcon,
   MicrophoneIcon,
+  ClockIcon,
+  TrashIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
 import { sendChatMessage, ChatMessage } from '@/services/chatService';
+
+// Helper function to ensure timestamp is included
+const createChatMessage = (role: 'user' | 'assistant', content: string): ChatMessage => {
+  return {
+    role,
+    content,
+    timestamp: (time: any) => time ? time : new Date().toISOString()
+  };
+};
 
 // Define types for Speech Recognition
 interface SpeechRecognitionResult {
@@ -48,13 +60,37 @@ const MicrophoneWaveIcon = ({ isListening }: { isListening: boolean }) => (
   </div>
 );
 
+interface ChatHistoryItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  messages: ChatMessage[];
+}
+
 export default function ChatPage() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('chatHistory');
+    if (storedHistory) {
+      setChatHistory(JSON.parse(storedHistory));
+    }
+  }, []);
+
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Pulse animation for active state
   const pulseVariants = {
@@ -197,33 +233,53 @@ export default function ChatPage() {
   const handleSendMessage = async () => {
     if (!message.trim() && !isListening) return;
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: message
-    };
+    const userMessage = createChatMessage('user', message);
 
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
     setIsLoading(true);
 
     try {
-      // Updated to match the new function signature
-      const response = await sendChatMessage(
-        [...messages, userMessage]  // Just pass messages array
-      );
-
-      const aiMessage: ChatMessage = {
-        role: 'assistant',
-        content: response
-      };
-
+      const response = await sendChatMessage([...messages, userMessage]);
+      const aiMessage = createChatMessage('assistant', response);
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Save to chat history
+      saveToHistory(userMessage, aiMessage);
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message');
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Save chat to history
+  const saveToHistory = (userMessage: ChatMessage, aiMessage: ChatMessage) => {
+    const currentMessages = [...messages, userMessage, aiMessage];
+    const newChat: ChatHistoryItem = {
+      id: Date.now().toString(),
+      title: userMessage.content.split('\n')[0].slice(0, 30),
+      content: aiMessage.content,
+      createdAt: new Date().toISOString(),
+      messages: currentMessages
+    };
+    
+    const updatedHistory = [newChat, ...chatHistory].slice(0, 20); // Keep only last 20 chats
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+  };
+  
+  // Load chat history
+  const loadChat = (chat: ChatHistoryItem) => {
+    setMessages(chat.messages);
+    setShowHistory(false);
+  };
+  
+  // Clear current chat
+  const clearChat = () => {
+    setMessages([]);
+    toast.success('Chat cleared');
   };
 
   return (
@@ -233,180 +289,133 @@ export default function ChatPage() {
         <span className="text-xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-transparent bg-clip-text">
           SPARK SKOOL
         </span>
-        <button className="p-2 text-indigo-600/80 hover:bg-indigo-50 rounded-xl">
-          <Cog6ToothIcon className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Title Section */}
-      <div className="absolute top-[20%] left-0 right-0 text-center">
-        <h1 className="text-3xl font-medium text-gray-500">
-          {isListening ? "Listening..." : (
-            <>Want to visualize{" "}<span className="text-indigo-500">what&apos;s on your mind?</span></>
-          )}
-        </h1>
-      </div>
-
-      {/* Interactive Orb */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-        <motion.div 
-          className="relative w-32 h-32 cursor-pointer backdrop-blur-xl"
-          onClick={() => {
-            setIsListening(!isListening);
-          }}
-        >
-          <AnimatePresence mode="wait">
-            {!isListening ? (
-              // Normal Idle State
-              <>
-                <motion.div
-                  key="idle-orb"
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 180, 360],
-                  }}
-                  transition={{
-                    duration: 8,
-                    ease: "linear",
-                    repeat: Infinity,
-                  }}
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-90 blur-xl"
-                />
-                <motion.div
-                  variants={pulseVariants}
-                  animate="inactive"
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-blue-400 opacity-70 blur-lg"
-                />
-              </>
-            ) : (
-              // Listening State
-              <motion.div
-                key="listening"
-                className="flex items-center justify-center gap-1 h-full"
-              >
-                {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{
-                      height: ["40%", "100%", "40%"],
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      delay: i * 0.1,
-                    }}
-                    className="w-3 bg-indigo-400 rounded-full opacity-70"
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-
-      {/* Messages Section */}
-      <div className="absolute inset-x-0 top-0 bottom-[80px] overflow-y-auto p-4">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowHistory(!showHistory)}
+            className="p-2 text-black hover:bg-indigo-50 rounded-xl"
           >
-            <div
-              className={`inline-block max-w-[80%] p-4 rounded-2xl ${
-                msg.role === 'user' 
-                  ? 'bg-indigo-500 text-white' 
-                  : 'bg-white text-gray-900'
-              }`}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="text-center">
-            <div className="inline-block px-4 py-2 bg-gray-100 rounded-full">
-              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          </div>
-        )}
+            <ClockIcon className="w-6 h-6" />
+          </button>
+          <button 
+            onClick={clearChat}
+            className="p-2 text-black hover:bg-indigo-50 rounded-xl"
+          >
+            <TrashIcon className="w-6 h-6" />
+          </button>
+          <button className="p-2 text-black hover:bg-indigo-50 rounded-xl">
+            <Cog6ToothIcon className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
-      {/* Enhanced Chat Bar */}
-      <div className="fixed bottom-[80px] left-4 right-4">
-        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-xl rounded-2xl p-2 shadow-lg 
-          border border-white/40">
-          
-          {/* Left Side Buttons */}
-          <div className="flex items-center gap-1">
-            {/* File Upload */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-              multiple
-              accept=".jpg,.jpeg,.png,.gif,.pdf"
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 text-gray-500"
-              title="Upload files"
-            >
-              <PaperClipIcon className="w-5 h-5" />
-            </button>
-
-            {/* Voice Input */}
-            <button
-              onClick={handleVoiceInput}
-              disabled={isLoading}
-              className={`p-2 rounded-xl transition-all duration-200 ${
-                isListening 
-                  ? 'bg-red-100 text-red-500' 
-                  : 'hover:bg-gray-100 text-gray-500'
-              }`}
-              title={isListening ? 'Stop recording' : 'Start voice input'}
-            >
-              <MicrophoneIcon className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
-            </button>
-        </div>
-
-          {/* Text Input */}
-          <div className="flex-1 relative">
-          <input
-            type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-            placeholder="Ask anything..."
-              className="w-full px-4 py-2 bg-gray-100/50 rounded-xl focus:outline-none focus:bg-gray-100 
-                text-gray-600 text-sm placeholder-gray-400 transition-colors"
-            />
-            {isListening && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"
-                    style={{ animationDelay: `${i * 200}ms` }}
-                  />
+      {/* Main chat area */}
+      <div className="flex h-[calc(100%-6rem)]">
+        {/* History panel - only shown when history button is clicked */}
+        {showHistory && (
+          <div className="w-[280px] bg-white/80 h-full border-r border-gray-200 overflow-auto p-4">
+            <h3 className="font-medium text-lg mb-4 text-black">Chat History</h3>
+            
+            {chatHistory.length === 0 ? (
+              <p className="text-gray-500 text-sm">No saved chats yet</p>
+            ) : (
+              <div className="space-y-2">
+                {chatHistory.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => loadChat(chat)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="font-medium text-black truncate">{chat.title}</div>
+                    <div className="text-xs text-gray-500">{new Date(chat.createdAt).toLocaleString()}</div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
+        )}
+        
+        {/* Chat messages */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-medium text-black mb-2">How can I help you today?</h2>
+              <p className="text-gray-600 max-w-md">Ask me anything about your school work, assignments, or any topic you're curious about!</p>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-4">
+              {messages.map((msg, index) => (
+                <div key={index} className={`flex justify-${msg.role === 'assistant' ? 'start' : 'end'} mb-4`}>
+                  <div className={`${msg.role === 'assistant' ? 'bg-white text-black' : 'bg-blue-500 text-white'} rounded-lg p-4 max-w-[80%] shadow-sm`}>
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start mb-4">
+                  <div className="bg-white text-black rounded-lg p-4 max-w-[80%] shadow-sm flex items-center">
+                    <div className="flex space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"></div>
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Send Button */}
+      {/* Chat input */}
+      <div className="h-16 absolute bottom-0 left-0 right-0 px-4 pb-2">
+        <div className="flex items-center gap-2 bg-white rounded-full p-2 shadow-md border border-gray-200">
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden" 
+            multiple
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+          >
+            <PaperClipIcon className="w-5 h-5" />
+          </button>
+          
+          <button
+            onClick={handleVoiceInput}
+            className={`p-2 rounded-full hover:bg-gray-100 ${isListening ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <MicrophoneWaveIcon isListening={isListening} />
+          </button>
+          
+          <input 
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Type your message..."
+            className="flex-1 bg-transparent text-black placeholder-gray-500 outline-none px-3 py-1.5 text-base"
+          />
+          
           <button 
             onClick={handleSendMessage}
-            disabled={!message.trim() || isLoading}
-            className="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl transition-colors 
-              disabled:opacity-50 disabled:hover:bg-indigo-500"
+            disabled={(!message.trim() && !isListening) || isLoading}
+            className="p-2 bg-blue-500 hover:bg-blue-600 rounded-full transition-colors disabled:opacity-50"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m-4-4l4 4-4 4" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
               </svg>
             )}
           </button>

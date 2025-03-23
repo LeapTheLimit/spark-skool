@@ -83,13 +83,13 @@ export default function PreviewPanel({
     autoSaveChat();
   }, [messages, userId]);
 
-  // Load chat history
-  const loadChatHistory = async () => {
-    try {
+    // Load chat history
+    const loadChatHistory = async () => {
+      try {
       setIsLoading(true);
       const response = await fetch('/api/chat-history');
-      if (response.ok) {
-        const data = await response.json();
+        if (response.ok) {
+          const data = await response.json();
         // Remove duplicates when loading with proper type casting
         const uniqueConversations = Array.from(
           new Map(
@@ -99,9 +99,9 @@ export default function PreviewPanel({
         ) as ChatConversation[];  // Explicitly cast the result to ChatConversation[]
         
         setChatHistory(uniqueConversations);
-      }
-    } catch (error) {
-      console.error('Failed to load chat history:', error);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +148,7 @@ export default function PreviewPanel({
           {isLoading ? (
             <div className="text-center py-4 text-gray-500">
               {t('loading')}...
-            </div>
+                      </div>
           ) : chatHistory.length > 0 ? (
             <div className="space-y-2">
               {chatHistory.map((chat) => (
@@ -172,8 +172,8 @@ export default function PreviewPanel({
                         hour: '2-digit',
                         minute: '2-digit'
                       }
-                    )}
-                  </p>
+                      )}
+                    </p>
                 </div>
               ))}
             </div>

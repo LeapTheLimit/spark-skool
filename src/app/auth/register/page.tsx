@@ -7,8 +7,6 @@ import type { Route } from 'next';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlobalStyles from '@/components/GlobalStyles';
-import { useLanguage } from '@/contexts/LanguageContext';
-import LanguageSelector from '@/components/LanguageSelector';
 
 // SparkSkool Mascot component with animated eyes
 const SparkMascot = (props: React.SVGProps<SVGSVGElement>) => {
@@ -208,12 +206,11 @@ export default function RegisterPage() {
     };
   }, []);
   
-  const { t } = useLanguage();
   const classLevelOptions = [
-    { value: "elementary", label: t('elementarySchool') },
-    { value: "middle", label: t('middleSchool') },
-    { value: "high", label: t('highSchool') },
-    { value: "college", label: t('college') }
+    { value: "elementary", label: "Elementary School" },
+    { value: "middle", label: "Middle School" },
+    { value: "high", label: "High School" },
+    { value: "college", label: "College" }
   ];
   
   const handleClassLevelSelect = (value: string) => {
@@ -360,14 +357,6 @@ export default function RegisterPage() {
     }
   }, [isDropdownOpen]);
 
-  // Add RTL support
-  const { language } = useLanguage();
-  useEffect(() => {
-    // Set document direction based on language
-    const isRtl = language === 'ar' || language === 'he';
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-  }, [language]);
-
   return (
     <>
       <GlobalStyles />
@@ -382,7 +371,7 @@ export default function RegisterPage() {
           >
             <div className="text-center w-full mb-8">
               <h1 className="text-5xl font-bold text-white mb-3">Meet <span className="text-[#3ab8fe]">Spark</span></h1>
-              <p className="text-2xl text-gray-300">{t('yourUltimateClassroomAICopilot')}</p>
+              <p className="text-2xl text-gray-300">Your ultimate classroom AI copilot</p>
             </div>
             
             <div className="flex flex-col items-center w-full">
@@ -410,7 +399,7 @@ export default function RegisterPage() {
                 >
                   <SparkMascot className="w-full h-auto" />
                 </motion.div>
-              </div>
+        </div>
 
               {/* Chat bubble below mascot */}
               <div className="w-full">
@@ -442,7 +431,7 @@ export default function RegisterPage() {
               {/* Mobile-only mascot and features */}
               <div className="md:hidden flex flex-col items-center mb-6">
                 <h1 className="text-3xl font-bold text-white mb-2">Meet <span className="text-[#3ab8fe]">Spark</span></h1>
-                <p className="text-base text-gray-300 mb-4">{t('yourClassroomAICopilot')}</p>
+                <p className="text-base text-gray-300 mb-4">Your classroom AI copilot</p>
                 <div className="w-32 h-32 mb-4">
                   <SparkMascot className="w-full h-full" />
                 </div>
@@ -467,14 +456,14 @@ export default function RegisterPage() {
 
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white">
-                  {t('createAccount')}
+                  Create your account
                 </h2>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Role Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">{t('iAmA')}</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">I am a</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -485,7 +474,7 @@ export default function RegisterPage() {
                           : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      {t('teacher')}
+                      Teacher
                     </button>
                     <button
                       type="button"
@@ -496,24 +485,24 @@ export default function RegisterPage() {
                           : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      {t('student')}
+                      Student
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+          <div className="space-y-4">
                   {/* Full Name - Floating Label */}
                   <div className="relative">
-                    <input
+              <input
                       id="fullName"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="peer block w-full px-4 py-2.5 sm:py-3 bg-gray-900/70 border border-gray-700 rounded-full
                         text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                         transition-all duration-200"
-                      placeholder={t('fullName')}
+                      placeholder="Full name"
                     />
                     <label 
                       htmlFor="fullName" 
@@ -523,22 +512,22 @@ export default function RegisterPage() {
                         peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                         peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                     >
-                      {t('fullName')}
+                      Full Name
                     </label>
-                  </div>
+            </div>
 
                   {/* Email - Floating Label */}
                   <div className="relative">
-                    <input
+              <input
                       id="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="peer block w-full px-4 py-2.5 sm:py-3 bg-gray-900/70 border border-gray-700 rounded-full
                         text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                         transition-all duration-200"
-                      placeholder={t('emailAddress')}
+                      placeholder="Email"
                     />
                     <label 
                       htmlFor="email" 
@@ -548,22 +537,22 @@ export default function RegisterPage() {
                         peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                         peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                     >
-                      {t('emailAddress')}
+                      Email
                     </label>
-                  </div>
+            </div>
 
                   {/* Password - Floating Label */}
                   <div className="relative">
-                    <input
+              <input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="peer block w-full px-4 py-2.5 sm:py-3 bg-gray-900/70 border border-gray-700 rounded-full
                         text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                         transition-all duration-200"
-                      placeholder={t('password')}
+                      placeholder="Password"
                     />
                     <label 
                       htmlFor="password" 
@@ -573,7 +562,7 @@ export default function RegisterPage() {
                         peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                         peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                     >
-                      {t('password')}
+                      Password
                     </label>
                     <button
                       type="button"
@@ -617,7 +606,7 @@ export default function RegisterPage() {
                         peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                         peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                     >
-                      {t('classLevel')}
+                      Class Level
                     </label>
                     
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -642,7 +631,7 @@ export default function RegisterPage() {
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               )}
-                              {t(option.value + 'School')}
+                              {option.label}
                             </li>
                           ))}
                         </ul>
@@ -655,15 +644,15 @@ export default function RegisterPage() {
                       name="classLevel"
                       value={formData.classLevel || ''}
                       required
-                    />
-                  </div>
+              />
+            </div>
 
                   {/* Student School Verification */}
                   {formData.role === 'student' && (
                     <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-700 mt-4">
-                      <h3 className="text-sm font-medium text-gray-300 mb-3">{t('schoolVerification')}</h3>
+                      <h3 className="text-sm font-medium text-gray-300 mb-3">School Verification</h3>
                       <p className="text-xs text-gray-400 mb-4">
-                        {t('studentVerificationDescription')}
+                        Students must verify their school to register. Enter your school code below.
                       </p>
                       
                       <div className="flex gap-3">
@@ -675,7 +664,7 @@ export default function RegisterPage() {
                           className="flex-1 px-4 py-2 bg-gray-900/70 border border-gray-700 rounded-xl 
                             text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                             disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200"
-                          placeholder={t('enterSchoolCode')}
+                          placeholder="Enter school code"
                         />
                         <button
                           type="button"
@@ -685,36 +674,36 @@ export default function RegisterPage() {
                             font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3ab8fe]
                             disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                         >
-                          {verifyingSchool ? t('verifying') : schoolVerified ? t('verified') : t('verify')}
+                          {verifyingSchool ? 'Verifying...' : schoolVerified ? 'Verified' : 'Verify'}
                         </button>
-                      </div>
+            </div>
 
                       {schoolVerified && (
                         <div className="mt-3 flex items-center text-green-400 text-sm">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          <span>{t('verified')}: {formData.school}</span>
+                          <span>Verified: {formData.school}</span>
                         </div>
                       )}
                     </div>
                   )}
                   
                   {/* Teacher-specific fields */}
-                  {formData.role === 'teacher' && (
+            {formData.role === 'teacher' && (
                     <div className="space-y-4 mt-4">
                       {/* School Name - Floating Label */}
                       <div className="relative">
-                        <input
+                  <input
                           id="school"
-                          type="text"
+                    type="text"
                           required
-                          value={formData.school || ''}
-                          onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                    value={formData.school || ''}
+                    onChange={(e) => setFormData({ ...formData, school: e.target.value })}
                           className="peer block w-full px-4 py-2.5 sm:py-3 bg-gray-900/70 border border-gray-700 rounded-full
                             text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                             transition-all duration-200"
-                          placeholder={t('schoolName')}
+                          placeholder="School name"
                         />
                         <label 
                           htmlFor="school" 
@@ -724,22 +713,22 @@ export default function RegisterPage() {
                             peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                             peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                         >
-                          {t('schoolName')}
+                          School Name
                         </label>
-                      </div>
+                </div>
 
                       {/* Subject Taught - Floating Label */}
                       <div className="relative">
-                        <input
+                  <input
                           id="subject"
-                          type="text"
+                    type="text"
                           required
-                          value={formData.subject || ''}
-                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    value={formData.subject || ''}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                           className="peer block w-full px-4 py-2.5 sm:py-3 bg-gray-900/70 border border-gray-700 rounded-full
                             text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#3ab8fe] focus:border-transparent
                             transition-all duration-200"
-                          placeholder={t('subjectTaught')}
+                          placeholder="Subject taught"
                         />
                         <label 
                           htmlFor="subject" 
@@ -749,7 +738,7 @@ export default function RegisterPage() {
                             peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 
                             peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-3"
                         >
-                          {t('subjectTaught')}
+                          Subject Taught
                         </label>
                       </div>
                     </div>
@@ -757,34 +746,31 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="text-center text-sm text-gray-400 mt-2">
-                  {t('noCreditCardRequired')}
-                </div>
+                  No credit card required
+          </div>
 
                 {/* Create Account Button */}
-                <button
-                  type="submit"
+          <button
+            type="submit"
                   disabled={isLoading || (formData.role === 'student' && !schoolVerified)}
                   className="w-full py-2.5 sm:py-3 px-4 bg-[#3ab8fe] hover:bg-[#3ab8fe]/90
                     text-white font-bold rounded-full shadow-lg shadow-[#3ab8fe]/20
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3ab8fe]
                     disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {isLoading ? t('creatingAccount') : t('signUp')}
-                </button>
+                  {isLoading ? 'Creating Account...' : 'Free Sign Up'}
+          </button>
                 
                 {/* Login Link */}
                 <div className="text-center text-sm text-gray-400 mt-4">
-                  {t('alreadyMember')} <Link href="/auth/login" className="text-[#3ab8fe] hover:text-[#3ab8fe]/80 transition-colors">{t('signIn')}</Link>
+                  Already a member? <Link href="/auth/login" className="text-[#3ab8fe] hover:text-[#3ab8fe]/80 transition-colors">Sign in</Link>
                 </div>
                 
                 {/* Terms */}
                 <div className="text-center text-xs text-gray-500 mt-4">
-                  {t('byRegistering')} {' '}
-                  <Link href={'/terms' as Route} className="text-gray-400 hover:text-white">{t('termsOfUse')}</Link> {' '}
-                  {t('and')} {' '}
-                  <Link href={'/privacy' as Route} className="text-gray-400 hover:text-white">{t('privacyPolicy')}</Link>
+                  By registering, you agree to the <a href="#" className="text-gray-400 hover:text-white">Terms of Use</a> and <a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a>
                 </div>
-              </form>
+        </form>
             </motion.div>
           </div>
         </div>

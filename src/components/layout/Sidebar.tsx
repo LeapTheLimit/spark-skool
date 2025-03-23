@@ -14,8 +14,8 @@ export default function Sidebar() {
     <div className="w-[240px] bg-[#111111] border-r border-gray-800">
       <div className="p-4">
         <Link href="/" className="flex items-center gap-2 mb-8 px-4">
-          <Image src="/logo.svg" alt="SparkSkool" width={32} height={32} />
-          <span className="font-bold text-xl text-white">SparkSkool</span>
+          <Image src="/logo.svg" alt="SPARK SKOOL" width={32} height={32} />
+          <span className="font-bold text-xl text-white">SPARK SKOOL</span>
         </Link>
         
         <nav className="space-y-1">

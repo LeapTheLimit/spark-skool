@@ -108,8 +108,8 @@ export default function ToolsPage() {
     {
       id: 'exam-grading',
       title: t('GradeWizard'),
-      powerDescription: t('gradeWizardDescription'),
-      description: t('examGradingDescription'),
+      powerDescription: t('AI-Powered Exam Grading'),
+      description: t('Grade exams at superhuman speed with AI assistance and detailed analytics'),
       icon: <ClipboardDocumentCheckIcon className="w-6 h-6" />,
       color: 'bg-teal-600',
       link: '/dashboard/teacher/tools/exam-grading' as Route,
@@ -119,8 +119,8 @@ export default function ToolsPage() {
     {
       id: 'exam-creator',
       title: t('ExamCrafter'),
-      powerDescription: t('examCrafterDescription'),
-      description: t('examCreationDescription'),
+      powerDescription: t('Professional Exam Creation'),
+      description: t('Craft perfect exams with AI assistance and customizable templates'),
       icon: <DocumentPlusIcon className="w-6 h-6" />,
       color: 'bg-blue-600',
       link: '/dashboard/teacher/tools/exam-creator' as Route,
@@ -129,9 +129,9 @@ export default function ToolsPage() {
     },
     {
       id: 'ai-exam-generator',
-      title: t('GameMaster'),
-      powerDescription: t('gameMasterDescription'),
-      description: t('gameDescription'),
+      title: t('GameMaster'), // Power-themed name
+      powerDescription: t('Interactive Learning Games'), // Subtitle
+      description: t('Create engaging exam games with AI-powered question generation and interactive formats'),
       icon: <PuzzlePieceIcon className="w-6 h-6" />,
       color: 'bg-purple-600',
       link: '/dashboard/teacher/tools/exam-game' as Route,
@@ -141,8 +141,8 @@ export default function ToolsPage() {
     {
       id: 'slide-maker',
       title: t('SlideDesigner'),
-      powerDescription: t('slideDesignerDescription'),
-      description: t('slideDescription'),
+      powerDescription: t('Dynamic Presentations'),
+      description: t('Create captivating slides with AI assistance and beautiful templates'),
       icon: <TableCellsIcon className="w-6 h-6" />,
       color: 'bg-cyan-600',
       link: '/dashboard/teacher/tools/slide-creator' as Route,
@@ -152,8 +152,8 @@ export default function ToolsPage() {
     {
       id: 'homework-maker',
       title: t('AssignmentMaker'),
-      powerDescription: t('assignmentMakerDescription'),
-      description: t('assignmentDescription'),
+      powerDescription: t('Customized Learning Tasks'),
+      description: t('Generate customized homework assignments aligned with your lesson objectives'),
       icon: <BookOpenIcon className="w-6 h-6" />,
       color: 'bg-amber-500',
       link: '/dashboard/teacher/tools/homework-maker' as Route,
@@ -162,9 +162,9 @@ export default function ToolsPage() {
     },
     {
       id: 'feedback-generator',
-      title: t('FeedbackGenius'),
-      powerDescription: t('feedbackGeniusDescription'),
-      description: t('feedbackDescription'),
+      title: t('FeedbackGenius'), // Power-themed name
+      powerDescription: t('Personalized Student Insights'), // Subtitle
+      description: t('Create personalized feedback for students with AI assistance to save time'),
       icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />,
       color: 'bg-rose-600',
       link: '/dashboard/teacher/tools/feedback' as Route,
@@ -173,9 +173,9 @@ export default function ToolsPage() {
     },
     {
       id: 'analytics-dashboard',
-      title: t('DataVision'),
-      powerDescription: t('dataVisionDescription'),
-      description: t('analyticsDescription'),
+      title: t('DataVision'), // Power-themed name
+      powerDescription: t('Performance Analytics'), // Subtitle
+      description: t('Visualize classroom performance data with actionable teaching insights'),
       icon: <ChartBarIcon className="w-6 h-6" />,
       color: 'bg-indigo-600',
       link: '/dashboard/teacher/tools/analytics' as Route,
@@ -184,9 +184,9 @@ export default function ToolsPage() {
     },
     {
       id: 'lesson-planner',
-      title: t('LessonArchitect'),
-      powerDescription: t('lessonArchitectDescription'),
-      description: t('lessonDescription'),
+      title: t('LessonArchitect'), // Power-themed name
+      powerDescription: t('Curriculum Planning'), // Subtitle
+      description: t('Design comprehensive lesson plans aligned with your curriculum standards'),
       icon: <PencilSquareIcon className="w-6 h-6" />,
       color: 'bg-emerald-600',
       link: '/dashboard/teacher/tools/lesson-planner' as Route,
@@ -195,11 +195,11 @@ export default function ToolsPage() {
     },
     {
       id: 'rubric-creator',
-      title: t('RubricSmith'),
-      powerDescription: t('rubricSmithDescription'),
-      description: t('rubricDescription'),
+      title: t('RubricSmith'), // Power-themed name
+      powerDescription: t('Assessment Criteria Builder'), // Subtitle
+      description: t('Create detailed grading rubrics for assignments and projects'),
       icon: <DocumentCheckIcon className="w-6 h-6" />,
-      color: 'bg-yellow-600',
+      color: 'bg-yellow-600', // Changed from amber to yellow
       link: '/dashboard/teacher/tools/rubric-creator' as Route,
       new: false,
       comingSoon: true
@@ -734,43 +734,47 @@ export default function ToolsPage() {
   }, [language]);
 
   return (
-    <div className={`min-h-screen bg-gray-50 p-4 md:p-6 overflow-auto max-h-screen ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gray-50 p-6 overflow-auto max-h-screen ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="max-w-7xl mx-auto">
         {/* Always show the header */}
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-black">
-            {t('superpowers')}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-black">
+            {language === 'ar' ? 'قوى خارقة' : 
+             language === 'he' ? 'כוחות-על' : 
+             'Superpowers'}
           </h1>
-          <p className="text-black text-sm md:text-base">
-            {t('superpowersDescription')}
+          <p className="text-black">
+            {language === 'ar' ? 'أدوات سبارك لتعزيز التدريس وتوفير ساعات من العمل' :
+             language === 'he' ? 'כלי הסופר-כוח של ספארק לשדרוג ההוראה וחיסכון בשעות עבודה' :
+             'Spark superpowers tools to enhance your teaching and save hours of work'}
           </p>
         </div>
 
-        {/* Tools Grid - Mobile optimized */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {toolCards.map(tool => (
             <div 
               key={tool.id} 
-              className={`rounded-xl overflow-hidden border border-gray-200 shadow-sm relative ${tool.comingSoon ? 'opacity-80 cursor-default' : 'hover:shadow-lg transition-all group cursor-pointer'} h-[160px] md:h-[180px] ${tool.color} bg-opacity-5`}
+              className={`rounded-xl overflow-hidden border border-gray-200 shadow-sm relative ${tool.comingSoon ? 'opacity-80 cursor-default' : 'hover:shadow-lg transition-all group cursor-pointer'} h-[180px] ${tool.color} bg-opacity-5`}
               onClick={!tool.comingSoon ? (() => tool.link && router.push(tool.link as Route)) : undefined}
             >
-              <div className="p-3 md:p-5 h-full flex flex-col">
+              <div className="p-5 h-full flex flex-col">
                 {/* Tags */}
                 {tool.new && !tool.comingSoon && (
-                  <span className="absolute top-2 right-2 md:top-3 md:right-3 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                     {t('new')}
                   </span>
                 )}
                 
                 {tool.comingSoon && (
-                  <span className="absolute top-2 right-2 md:top-3 md:right-3 px-2 py-0.5 text-xs font-medium bg-orange-500 text-white rounded-full z-10">
-                    {t('comingSoon')}
+                  <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-orange-500 text-white rounded-full z-10">
+                    {language === 'ar' ? 'قريباً' : language === 'he' ? 'בקרוב' : 'COMING SOON'}
                   </span>
                 )}
                 
                 {/* Mascot in top left corner */}
-                <div className="absolute top-2 left-2 md:top-3 md:left-3">
-                  <TeacherMascot width={28} height={28} variant={
+                <div className="absolute top-3 left-3">
+                  <TeacherMascot width={32} height={32} variant={
                     tool.id === 'exam-grading' ? 'teal' : 
                     tool.id === 'exam-creator' ? 'blue' : 
                     tool.id === 'ai-exam-generator' ? 'purple' :
@@ -782,32 +786,32 @@ export default function ToolsPage() {
                   } />
                 </div>
                 
-                {/* Centered title and icon - responsive size */}
-                <div className="flex flex-col items-center justify-center my-3 md:my-4 text-center flex-1">
-                  <div className={`w-12 h-12 md:w-14 md:h-14 ${tool.color} bg-opacity-20 rounded-xl flex items-center justify-center mb-2 md:mb-3`}>
+                {/* Centered title and icon - larger size */}
+                <div className="flex flex-col items-center justify-center my-4 text-center flex-1">
+                  <div className={`w-14 h-14 ${tool.color} bg-opacity-20 rounded-xl flex items-center justify-center mb-3`}>
                     <div className={`${tool.color.replace('bg-', 'text-')}`}>
-                      {React.cloneElement(tool.icon as React.ReactElement, { className: "w-7 h-7 md:w-8 md:h-8" })}
+                      {React.cloneElement(tool.icon as React.ReactElement, { className: "w-8 h-8" })}
                     </div>
                   </div>
                   
-                  <h3 className="text-lg md:text-xl font-bold text-black mb-0.5 md:mb-1">
+                  <h3 className="text-xl font-bold text-black mb-1">
                     {tool.title}
                   </h3>
-                  <p className="text-xs md:text-sm text-gray-600">{tool.powerDescription}</p>
+                  <p className="text-sm text-gray-600">{tool.powerDescription}</p>
                 </div>
                 
                 {/* Description and button that show on hover */}
-                <div className="hidden group-hover:flex flex-col items-center justify-center absolute inset-0 bg-white bg-opacity-95 p-3 md:p-5 transition-all">
-                  <p className="text-xs md:text-sm text-gray-700 mb-3 md:mb-4 text-center">
+                <div className="hidden group-hover:flex flex-col items-center justify-center absolute inset-0 bg-white bg-opacity-95 p-5 transition-all">
+                  <p className="text-sm text-gray-700 mb-4 text-center">
                     {tool.description}
                   </p>
                   
                   {!tool.comingSoon && (
                     <button 
                       onClick={() => tool.link && router.push(tool.link as Route)}
-                      className={`px-4 md:px-6 py-1.5 md:py-2 text-xs md:text-sm font-medium text-white rounded-lg ${tool.color} hover:opacity-90 transition-opacity`}
+                      className={`px-6 py-2 text-sm font-medium text-white rounded-lg ${tool.color} hover:opacity-90 transition-opacity`}
                     >
-                      {t('start')}
+                      {t('start', { defaultValue: 'Start' })}
                     </button>
                   )}
                 </div>
@@ -821,41 +825,41 @@ export default function ToolsPage() {
           ))}
         </div>
             
-        {/* Recently Used Section - Mobile optimized */}
-        <div className="mt-8 md:mt-10">
-          <h2 className="text-lg md:text-xl font-semibold text-black mb-4 md:mb-5">{t('recentlyUsed')}</h2>
-          <div className="space-y-2 md:space-y-3">
+        {/* Recently Used Section */}
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-black mb-5">{t('recentlyUsed')}</h2>
+          <div className="space-y-3">
             {recentlyUsedTools.length > 0 ? (
               recentlyUsedTools.map((tool, index) => (
                 <div 
                   key={index}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
                 >
-                  <div className="flex items-center gap-3 md:gap-4 mb-3 sm:mb-0">
+                  <div className="flex items-center gap-4">
                     <div className={`bg-${
                       tool.id === 'exam-grading' ? 'blue' : 
                       tool.id === 'exam-creator' ? 'purple' : 
                       'gray'
-                    }-100 p-2 md:p-3 rounded-lg`}>
+                    }-100 p-3 rounded-lg`}>
                       {tool.id === 'exam-grading' ? (
-                        <ClipboardDocumentCheckIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                        <ClipboardDocumentCheckIcon className="w-6 h-6 text-blue-600" />
                       ) : tool.id === 'exam-creator' ? (
-                        <AcademicCapIcon className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
+                        <AcademicCapIcon className="w-6 h-6 text-purple-600" />
                       ) : (
-                        <DocumentTextIcon className="w-5 h-5 md:w-6 md:h-6 text-black-600" />
+                        <DocumentTextIcon className="w-6 h-6 text-black-600" />
                       )}
                     </div>
                     <div>
-                      <h3 className="font-medium text-black text-sm md:text-base">{tool.title}</h3>
-                      <p className="text-xs md:text-sm text-black">
+                      <h3 className="font-medium text-black">{tool.title}</h3>
+                      <p className="text-sm text-black">
                         {new Date(tool.timestamp).toLocaleDateString(language === 'ar' ? 'ar-SA' : 
                         language === 'he' ? 'he-IL' : undefined)}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
-                    <span className={`text-xs md:text-sm px-2 md:px-3 py-1 rounded-full ${
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm px-3 py-1 rounded-full ${
                       tool.status === 'graded' ? 'bg-green-100 text-green-800' :
                       tool.status === 'draft' ? 'bg-amber-100 text-amber-800' :
                       'bg-blue-100 text-blue-800'
@@ -871,7 +875,7 @@ export default function ToolsPage() {
                           router.push(`/dashboard/teacher/tools/${tool.id}` as Route);
                         }
                       }}
-                      className="px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs md:text-sm font-medium flex-1 sm:flex-auto text-center"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                       {t('continueWork')}
                     </button>
@@ -879,7 +883,7 @@ export default function ToolsPage() {
                 </div>
               ))
             ) : (
-              <p className="text-black text-sm md:text-base">{t('noRecentTools')}</p>
+              <p className="text-black">{t('noRecentTools', { defaultValue: 'No recently used tools' })}</p>
             )}
           </div>
         </div>

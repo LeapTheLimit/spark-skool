@@ -595,7 +595,7 @@ export const translations: Translations = {
     month: 'Month',
     year: 'Year',
     addEvent: 'Add Event',
-    scheduleSettings: 'Schedule Settings',
+    scheduleSettings: 'Settings',
 
     addYourFirstClass: 'Add Your First Class',
     time: 'Time',
@@ -688,7 +688,7 @@ export const translations: Translations = {
 
     DataVision: 'DataVision',
     dataVisionDescription: 'Performance Analytics',
-    analyticsDescription: 'Visualize classroom performance data with actionable teaching insights',
+    analyticsDescription: 'Visualize student performance data with actionable insights',
 
     LessonArchitect: 'LessonArchitect',
     lessonArchitectDescription: 'Curriculum Planning',
@@ -698,6 +698,28 @@ export const translations: Translations = {
     rubricSmithDescription: 'Assessment Criteria Builder',
     rubricDescription: 'Create detailed grading rubrics for assignments and projects',
 
+    // Additional schedule translations
+  
+    tryAdjustingYourSearch: 'Try adjusting your search or filter criteria',
+    noToolsFound: 'No tools found',
+    planning: 'Planning',
+    assessment: 'Assessment',
+    feedback: 'Feedback',
+    activities: 'Activities',
+    resources: 'Resources',
+    searchTools: 'Search tools...',
+  
+    failedToLoadEvents: 'Failed to load events',
+  
+    // Tools page translations
+  
+    // Tool statuses
+
+    
+
+    // Tool actions
+ 
+    workRestored: 'Previous work restored successfully',
   },
   ar: {
     // Dashboard & Common
@@ -1122,242 +1144,261 @@ export const translations: Translations = {
     back: 'مجددًا',
     signInToYourAICopilot: 'تسجيل الدخول إلى مساعدك الذكي',
     noCreditCardRequired: 'لا حاجة لبطاقة ائتمان',
-    dontHaveAccount: "ليس لديك حساب؟",
-    bySigningInYouAgree: 'بتسجيل الدخول، فإنك توافق على',
-    and: 'و',
-    invalidToken: 'رمز غير صالح',
-    invalidTokenDescription: 'رمز إعادة تعيين كلمة المرور غير صالح أو انتهت صلاحيته.',
-    requestNewResetLink: 'طلب رابط إعادة تعيين جديد',
-    failedToResetPassword: 'فشل في إعادة تعيين كلمة المرور',
-    passwordResetSuccessText: 'تم إعادة تعيين كلمة المرور الخاصة بك بنجاح.',
-    resetPassword: 'إعادة تعيين كلمة المرور',
+    dontHaveAccount: "Don't have an account?",
+    bySigningInYouAgree: 'By signing in, you agree to the',
+    and: 'and',
+    invalidToken: 'Invalid Token',
+    invalidTokenDescription: 'The password reset token is invalid or has expired.',
+    requestNewResetLink: 'Request a new reset link',
 
-    orSignIn: 'أو لديك حساب بالفعل؟',
+    orSignIn: 'Or already have an account?',
 
-    signUp: 'التسجيل',
+    signUp: 'Sign up',
 
-    byRegistering: 'بالتسجيل، فإنك توافق على',
+    byRegistering: 'By registering, you agree to our',
 
- 
-    iAmA: 'أنا',
-    schoolVerification: 'التحقق من المدرسة',
-    studentVerificationDescription: 'أدخل رمز مدرستك للتحقق من تسجيلك',
-    enterSchoolCode: 'أدخل رمز المدرسة',
-    verify: 'تحقق',
-    verified: 'تم التحقق',
-    schoolName: 'اسم المدرسة',
-    subjectTaught: 'المادة التي تُدرس',
-    creatingAccount: 'جاري إنشاء الحساب...',
-    alreadyMember: 'هل لديك حساب بالفعل؟',
-    classLevel: 'مستوى الصف',
-    yourUltimateClassroomAICopilot: 'مساعدك المثالي بالذكاء الاصطناعي في الفصل الدراسي',
-    yourClassroomAICopilot: 'مساعدك بالذكاء الاصطناعي في الفصل الدراسي',
-    student: 'طالب',
-
-    createEngagingPresentations: 'إنشاء عروض تقديمية جذابة ووسائل بصرية في ثوانٍ',
-
+    iAmA: 'I am a',
+    schoolVerification: 'School Verification',
+    studentVerificationDescription: 'Enter your school code to verify your enrollment',
+    enterSchoolCode: 'Enter school code',
+    verify: 'Verify',
+    verified: 'Verified',
+    schoolName: 'School name',
+    subjectTaught: 'Subject taught',
+    creatingAccount: 'Creating account...',
+    alreadyMember: 'Already a member?',
+    classLevel: 'Class level',
+    yourUltimateClassroomAICopilot: 'Your ultimate classroom AI copilot',
+    yourClassroomAICopilot: 'Your classroom AI copilot',
+    student: 'Student',
+    createEngagingPresentations: 'Create engaging presentations and visual aids in seconds',
+  
     
-  
-    college: 'الكلية',
+    // Class levels
+    college: 'College',
     
-    verifying: 'جارٍ التحقق...',
+    verifying: 'Verifying...',
 
-    signingIn: 'جاري تسجيل الدخول...',
+    signingIn: 'Signing in...',
 
-    // Add Arabic translations
-    comingUp: 'القادم',
+    // Add these translations to the English section
+    comingUp: 'Coming Up',
 
-    completeYourSetup: 'أكمل الإعداد الخاص بك',
-    continueSetup: 'متابعة الإعداد',
+    completeYourSetup: 'Complete your setup',
+    continueSetup: 'Continue Setup',
 
-    noUpcomingEvents: 'لا توجد أحداث قادمة اليوم',
-    viewSchedule: 'عرض الجدول',
+    noUpcomingEvents: 'No upcoming events today',
+    viewSchedule: 'View Schedule',
+
+    chatWithSpark: 'Chat with Spark',
+    getTeachingAssistance: 'Get teaching assistance from your AI assistant',
+
+    manageYourClassRoster: 'Manage your class roster',
  
-    chatWithSpark: 'الدردشة مع سبارك',
-    getTeachingAssistance: 'الحصول على مساعدة تعليمية من مساعدك الذكي',
+    generateQuizzesAndAssessments: 'Generate quizzes and assessments',
   
-    manageYourClassRoster: 'إدارة قائمة الفصل الخاصة بك',
-  
-    generateQuizzesAndAssessments: 'إنشاء اختبارات وتقييمات',
-
-    createLessonPlansWithAI: 'إنشاء خطط دروس بمساعدة الذكاء الاصطناعي',
-
-    schedule: 'الجدول الزمني',
-    notes: 'الملاحظات',
+    createLessonPlansWithAI: 'Create lesson plans with AI assistance',
  
-    helpAndSupport: 'المساعدة والدعم',
-    superpowers: 'قدرات خارقة',
+    schedule: 'Schedule',
+    notes: 'Notes',
 
-    backToDashboard: 'العودة إلى لوحة التحكم',
-    profileUpdatedSuccessfully: 'تم تحديث الملف الشخصي بنجاح',
-    failedToSaveProfile: 'فشل في حفظ الملف الشخصي',
-    failedToSaveSettings: 'فشل في حفظ الإعدادات',
-    selectColorScheme: 'اختر لون التمييز الخاص بك',
-    emailNotifications: 'إشعارات البريد الإلكتروني',
-    pushNotifications: 'الإشعارات المنبثقة',
-    smsNotifications: 'إشعارات الرسائل القصيرة',
-    languageChanged: 'تم تغيير اللغة بنجاح',
+    helpAndSupport: 'Help & Support',
+    superpowers: 'Superpowers',
+
+    backToDashboard: 'Back to Dashboard',
+    profileUpdatedSuccessfully: 'Profile updated successfully',
+    failedToSaveProfile: 'Failed to save profile',
+    failedToSaveSettings: 'Failed to save settings',
+    selectColorScheme: 'Choose your accent color',
+    emailNotifications: 'Email Notifications',
+    pushNotifications: 'Push Notifications',
+    smsNotifications: 'SMS Notifications',
+    languageChanged: 'Language changed successfully',
 
     // Time-based greetings
-    morningGreeting: 'صباح الخير',
-    afternoonGreeting: 'مساء الخير',
-    eveningGreeting: 'مساء الخير',
+    morningGreeting: 'Good morning',
+    afternoonGreeting: 'Good afternoon',
+    eveningGreeting: 'Good evening',
     
     // Dashboard sections
 
-    // Teacher dashboard actions
- 
-    createLessonDesc: 'إنشاء خطط دروس بمساعدة الذكاء الاصطناعي',
-    createQuiz: 'إنشاء اختبار',
-    createQuizDesc: 'إنشاء اختبارات وتقييمات',
+    
+  
+    createLessonDesc: 'Create lesson plans with AI assistance',
+    createQuiz: 'Create quiz',
+    createQuizDesc: 'Generate quizzes and assessments',
 
-    addStudentsDesc: 'إدارة قائمة الفصل الخاص بك',
+    addStudentsDesc: 'Manage your class roster',
     
     // Subject options
-    subjectsHeader: 'المواد الدراسية',
-    addSubject: 'إضافة مادة',
-  
+    subjectsHeader: 'Subjects',
+    addSubject: 'Add Subject',
+   
     
     // School info
-    schoolLabel: 'المدرسة',
+    schoolLabel: 'School',
     
     // Class levels
-    classLevelsHeader: 'مستويات الصف',
+    classLevelsHeader: 'Class Levels',
 
     // Onboarding
-    completeProfile: 'إكمال الملف الشخصي',
-    addProfileDetails: 'أضف اسمك ومدرستك ومعلومات الاتصال الخاصة بك',
-    addSubjects: 'إضافة المواد التدريسية',
-    selectTeachingSubjects: 'حدد المواد التي تدرسها',
-    setupSchedule: 'إعداد الجدول',
-    addYourClassSchedule: 'أضف جدول التدريس الخاص بك',
- 
-    setup: 'إعداد',
+    completeProfile: 'Complete Profile',
+    addProfileDetails: 'Add your name, school, and contact info',
+    addSubjects: 'Add Teaching Subjects',
+    selectTeachingSubjects: 'Select the subjects you teach',
+    setupSchedule: 'Setup Schedule',
+    addYourClassSchedule: 'Add your teaching schedule',
+   
+    setup: 'Setup',
+    
+    // Subjects selection (from the second image)
+    
+    // Add to English translations
+    noProfileToSave: 'No profile to save',
+    pleaseCompleteRequiredFields: 'Please complete all required fields',
+    
+    // Add in the English translations section
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+
+    // Add these translations to the English section
+    // Schedule page translations
+
+    day: 'Day',
+    week: 'Week',
+    month: 'Month',
+    year: 'Year',
+    addEvent: 'Add Event',
+    scheduleSettings: 'Settings',
+
+    addYourFirstClass: 'Add Your First Class',
+    time: 'Time',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    eventType: 'Event Type',
+    room: 'Room',
+    color: 'Color',
+
+    recurring: 'Recurring',
+    recurrencePattern: 'Recurrence Pattern',
+    numberOfOccurrences: 'Number of occurrences',
+    until: 'Until',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    workingDays: 'Working Days',
+    workingHours: 'Working Hours',
+    class: 'Class',
+    meeting: 'Meeting',
+    break: 'Break',
+    officeHours: 'Office Hours',
+    other: 'Other',
   
-    // Add to Arabic translations
-    noProfileToSave: 'لا يوجد ملف شخصي للحفظ',
-    pleaseCompleteRequiredFields: 'الرجاء إكمال جميع الحقول المطلوبة',
+    update: 'Update',
  
-    // Add in the Arabic translations section
-    monday: 'الاثنين',
-    tuesday: 'الثلاثاء',
-    wednesday: 'الأربعاء',
-    thursday: 'الخميس',
-    friday: 'الجمعة',
-    saturday: 'السبت',
-    sunday: 'الأحد',
- 
-    // Add these translations to the Arabic section
-    // Schedule page translations in Arabic
+    deleteConfirmation: 'Are you sure you want to delete this class?',
+    yourSchedule: 'Your Schedule',
+    allEvents: 'All',
+    googleCalendarIntegrationTitle: 'Google Calendar Integration Coming Soon',
+    googleCalendarIntegrationText: 'Soon you\'ll be able to sync your class schedule with Google Calendar and receive reminders!',
+    noClassesScheduled: 'No classes scheduled',
+    actions: 'Actions',
 
-    day: 'يوم',
-    week: 'أسبوع',
-    month: 'شهر',
-    year: 'سنة',
-    addEvent: 'إضافة حدث',
-    scheduleSettings: 'إعدادات الجدول',
+    colorOptions: 'Color Options',
+    blue: 'Blue', 
+    purple: 'Purple',
+    green: 'Green',
+    amber: 'Amber',
+    rose: 'Rose',
+    title: 'Title',
+    description: 'Description',
+    date: 'Date',
+    eventDetails: 'Event Details',
+    repeat: 'Repeat',
+    numberOfStudents: 'Number of Students',
 
-    addYourFirstClass: 'أضف فصلك الأول',
-    time: 'الوقت',
-    startTime: 'وقت البدء',
-    endTime: 'وقت الانتهاء',
-    eventType: 'نوع الحدث',
-    room: 'الغرفة',
-    color: 'اللون',
-  
-    recurring: 'متكرر',
-    recurrencePattern: 'نمط التكرار',
-    numberOfOccurrences: 'عدد المرات',
-    until: 'حتى',
-    daily: 'يوميًا',
-    weekly: 'أسبوعيًا',
-    monthly: 'شهريًا',
-    workingDays: 'أيام العمل',
-    workingHours: 'ساعات العمل',
-    class: 'فصل',
-    meeting: 'اجتماع',
-    break: 'استراحة',
-    officeHours: 'ساعات العمل',
-    other: 'أخرى',
+    edited: 'Edited',
+    weekOf: 'Week of',
 
-    update: 'تحديث',
-  
-    deleteConfirmation: 'هل أنت متأكد أنك تريد حذف هذا الفصل؟',
-    yourSchedule: 'جدولك الزمني',
-    allEvents: 'الكل',
-    googleCalendarIntegrationTitle: 'تكامل تقويم Google قادم قريبًا',
-    googleCalendarIntegrationText: 'قريبًا ستتمكن من مزامنة جدول حصصك مع تقويم Google وتلقي تذكيرات!',
-    noClassesScheduled: 'لا توجد فصول مجدولة',
-    actions: 'إجراءات',
- 
-    colorOptions: 'خيارات الألوان',
-    blue: 'أزرق', 
-    purple: 'بنفسجي',
-    green: 'أخضر',
-    amber: 'كهرماني',
-    rose: 'وردي',
-    title: 'العنوان',
-    description: 'الوصف',
-    date: 'التاريخ',
-    eventDetails: 'تفاصيل الحدث',
-    repeat: 'تكرار',
-    numberOfStudents: 'عدد الطلاب',
- 
-    edited: 'تم التحرير',
-    weekOf: 'أسبوع',
+    loading: 'Loading...',
 
-    loading: 'جاري التحميل...',
+    continueWork: 'Continue',
+    noRecentTools: 'No recently used tools',
 
-    continueWork: 'متابعة',
-    noRecentTools: 'لا توجد أدوات مستخدمة مؤخرًا',
+    superpowersDescription: 'Spark superpowers tools to enhance your teaching and save hours of work',
 
-    superpowersDescription: 'أدوات سبارك لتعزيز التدريس وتوفير ساعات من العمل',
+    comingSoon: 'COMING SOON',
 
-    comingSoon: 'قريبًا',
+    all: 'All',
+    pinned: 'Pinned',
+    archived: 'Archived',
+    addNote: 'Add Note',
 
-    all: 'الكل',
-    pinned: 'مثبت',
-    archived: 'مؤرشف',
-    addNote: 'إضافة ملاحظة',
-
-    // Add Arabic translations
+    // Add tool name and description translations to the English section
     // Tool Names and Descriptions
-    GradeWizard: 'معالج التقييم',
-    gradeWizardDescription: 'تقييم الاختبارات بتقنية الذكاء الاصطناعي',
-    examGradingDescription: 'قيّم الاختبارات بسرعة فائقة باستخدام الذكاء الاصطناعي والتحليلات المفصلة',
+    GradeWizard: 'GradeWizard',
+    gradeWizardDescription: 'AI-Powered Exam Grading',
+    examGradingDescription: 'Grade exams at superhuman speed with AI assistance and detailed analytics',
 
-    ExamCrafter: 'صانع الاختبارات',
-    examCrafterDescription: 'إنشاء اختبارات احترافية',
-    examCreationDescription: 'قم بإنشاء اختبارات مثالية بمساعدة الذكاء الاصطناعي وقوالب قابلة للتخصيص',
+    ExamCrafter: 'ExamCrafter',
+    examCrafterDescription: 'Professional Exam Creation',
+    examCreationDescription: 'Craft perfect exams with AI assistance and customizable templates',
 
-    GameMaster: 'صانع الألعاب',
-    gameMasterDescription: 'ألعاب تعليمية تفاعلية',
-    gameDescription: 'إنشاء ألعاب اختبارات جذابة مع توليد أسئلة بالذكاء الاصطناعي وتنسيقات تفاعلية',
+    GameMaster: 'GameMaster',
+    gameMasterDescription: 'Interactive Learning Games',
+    gameDescription: 'Create engaging exam games with AI-powered question generation and interactive formats',
 
-    SlideDesigner: 'مصمم الشرائح',
-    slideDesignerDescription: 'عروض تقديمية ديناميكية',
-    slideDescription: 'إنشاء شرائح جذابة بمساعدة الذكاء الاصطناعي وقوالب جميلة',
+    SlideDesigner: 'SlideDesigner',
+    slideDesignerDescription: 'Dynamic Presentations',
+    slideDescription: 'Create captivating slides with AI assistance and beautiful templates',
 
-    AssignmentMaker: 'صانع الواجبات',
-    assignmentMakerDescription: 'مهام تعليمية مخصصة',
-    assignmentDescription: 'إنشاء واجبات منزلية مخصصة تتماشى مع أهداف دروسك',
+    AssignmentMaker: 'AssignmentMaker',
+    assignmentMakerDescription: 'Customized Learning Tasks',
+    assignmentDescription: 'Generate customized homework assignments aligned with your lesson objectives',
 
-    FeedbackGenius: 'معالج الملاحظات',
-    feedbackGeniusDescription: 'رؤى شخصية للطلاب',
-    feedbackDescription: 'إنشاء ملاحظات شخصية للطلاب بمساعدة الذكاء الاصطناعي لتوفير الوقت',
+    FeedbackGenius: 'FeedbackGenius',
+    feedbackGeniusDescription: 'Personalized Student Insights',
+    feedbackDescription: 'Create personalized feedback for students with AI assistance to save time',
 
-    DataVision: 'رؤية البيانات',
-    dataVisionDescription: 'تحليلات الأداء',
-    analyticsDescription: 'تصور بيانات أداء الفصل الدراسي مع رؤى تعليمية قابلة للتنفيذ',
+    DataVision: 'DataVision',
+    dataVisionDescription: 'Performance Analytics',
+    analyticsDescription: 'Visualize student performance data with actionable insights',
 
-    LessonArchitect: 'مهندس الدروس',
-    lessonArchitectDescription: 'تخطيط المناهج',
-    lessonDescription: 'تصميم خطط دروس شاملة تتماشى مع معايير المناهج الدراسية',
+    LessonArchitect: 'LessonArchitect',
+    lessonArchitectDescription: 'Curriculum Planning',
+    lessonDescription: 'Design comprehensive lesson plans aligned with your curriculum standards',
 
-    RubricSmith: 'صانع المعايير',
-    rubricSmithDescription: 'بناء معايير التقييم',
-    rubricDescription: 'إنشاء معايير تقييم مفصلة للواجبات والمشاريع',
+    RubricSmith: 'RubricSmith',
+    rubricSmithDescription: 'Assessment Criteria Builder',
+    rubricDescription: 'Create detailed grading rubrics for assignments and projects',
 
+    // Additional schedule translations
+  
+    tryAdjustingYourSearch: 'Try adjusting your search or filter criteria',
+    noToolsFound: 'No tools found',
+    planning: 'Planning',
+    assessment: 'Assessment',
+    feedback: 'Feedback',
+    activities: 'Activities',
+    resources: 'Resources',
+    searchTools: 'Search tools...',
+  
+    failedToLoadEvents: 'Failed to load events',
+  
+    // Tools page translations
+  
+    // Tool statuses
+
+    
+
+    // Tool actions
+ 
+    workRestored: 'Previous work restored successfully',
   },
   he: {
     // Dashboard & Common
@@ -1465,7 +1506,7 @@ export const translations: Translations = {
     language: 'שפה',
     selectPreferredLanguage: 'בחר את השפה המועדפת',
     english: 'English',
-    arabic: 'العربية',
+    arabic: 'العרبية',
     hebrew: 'עברית',
     notifications: 'התראות',
     manageNotificationPreferences: 'ניהול העדפות התראות',
@@ -1905,6 +1946,19 @@ export const translations: Translations = {
     friday: 'יום שישי',
     saturday: 'יום שבת',
     sunday: 'יום ראשון',
+    weekOf: 'שבוע של',
+    tryAdjustingYourSearch: 'נסה להתאים את קריטריוני החיפוש או הסינון',
+    noToolsFound: 'לא נמצאו כלים',
+    planning: 'תכנון',
+    assessment: 'הערכה',
+    feedback: 'משוב',
+    activities: 'פעילויות',
+    resources: 'משאבים',
+    searchTools: 'חיפוש כלים...',
+
+    comingSoon: 'בקרוב',
+    failedToLoadEvents: 'טעינת האירועים נכשלה',
+
   }
 };
 
