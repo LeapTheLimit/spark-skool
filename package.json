@@ -41,7 +41,8 @@
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.20.6",
     "axios": "^1.6.7",
-    "clsx": "^2.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.18.2",
     "groq-sdk": "^0.3.3",
@@ -70,7 +71,8 @@
     "react-dropzone": "^14.3.5",
     "react-hot-toast": "^2.5.1",
     "react-i18next": "^13.0.0",
-    "tailwind-merge": "^2.2.1",
+    "sonner": "^2.0.1",
+    "tailwind-merge": "^2.6.0",
     "tesseract.js": "^6.0.0"
   },
   "devDependencies": {

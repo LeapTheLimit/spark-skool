@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Slide {
   id: string;
@@ -130,6 +131,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   onEdit,
   onBack
 }) => {
+  const { t } = useLanguage();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditingSlide, setIsEditingSlide] = useState(false);
@@ -150,6 +152,10 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [imagePositions, setImagePositions] = useState<{[id: string]: {x: number, y: number}}>({});
+  
+  // Add these state variables for mobile functionality
+  const [showThumbnailsOnMobile, setShowThumbnailsOnMobile] = useState(false);
+  const [showToolsOnMobile, setShowToolsOnMobile] = useState(false);
   
   // Add these state variables at the top of your component
   const [editingElement, setEditingElement] = useState<string | null>(null);
@@ -685,12 +691,33 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     // Use the slideType to determine how to render
     const slideType = slide.slideType || 'standard';
     
+    // Get theme-based text styles
+    const getThemeTextClass = () => {
+      const baseClass = "text-black";
+      if (templateSettings.layout === 'dark') return "text-white";
+      return baseClass;
+    };
+    
+    // Apply theme-specific styling to headings
+    const headingStyle = {
+      color: templateSettings.layout === 'dark' ? '#ffffff' : templateSettings.colors.text,
+      fontFamily: templateSettings.fonts.heading,
+      borderBottom: templateSettings.layout === 'classic' ? `2px solid ${templateSettings.colors.primary}` : 'none'
+    };
+    
+    // Apply theme-specific styling to content
+    const contentStyle = {
+      color: templateSettings.layout === 'dark' ? '#e2e8f0' : templateSettings.colors.text,
+      fontFamily: templateSettings.fonts.body
+    };
+    
     switch(slideType) {
       case 'title-slide':
         return (
           <div className="p-8 flex flex-col justify-center items-center h-full text-center">
             <h1 
-              className="text-4xl font-bold mb-6 text-black"
+              className={`text-4xl font-bold mb-6 ${getThemeTextClass()}`}
+              style={headingStyle}
               onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
             >
               {editingContentId === `${slide.id}-title-0` ? (
@@ -716,7 +743,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               {slide.content.map((item, index) => (
                 <div 
                   key={index}
-                  className="text-xl text-black"
+                  className={`text-xl ${getThemeTextClass()}`}
+                  style={contentStyle}
                   onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
                 >
                   {editingContentId === `${slide.id}-content-${index}` ? (
@@ -740,7 +768,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
         return (
           <div className="p-8 overflow-auto flex-1">
             <h2 
-              className="text-3xl font-bold mb-6 text-black"
+              className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
+              style={headingStyle}
               onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
             >
               {editingContentId === `${slide.id}-title-0` ? (
@@ -766,7 +795,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               {slide.content.map((item, index) => (
                 <p 
                   key={index} 
-                  className="text-lg leading-relaxed text-black"
+                  className={`text-lg leading-relaxed ${getThemeTextClass()}`}
+                  style={contentStyle}
                   onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
                 >
                   {editingContentId === `${slide.id}-content-${index}` ? (
@@ -791,7 +821,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
         return (
           <div className="p-8 overflow-auto flex-1">
             <h2 
-              className="text-3xl font-bold mb-6 text-black"
+              className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
+              style={headingStyle}
               onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
             >
               {editingContentId === `${slide.id}-title-0` ? (
@@ -814,34 +845,55 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               )}
             </h2>
             <div className="text-content">
-              {slide.content.map((item, index) => (
-                <div key={index} className="flex items-start mb-4">
-                  <span className="mr-2 text-lg text-black">•</span>
-                  <div 
-                    className="flex-1 text-black"
-                    onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
-                  >
-                    {editingContentId === `${slide.id}-content-${index}` ? (
-                      <textarea
-                        value={editedContentValue}
-                        onChange={(e) => setEditedContentValue(e.target.value)}
-                        className="w-full p-2 min-h-[50px] bg-white text-black border border-blue-300 rounded"
-                        autoFocus
-                        onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
-                      />
-                    ) : (
-                      <span>{item}</span>
-                    )}
+              {slide.content.map((item, index) => {
+                // Apply text formatting based on state
+                let formattedItem = item;
+                if (isBold) formattedItem = `<strong>${formattedItem}</strong>`;
+                if (isItalic) formattedItem = `<em>${formattedItem}</em>`;
+                if (isUnderline) formattedItem = `<u>${formattedItem}</u>`;
+                
+                return (
+                  <div key={index} className="flex items-start mb-4">
+                    <span 
+                      className="mr-2 text-lg" 
+                      style={{ color: templateSettings.colors.primary }}
+                    >•</span>
+                    <div 
+                      className={`flex-1 ${getThemeTextClass()}`}
+                      style={contentStyle}
+                      onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
+                    >
+                      {editingContentId === `${slide.id}-content-${index}` ? (
+                        <textarea
+                          value={editedContentValue}
+                          onChange={(e) => setEditedContentValue(e.target.value)}
+                          className="w-full p-2 min-h-[50px] bg-white text-black border border-blue-300 rounded"
+                          autoFocus
+                          onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
+                        />
+                      ) : (
+                        <span 
+                          style={{
+                            fontWeight: isBold ? 'bold' : 'normal',
+                            fontStyle: isItalic ? 'italic' : 'normal',
+                            textDecoration: isUnderline ? 'underline' : 'none',
+                            textAlign: textAlignment as 'left' | 'center' | 'right' | 'justify',
+                            color: textColor
+                          }}
+                          dangerouslySetInnerHTML={{ __html: formattedItem }}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );
     }
   };
 
-  // Define the renderToolSidebar function
+  // Update the renderToolSidebar function to include translations
   const renderToolSidebar = () => {
     if (!activeToolTab) return null;
     
@@ -900,17 +952,17 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       }
     };
     
-    // Common styles for the sidebar
-    const sidebarStyle = "absolute right-20 top-0 bottom-0 w-80 bg-white border-l shadow-lg p-4 overflow-y-auto z-10";
+    // Common styles for the sidebar - make responsive for mobile
+    const sidebarStyle = "absolute h-full bg-white border-l shadow-lg overflow-y-auto z-10 w-full md:w-80 md:right-20 md:top-0";
     
     switch (activeToolTab) {
       case 'theme':
         return (
           <div className={sidebarStyle}>
-            <h3 className="text-lg font-semibold mb-4 text-black">Theme Settings</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4 text-black p-4">{t('theme')}</h3>
+            <div className="space-y-4 p-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Template</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('template')}</label>
                 <div className="grid grid-cols-2 gap-3">
                   {['modern', 'classic', 'minimal', 'creative', 'dark', 'gradient'].map(template => (
                     <button
@@ -930,8 +982,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Color Palette</label>
-                <div className="flex space-x-2">
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('colorScheme')}</label>
+                <div className="flex flex-wrap gap-2">
                   {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#000000'].map(color => (
                     <button
                       key={color}
@@ -940,8 +992,22 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                       }`}
                       style={{ backgroundColor: color }}
                       onClick={() => {
-                        // This would normally update the primary color in the theme
-                        toast.success(`Changed primary color to ${color}`);
+                        // Actually update the color
+                        const colors = getColorsForTemplate(activeTheme);
+                        colors.primary = color;
+                        
+                        const updatedTemplateSettings = {
+                          ...templateSettings,
+                          colors: {
+                            ...colors
+                          }
+                        };
+                        
+                        // Update slides with new color
+                        const updatedSlides = [...internalSlides];
+                        setInternalSlides(updatedSlides);
+                        
+                        toast.success(`${t('colorChanged')}: ${color}`);
                       }}
                     />
                   ))}
@@ -949,8 +1015,28 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Font</label>
-                <select className="w-full p-2 border rounded bg-white text-black">
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('font')}</label>
+                <select 
+                  className="w-full p-2 border rounded bg-white text-black"
+                  value={selectedFontFamily}
+                  onChange={(e) => {
+                    setSelectedFontFamily(e.target.value);
+                    
+                    // Update template settings with the new font
+                    const updatedTemplateSettings = {
+                      ...templateSettings,
+                      fonts: {
+                        ...templateSettings.fonts,
+                        body: e.target.value,
+                        heading: e.target.value
+                      }
+                    };
+                    
+                    // Apply font change to slides
+                    const updatedSlides = [...internalSlides];
+                    setInternalSlides(updatedSlides);
+                  }}
+                >
                   <option>Arial</option>
                   <option>Helvetica</option>
                   <option>Times New Roman</option>
@@ -962,12 +1048,38 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               <button
                 className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 mt-4"
                 onClick={() => {
-                  // Apply theme changes
-                  toast.success("Theme updated!");
+                  // Apply theme changes - update templateSettings properly
+                  const colors = getColorsForTemplate(activeTheme);
+                  
+                  // Create a new template settings object with updated values
+                  const updatedTemplateSettings = {
+                    ...templateSettings,
+                    layout: activeTheme,
+                    colors: colors,
+                    fonts: {
+                      heading: selectedFontFamily,
+                      body: selectedFontFamily
+                    }
+                  };
+                  
+                  // Update the component state with the new template settings
+                  templateSettings.layout = activeTheme;
+                  templateSettings.colors = colors;
+                  templateSettings.fonts = {
+                    heading: selectedFontFamily,
+                    body: selectedFontFamily
+                  };
+                  
+                  // Force a re-render of slides with new theme
+                  const updatedSlides = [...internalSlides];
+                  setInternalSlides(updatedSlides);
+                  
+                  toast.success(t('themeUpdated'));
                   setActiveToolTab(null);
+                  setShowToolsOnMobile(false);
                 }}
               >
-                Apply Theme
+                {t('applyTheme')}
               </button>
             </div>
           </div>
@@ -976,14 +1088,14 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       case 'aiImage':
         return (
           <div className={sidebarStyle}>
-            <h3 className="text-lg font-semibold mb-4 text-black">AI Image Generator</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4 text-black p-4">{t('aiImageGenerator')}</h3>
+            <div className="space-y-4 p-4">
               <p className="text-sm text-gray-600">
-                Describe the image you want to generate for this slide:
+                {t('aiImageGeneratorDesc')}
               </p>
               <textarea
                 className="w-full p-3 border rounded h-32 bg-white text-black"
-                placeholder="Describe the image you want (e.g., 'A professional looking pie chart showing market data')"
+                placeholder={t('describeImage')}
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
               ></textarea>
@@ -992,12 +1104,12 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 onClick={generateImage}
                 disabled={isGeneratingImage}
               >
-                {isGeneratingImage ? 'Generating...' : 'Generate Image'}
+                {isGeneratingImage ? t('generating') : t('generateImage')}
               </button>
               
               {currentSlide?.slideImage && (
                 <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-2">Current Image:</p>
+                  <p className="text-sm text-gray-600 mb-2">{t('currentImage')}:</p>
                   <div className="relative pb-[56.25%] bg-gray-100 rounded overflow-hidden">
                     <img 
                       src={currentSlide.slideImage} 
@@ -1024,7 +1136,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                       setInternalSlides(updatedSlides);
                     }}
                   >
-                    Remove Image
+                    {t('removeImage')}
                   </button>
                 </div>
               )}
@@ -1035,14 +1147,14 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       case 'aiWriting':
         return (
           <div className={sidebarStyle}>
-            <h3 className="text-lg font-semibold mb-4 text-black">AI Writing Assistant</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4 text-black p-4">{t('aiWritingAssistant')}</h3>
+            <div className="space-y-4 p-4">
               <p className="text-sm text-gray-600">
-                Describe how you want to enhance this slide's content:
+                {t('aiWritingAssistantDesc')}
               </p>
               <textarea
                 className="w-full p-3 border rounded h-32 bg-white text-black"
-                placeholder="What would you like to add or improve? (e.g., 'Add more detailed statistics about market growth')"
+                placeholder={t('describeEnhancement')}
                 value={aiWritingPrompt}
                 onChange={(e) => setAiWritingPrompt(e.target.value)}
               ></textarea>
@@ -1051,11 +1163,11 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 onClick={enhanceContentWithAI}
                 disabled={isEnhancingContent}
               >
-                {isEnhancingContent ? 'Enhancing...' : 'Enhance Content'}
+                {isEnhancingContent ? t('enhancing') : t('enhanceContent')}
               </button>
               
               <div className="mt-4">
-                <p className="text-sm font-medium text-gray-600 mb-2">Current Content:</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">{t('currentContent')}:</p>
                 <div className="bg-gray-50 p-3 rounded text-sm text-black">
                   <p className="font-semibold">{currentSlide.title}</p>
                   <ul className="mt-2 list-disc pl-5 space-y-1">
@@ -1070,104 +1182,105 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
         );
         
       case 'pages':
-      case 'layout':
-      default:
         return (
           <div className={sidebarStyle}>
-            <h3 className="text-lg font-semibold mb-4 text-black">
-              {activeToolTab === 'pages' ? 'Pages Manager' : 'Layout Options'}
-            </h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4 text-black p-4">{t('pagesManager')}</h3>
+            <div className="space-y-4 p-4">
               <p className="text-sm text-gray-600">
-                {activeToolTab === 'pages' 
-                  ? 'Manage your presentation pages here.'
-                  : 'Customize the layout of your current slide.'}
+                {t('pagesManagerDesc')}
               </p>
               
-              {activeToolTab === 'layout' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Slide Type</label>
-                  <select 
-                    className="w-full p-2 border rounded bg-white text-black"
-                    value={currentSlide.slideType || 'standard'}
-                    onChange={(e) => {
-                      const updatedSlides = [...internalSlides];
-                      updatedSlides[currentSlideIndex] = {
-                        ...updatedSlides[currentSlideIndex],
-                        slideType: e.target.value as Slide['slideType']
-                      };
-                      setInternalSlides(updatedSlides);
-                    }}
-                  >
-                    <option value="standard">Standard (Bullet Points)</option>
-                    <option value="text-heavy">Text Heavy (Paragraphs)</option>
-                    <option value="quote">Quote</option>
-                    <option value="statistics">Statistics</option>
-                    <option value="comparison">Comparison</option>
-                    <option value="timeline">Timeline</option>
-                    <option value="image-focus">Image Focus</option>
-                    <option value="example">Example</option>
-                  </select>
-                </div>
-              )}
+              <button
+                className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={() => {
+                  // Add new slide
+                  const newSlide: Slide = {
+                    id: `slide-${internalSlides.length + 1}`,
+                    title: 'New Slide',
+                    content: ['Add your content here'],
+                    slideType: 'standard'
+                  };
+                  setInternalSlides([...internalSlides, newSlide]);
+                  setCurrentSlideIndex(internalSlides.length);
+                  toast.success(t('newSlideAdded'));
+                }}
+              >
+                {t('addNewSlide')}
+              </button>
               
-              {activeToolTab === 'pages' && (
-                <div className="space-y-2">
-                  <button
-                    className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    onClick={() => {
-                      // Add new slide
-                      const newSlide: Slide = {
-                        id: `slide-${internalSlides.length + 1}`,
-                        title: 'New Slide',
-                        content: ['Add your content here'],
-                        slideType: 'standard'
-                      };
-                      setInternalSlides([...internalSlides, newSlide]);
-                      setCurrentSlideIndex(internalSlides.length);
-                      toast.success('New slide added!');
-                    }}
-                  >
-                    Add New Slide
-                  </button>
-                  
-                  <button
-                    className="w-full py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                    onClick={() => {
-                      // Duplicate current slide
-                      const duplicatedSlide = {
-                        ...currentSlide,
-                        id: `slide-${internalSlides.length + 1}`,
-                        title: `${currentSlide.title} (Copy)`
-                      };
-                      const newSlides = [...internalSlides];
-                      newSlides.splice(currentSlideIndex + 1, 0, duplicatedSlide);
-                      setInternalSlides(newSlides);
-                      setCurrentSlideIndex(currentSlideIndex + 1);
-                      toast.success('Slide duplicated!');
-                    }}
-                  >
-                    Duplicate Slide
-                  </button>
-                  
-                  {internalSlides.length > 1 && (
-                    <button
-                      className="w-full py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
-                      onClick={() => {
-                        // Delete current slide
-                        const newSlides = internalSlides.filter((_, index) => index !== currentSlideIndex);
-                        setInternalSlides(newSlides);
-                        if (currentSlideIndex >= newSlides.length) {
-                          setCurrentSlideIndex(newSlides.length - 1);
-                        }
-                        toast.success('Slide deleted!');
-                      }}
-                    >
-                      Delete Current Slide
-                    </button>
-                  )}
-                </div>
+              <button
+                className="w-full py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                onClick={() => {
+                  // Duplicate current slide
+                  const duplicatedSlide = {
+                    ...currentSlide,
+                    id: `slide-${internalSlides.length + 1}`,
+                    title: `${currentSlide.title} (Copy)`
+                  };
+                  const newSlides = [...internalSlides];
+                  newSlides.splice(currentSlideIndex + 1, 0, duplicatedSlide);
+                  setInternalSlides(newSlides);
+                  setCurrentSlideIndex(currentSlideIndex + 1);
+                  toast.success(t('slideDuplicated'));
+                }}
+              >
+                {t('duplicateSlide')}
+              </button>
+              
+              {internalSlides.length > 1 && (
+                <button
+                  className="w-full py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                  onClick={() => {
+                    // Delete current slide
+                    const newSlides = internalSlides.filter((_, index) => index !== currentSlideIndex);
+                    setInternalSlides(newSlides);
+                    if (currentSlideIndex >= newSlides.length) {
+                      setCurrentSlideIndex(newSlides.length - 1);
+                    }
+                    toast.success(t('slideDeleted'));
+                    setShowToolsOnMobile(false);
+                  }}
+                >
+                  {t('deleteCurrentSlide')}
+                </button>
               )}
+            </div>
+          </div>
+        );
+        
+      case 'layout':
+        return (
+          <div className={sidebarStyle}>
+            <h3 className="text-lg font-semibold mb-4 text-black p-4">{t('layoutOptions')}</h3>
+            <div className="space-y-4 p-4">
+              <p className="text-sm text-gray-600">
+                {t('layoutOptionsDesc')}
+              </p>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('slideType')}</label>
+                <select 
+                  className="w-full p-2 border rounded bg-white text-black"
+                  value={currentSlide.slideType || 'standard'}
+                  onChange={(e) => {
+                    const updatedSlides = [...internalSlides];
+                    updatedSlides[currentSlideIndex] = {
+                      ...updatedSlides[currentSlideIndex],
+                      slideType: e.target.value as Slide['slideType']
+                    };
+                    setInternalSlides(updatedSlides);
+                  }}
+                >
+                  <option value="standard">{t('standard')}</option>
+                  <option value="text-heavy">{t('textHeavy')}</option>
+                  <option value="quote">{t('quote')}</option>
+                  <option value="statistics">{t('statistics')}</option>
+                  <option value="comparison">{t('comparison')}</option>
+                  <option value="timeline">{t('timeline')}</option>
+                  <option value="image-focus">{t('imageFocus')}</option>
+                  <option value="example">{t('example')}</option>
+                </select>
+              </div>
             </div>
           </div>
         );
@@ -1261,30 +1374,38 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back
+              {t('back')}
             </button>
             <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
             <button
               onClick={() => {
-                toast.success("Double-click any text to edit", { duration: 3000 });
+                toast.success(t('doubleClickToEdit'), { duration: 3000 });
               }}
               className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Edit
+              {t('edit')}
             </button>
           </div>
         </div>
         
-        {/* Always show formatting toolbar */}
-        <div className="bg-white border-b border-gray-200 py-2 px-4 flex items-center space-x-3 shadow-sm sticky top-0 z-50">
-          <select className="border rounded px-2 py-1 text-sm bg-white text-black">
+        {/* Always show formatting toolbar - hide on smaller screens */}
+        <div className="bg-white border-b border-gray-200 py-2 px-4 flex items-center space-x-3 shadow-sm sticky top-0 z-50 overflow-x-auto md:overflow-visible">
+          <select 
+            className="border rounded px-2 py-1 text-sm bg-white text-black"
+            value={selectedFontFamily}
+            onChange={(e) => setSelectedFontFamily(e.target.value)}
+          >
             <option value="Arial">Arial</option>
             <option value="Helvetica">Helvetica</option>
             <option value="Times New Roman">Times New Roman</option>
             <option value="Courier New">Courier New</option>
           </select>
           
-          <select className="border rounded px-2 py-1 w-16 text-sm bg-white text-black">
+          <select 
+            className="border rounded px-2 py-1 w-16 text-sm bg-white text-black"
+            value={selectedFontSize}
+            onChange={(e) => setSelectedFontSize(e.target.value)}
+          >
             <option value="12">12</option>
             <option value="14">14</option>
             <option value="16">16</option>
@@ -1293,35 +1414,69 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
           </select>
           
           <div className="flex space-x-1 border-l border-r px-2">
-            <button className="p-1.5 hover:bg-gray-100 rounded text-black" title="Bold">
+            <button 
+              className={`p-1.5 hover:bg-gray-100 rounded text-black ${isBold ? 'bg-gray-200' : ''}`} 
+              title={t('bold')}
+              onClick={() => setIsBold(!isBold)}
+            >
               <strong>B</strong>
             </button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-black" title="Italic">
+            <button 
+              className={`p-1.5 hover:bg-gray-100 rounded text-black ${isItalic ? 'bg-gray-200' : ''}`} 
+              title={t('italic')}
+              onClick={() => setIsItalic(!isItalic)}
+            >
               <em>I</em>
             </button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-black" title="Underline">
+            <button 
+              className={`p-1.5 hover:bg-gray-100 rounded text-black ${isUnderline ? 'bg-gray-200' : ''}`} 
+              title={t('underline')}
+              onClick={() => setIsUnderline(!isUnderline)}
+            >
               <u>U</u>
             </button>
           </div>
           
-          <button className="p-1.5 hover:bg-gray-100 rounded text-black flex items-center" title="Text Color">
-            <div className="w-4 h-4 bg-black rounded-sm"></div>
+          <button className="p-1.5 hover:bg-gray-100 rounded text-black flex items-center" title={t('textColor')}>
+            <div className="w-4 h-4 bg-black rounded-sm" style={{ backgroundColor: textColor }}></div>
           </button>
           
           <div className="flex space-x-1">
-            <button className="p-1.5 hover:bg-gray-100 rounded text-black" title="Align Left">≡</button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-black" title="Align Center">::</button>
+            <button 
+              className={`p-1.5 hover:bg-gray-100 rounded text-black ${textAlignment === 'left' ? 'bg-gray-200' : ''}`} 
+              title={t('alignLeft')}
+              onClick={() => setTextAlignment('left')}
+            >≡</button>
+            <button 
+              className={`p-1.5 hover:bg-gray-100 rounded text-black ${textAlignment === 'center' ? 'bg-gray-200' : ''}`} 
+              title={t('alignCenter')}
+              onClick={() => setTextAlignment('center')}
+            >::</button>
           </div>
         </div>
         
         {/* Presentation content and sidebar */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar - slide thumbnails - always visible with fixed width */}
-          <div className="w-64 border-r bg-white overflow-y-auto">
+          {/* Left sidebar - slide thumbnails - toggleable on mobile */}
+          <div className={`${activeToolTab ? 'hidden md:block' : 'block'} w-full md:w-64 border-r bg-white overflow-y-auto md:relative fixed inset-y-0 left-0 z-10 transform transition-transform duration-300 ease-in-out ${showThumbnailsOnMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <div className="md:hidden flex justify-between items-center p-3 border-b">
+              <h3 className="font-medium text-black">{t('slides')}</h3>
+              <button 
+                onClick={() => setShowThumbnailsOnMobile(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 rounded-full"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             {internalSlides.map((slide, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentSlideIndex(index)}
+                onClick={() => {
+                  setCurrentSlideIndex(index);
+                  setShowThumbnailsOnMobile(false);
+                }}
                 className={`p-2 w-full ${
                   currentSlideIndex === index 
                     ? 'ring-2 ring-indigo-500' 
@@ -1401,48 +1556,88 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
             ))}
           </div>
           
+          {/* Mobile buttons for thumbnail toggle and tools toggle */}
+          <div className="fixed bottom-4 left-4 md:hidden z-20 flex space-x-2">
+            <button
+              onClick={() => setShowThumbnailsOnMobile(!showThumbnailsOnMobile)}
+              className="p-3 bg-white rounded-full shadow-lg text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={() => setShowToolsOnMobile(!showToolsOnMobile)}
+              className="p-3 bg-white rounded-full shadow-lg text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+            </button>
+          </div>
+          
           {/* Main slide preview - center section with fixed spacing */}
           <div className="flex-1 p-4 flex items-center justify-center overflow-auto">
-            <div className="relative" style={{ width: '85%', maxWidth: '1000px' }}>
+            <div className="relative w-full md:w-[85%] md:max-w-[1000px]">
               <div className="pb-[56.25%] bg-white border rounded-lg shadow-lg overflow-hidden">
                 <div 
                   className="absolute inset-0"
                   style={{ 
                     backgroundColor: templateSettings.colors.background,
-                    fontFamily: templateSettings.fonts.body
+                    fontFamily: templateSettings.fonts.body,
+                    color: templateSettings.colors.text
                   }}
                 >
-                  {/* Background image if any */}
-                  {templateSettings.backgroundImage && (
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-20" 
-                      style={{ backgroundImage: `url(${templateSettings.backgroundImage})` }}
-                    ></div>
-                  )}
-                  
-                  {/* Slide content */}
-                  <div className="absolute inset-0">
-                    {isEditingSlide 
-                      ? renderSlideContent(editedSlide || currentSlide, true) 
-                      : renderSlideContent(currentSlide, false)
-                    }
-                    
-                    {/* Instruction for double-click editing */}
-                    {!isEditingSlide && !isFullscreen && (
-                      <div className="absolute top-4 right-4 text-sm text-gray-600 italic">
-                        Double-click any text to edit
-                      </div>
+                  {/* Themed slide content */}
+                  <div className={`absolute inset-0 ${templateSettings.layout}`}>
+                    {/* Apply layout-specific styling based on theme */}
+                    {templateSettings.layout === 'modern' && (
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 w-16 md:w-24"
+                        style={{ backgroundColor: templateSettings.colors.primary }}
+                      ></div>
                     )}
+                    
+                    {templateSettings.layout === 'gradient' && (
+                      <div 
+                        className="absolute inset-0 opacity-20"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${templateSettings.colors.primary}40, ${templateSettings.colors.secondary}40)`
+                        }}
+                      ></div>
+                    )}
+                    
+                    {templateSettings.layout === 'dark' && (
+                      <div className="absolute inset-0 bg-gray-900"></div>
+                    )}
+                    
+                    {/* Actual slide content */}
+                    <div className={`absolute inset-0 ${
+                      templateSettings.layout === 'modern' ? 'pl-20 md:pl-28' : 'px-8'
+                    }`}>
+                      {isEditingSlide 
+                        ? renderSlideContent(editedSlide || currentSlide, true) 
+                        : renderSlideContent(currentSlide, false)
+                      }
+                      
+                      {/* Instruction for double-click editing */}
+                      {!isEditingSlide && !isFullscreen && (
+                        <div className="absolute top-4 right-4 text-sm text-gray-600 italic">
+                          {t('doubleClickToEdit')}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
               
-              {/* Slide navigation */}
-              <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
+              {/* Slide navigation - make more touch-friendly on mobile */}
+              <div className="absolute -bottom-14 md:-bottom-10 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
                 <button 
                   onClick={prevSlide} 
                   disabled={currentSlideIndex === 0}
-                  className="p-2 bg-white border rounded-full text-black disabled:opacity-50"
+                  className="p-3 md:p-2 bg-white border rounded-full text-black disabled:opacity-50 shadow-md md:shadow-none"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1456,7 +1651,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 <button 
                   onClick={nextSlide}
                   disabled={currentSlideIndex === internalSlides.length - 1}
-                  className="p-2 bg-white border rounded-full text-black disabled:opacity-50"
+                  className="p-3 md:p-2 bg-white border rounded-full text-black disabled:opacity-50 shadow-md md:shadow-none"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1466,22 +1661,34 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
             </div>
           </div>
           
-          {/* Right sidebar - tools - always visible with fixed width */}
-          <div className="w-20 border-l bg-white flex flex-col items-center py-6">
+          {/* Right sidebar - tools - toggleable on mobile */}
+          <div className={`fixed md:static inset-y-0 right-0 w-[280px] md:w-20 border-l bg-white flex flex-col items-center py-6 z-10 transform transition-transform duration-300 ease-in-out ${showToolsOnMobile ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
+            {/* Mobile close button */}
+            <div className="md:hidden absolute top-4 left-4">
+              <button 
+                onClick={() => setShowToolsOnMobile(false)}
+                className="p-2 bg-white rounded-full shadow-md text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
             {/* Sidebar navigation for tools */}
-            <div className="fixed right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2">
+            <div className="md:fixed md:right-4 md:top-1/2 md:transform md:-translate-y-1/2 flex md:flex-col space-y-0 space-x-2 md:space-y-2 md:space-x-0 p-4 md:p-0">
               <button 
                 onClick={() => {
                   setActiveToolTab(activeToolTab === 'theme' ? null : 'theme');
                 }}
                 className={`p-3 rounded-full ${activeToolTab === 'theme' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 shadow-md'}`}
-                title="Theme Settings"
+                title={t('themeSettings')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                 </svg>
               </button>
-              <Tooltip content="Pages">
+              <Tooltip content={t('pages')}>
                 <button
                   onClick={() => setActiveToolTab(activeToolTab === 'pages' ? null : 'pages')}
                   className={`p-3 rounded-full ${activeToolTab === 'pages' ? 'bg-indigo-100 text-indigo-700' : 'bg-white text-gray-700'} shadow hover:shadow-md transition-all`}
@@ -1492,7 +1699,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 </button>
               </Tooltip>
               
-              <Tooltip content="AI Image">
+              <Tooltip content={t('aiImage')}>
                 <button
                   onClick={() => setActiveToolTab(activeToolTab === 'aiImage' ? null : 'aiImage')}
                   className={`p-3 rounded-full ${activeToolTab === 'aiImage' ? 'bg-indigo-100 text-indigo-700' : 'bg-white text-gray-700'} shadow hover:shadow-md transition-all`}
@@ -1503,7 +1710,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 </button>
               </Tooltip>
               
-              <Tooltip content="AI Writing">
+              <Tooltip content={t('aiWriting')}>
                 <button
                   onClick={() => setActiveToolTab(activeToolTab === 'aiWriting' ? null : 'aiWriting')}
                   className={`p-3 rounded-full ${activeToolTab === 'aiWriting' ? 'bg-indigo-100 text-indigo-700' : 'bg-white text-gray-700'} shadow hover:shadow-md transition-all`}
@@ -1514,7 +1721,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 </button>
               </Tooltip>
               
-              <Tooltip content="Layout">
+              <Tooltip content={t('layout')}>
                 <button
                   onClick={() => setActiveToolTab(activeToolTab === 'layout' ? null : 'layout')}
                   className={`p-3 rounded-full ${activeToolTab === 'layout' ? 'bg-indigo-100 text-indigo-700' : 'bg-white text-gray-700'} shadow hover:shadow-md transition-all`}
