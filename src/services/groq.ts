@@ -26,14 +26,19 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, backoff = 3000): 
 
 export interface Question {
   id: number;
-  type: 'multiple_choice' | 'short_answer' | 'true_false' | 'essay';
+  type: 'multiple_choice' | 'short_answer' | 'true_false' | 'essay' | 'matching' | 'advanced';
   question: string;
   answer: string;
+  reasoning?: string;
   explanation?: string;
   options?: string[];
   points: number;
   category?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
+  matchingItems?: { left: string; right: string }[];
+  imageUrl?: string;
+  formula?: string;
+  hasLargeText?: boolean;
 }
 
 interface GenerateExamOptions {
@@ -130,10 +135,21 @@ export async function generateExamFromText(
 }
 
 // Helper functions
-function validateQuestionType(type?: string): Question['type'] {
-  if (!type) return 'short_answer'; // Default type if none provided
-  const validTypes = ['multiple_choice', 'short_answer', 'true_false', 'essay'];
-  return validTypes.includes(type) ? type as Question['type'] : 'short_answer';
+function validateQuestionType(type?: string): "multiple_choice" | "short_answer" | "true_false" | "essay" {
+  if (!type) return "short_answer";
+  
+  // Normalize the input by converting to lowercase and replacing hyphens/spaces with underscores
+  const normalizedType = type.toLowerCase().replace(/[-\s]/g, '_');
+  
+  if (normalizedType === "multiple_choice" || normalizedType === "multiplechoice") {
+    return "multiple_choice";
+  } else if (normalizedType === "true_false" || normalizedType === "truefalse") {
+    return "true_false";
+  } else if (normalizedType === "essay") {
+    return "essay";
+  } else {
+    return "short_answer";
+  }
 }
 
 function validateDifficulty(difficulty?: string): Question['difficulty'] {
@@ -145,11 +161,11 @@ function validateDifficulty(difficulty?: string): Question['difficulty'] {
 export interface GradingResult {
   questionId: number;
   score: number;
+  answer: string;
+  reasoning: string;
   feedback: string;
   isCorrect: boolean;
   confidence: number;
-  partialCredit?: number;
-  matchType?: string;
 }
 
 export const extractQuestionsFromText = async (text: string, context?: string | null): Promise<Question[]> => {
@@ -222,177 +238,117 @@ Return a JSON array of questions with this structure:
   }
 };
 
-export const gradeStudentSubmission = async (answerKey: Question[], studentText: string): Promise<GradingResult[]> => {
+export async function gradeStudentSubmission(questions: Question[], submissionText: string): Promise<GradingResult[]> {
   try {
-    // Strict check for empty or meaningless submissions
-    if (!studentText?.trim() || studentText.trim().length < 10) {
-      return answerKey.map(question => ({
-        questionId: question.id,
-        score: 0,
-        feedback: "No answer provided - received blank or invalid submission",
-        isCorrect: false,
-        confidence: 1,
-        partialCredit: 0,
-        matchType: 'none'
-      }));
-    }
+    const results: GradingResult[] = [];
+    
+    for (const question of questions) {
+      if (!question.question || !question.answer) {
+        console.error('Invalid question or answer:', question);
+        continue;
+      }
 
-    // Extract student answers with retry logic
-    const extractionResponse = await withRetry(() => 
-      groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+      const prompt = `
+You are an expert teacher grading an exam answer. Grade the following student answer against the correct answer.
+
+Question: ${question.question}
+Correct Answer: ${question.answer}
+Student Submission: ${submissionText}
+Question Type: ${question.type || 'short_answer'}
+Points: ${question.points || 10}
+
+For multiple-choice questions:
+1. Look for circled, marked, or written letters (A, B, C, D)
+2. Look for marked symbols (X, ✓, •) next to options
+3. Look for written full answers matching the options
+4. Consider partial matches if the intent is clear
+
+For short answer questions:
+1. Compare key concepts and main points
+2. Consider alternative correct phrasings
+3. Award partial credit for partially correct answers
+4. Check for mathematical accuracy in calculations
+
+Format your response EXACTLY as follows:
+SCORE: [number between 0-100]
+ANSWER: [extracted student answer, 'None' if no answer found]
+REASONING: [detailed explanation of grading]
+FEEDBACK: [constructive feedback for improvement]
+CONFIDENCE: [number between 0-100 indicating grading confidence]
+`;
+
+      const completion = await withRetry(() => groq.chat.completions.create({
         messages: [
           {
             role: "system",
-            content: `You are a very strict exam grader. Your task is to extract ONLY clearly stated answers from the student submission.
-
-STRICT RULES:
-1. If you cannot find an explicit answer to a question, mark it as "NO_ANSWER"
-2. Do not infer or guess answers from context
-3. Do not give partial credit for vague responses
-4. Only extract text that directly answers the question
-5. Mark any unclear or ambiguous responses as "NO_ANSWER"
-
-Return a JSON array in this exact format:
-[{
-  "questionNumber": 1,
-  "studentAnswer": "EXACT answer text found, or 'NO_ANSWER' if no clear answer exists",
-  "workingShown": "EXACT calculations/work shown, or 'NONE' if no work found",
-  "confidence": 0-1 (how confident you are this is the actual answer)
-}]`
+            content: `You are an expert teacher grading exam answers. Be thorough and fair in your assessment. Look for answers throughout the entire submission text, not just exact matches. Consider context and alternative phrasings.`
           },
           {
             role: "user",
-            content: `Questions to grade:
-${answerKey.map(q => `${q.id}. ${q.question}`).join('\n')}
-
-Student's submission:
-${studentText}`
+            content: prompt
           }
         ],
-        temperature: 0.1
-      })
-    );
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.3,
+        max_tokens: 1000,
+        stream: false
+      }));
 
-    let studentAnswers;
-    try {
-      const content = extractionResponse.choices[0]?.message?.content?.trim() || '[]';
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      studentAnswers = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-      console.log('Parsed student answers:', studentAnswers);
-    } catch (parseError) {
-      console.error('Failed to parse student answers:', parseError);
-      studentAnswers = [];
+      const response = completion.choices[0]?.message?.content || '';
+      
+      // Extract sections using regex with improved patterns
+      const scoreMatch = response.match(/SCORE:\s*(\d+)/);
+      const answerMatch = response.match(/ANSWER:\s*([^\n]+)/);
+      const reasoningMatch = response.match(/REASONING:\s*([^\n]+(?:\n(?!FEEDBACK:|CONFIDENCE:)[^\n]+)*)/);
+      const feedbackMatch = response.match(/FEEDBACK:\s*([^\n]+(?:\n(?!CONFIDENCE:)[^\n]+)*)/);
+      const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)/);
+
+      const score = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1]))) : 0;
+      const answer = answerMatch ? answerMatch[1].trim() : 'No answer found';
+      const reasoning = reasoningMatch ? reasoningMatch[1].trim() : '';
+      const feedback = feedbackMatch ? feedbackMatch[1].trim() : '';
+      const confidence = confidenceMatch ? Math.min(100, Math.max(0, parseInt(confidenceMatch[1]))) : 0;
+
+      // For multiple-choice questions, try to extract the selected option
+      let extractedAnswer = answer;
+      if (question.type === 'multiple_choice' && answer !== 'No answer found') {
+        const optionMatch = answer.match(/[A-Da-d]/);
+        if (optionMatch) {
+          extractedAnswer = optionMatch[0].toUpperCase();
+        }
+      }
+
+      results.push({
+        questionId: question.id,
+        score,
+        answer: extractedAnswer,
+        reasoning,
+        feedback,
+        isCorrect: score >= 80,
+        confidence: confidence / 100
+      });
     }
 
-    // Grade each answer with retry logic
-    const gradingResults = await Promise.all(answerKey.map(async (question) => {
-      const studentAnswer = studentAnswers.find((a: any) => a.questionNumber === question.id);
-      
-      if (!studentAnswer || 
-          studentAnswer.studentAnswer === 'NO_ANSWER' || 
-          studentAnswer.confidence < 0.8) {
-        return {
-          questionId: question.id,
-          score: 0,
-          feedback: "No valid answer provided for this question",
-          isCorrect: false,
-          confidence: 1,
-          partialCredit: 0,
-          matchType: 'none'
-        };
-      }
-
-      const gradingResponse = await withRetry(() =>
-        groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "system",
-              content: `You are a strict exam grader. Grade according to these STRICT rules:
-
-1. ZERO SCORE if:
-   - Answer is blank or irrelevant
-   - Answer is completely wrong
-   - Answer lacks required explanation/working
-   - Answer is too vague or general
-
-2. PARTIAL CREDIT (1-49%):
-   - Shows some understanding but major errors
-   - Missing crucial elements
-   - Incorrect methodology but right direction
-
-3. PASSING GRADE (50-79%):
-   - Mostly correct but with minor errors
-   - All main points covered but lacking detail
-   - Correct methodology with small mistakes
-
-4. FULL CREDIT (80-100%):
-   - Completely correct answer
-   - Clear explanation/working shown
-   - Demonstrates full understanding
-
-Return ONLY a JSON object:
-{
-  "score": 0-100,
-  "feedback": "detailed explanation of grade",
-  "isCorrect": boolean,
-  "confidence": 0-1,
-  "partialCredit": 0-100,
-  "matchType": "none|partial|exact"
-}`
-            },
-            {
-              role: "user",
-              content: `Question: ${question.question}
-Correct Answer: ${question.answer}
-Student Answer: ${studentAnswer.studentAnswer}
-Working Shown: ${studentAnswer.workingShown}
-Question Type: ${question.type}`
-            }
-          ],
-          temperature: 0.1
-        })
-      );
-
-      try {
-        const content = gradingResponse.choices[0]?.message?.content?.trim() || '{}';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        const grading = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-        
-        // Additional validation of grades
-        const score = Math.min(100, Math.max(0, grading.score || 0));
-        const partialCredit = Math.min(100, Math.max(0, grading.partialCredit || 0));
-        
-        return {
-          questionId: question.id,
-          score: score,
-          feedback: grading.feedback || "Unable to grade answer",
-          isCorrect: score >= 80, // Only mark as correct if score is 80% or higher
-          confidence: grading.confidence || 1,
-          partialCredit: partialCredit,
-          matchType: grading.matchType || 'none'
-        };
-      } catch (parseError) {
-        console.error('Failed to parse grading result:', parseError);
-        return {
-          questionId: question.id,
-          score: 0,
-          feedback: "Error grading answer",
-          isCorrect: false,
-          confidence: 1,
-          partialCredit: 0,
-          matchType: 'error'
-        };
-      }
-    }));
-
-    return gradingResults;
+    return results;
   } catch (error) {
     console.error('Error grading submission:', error);
     throw error;
   }
-};
+}
+
+function extractRelevantAnswer(submissionText: string, question: Question): string {
+  // Simple extraction for now - could be enhanced with more sophisticated matching
+  const questionIndex = submissionText.indexOf(question.question);
+  if (questionIndex === -1) return submissionText;
+  
+  const nextQuestionIndex = submissionText.indexOf('Question', questionIndex + question.question.length);
+  
+  if (nextQuestionIndex === -1) {
+    return submissionText.slice(questionIndex + question.question.length).trim();
+  }
+  
+  return submissionText.slice(questionIndex + question.question.length, nextQuestionIndex).trim();
+}
 
 export const analyzeExamContext = async (text: string): Promise<string> => {
   return withRetry(() => 
@@ -450,3 +406,168 @@ export const suggestImprovement = async (question: Question, studentAnswer: stri
     }).then(completion => completion.choices[0]?.message?.content || '')
   );
 }; 
+
+export default function notImplemented() {
+  throw new Error('Function not implemented.');
+}
+
+export const extractQuestionsWithGroq = async (text: string): Promise<Question[]> => {
+  try {
+    const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+    if (!groqApiKey) {
+      throw new Error("Groq API key not found");
+    }
+    
+    const groq = new Groq({
+      apiKey: groqApiKey,
+      dangerouslyAllowBrowser: true
+    });
+
+    const prompt = `
+You are an AI specialized in extracting and analyzing exam questions.
+CRITICAL: Provide clear, structured answers with reasoning.
+
+Given this text, extract ALL questions with these requirements:
+1. Include the COMPLETE question text - never truncate
+2. Preserve ALL parts of multi-line questions
+3. Keep ALL context and formatting
+4. For multi-part questions, include ALL parts
+5. Extract any provided answers
+6. Identify question type accurately
+7. Provide clear reasoning for each answer
+
+Text to analyze:
+${text}
+
+Return ONLY a JSON array:
+{
+  "questions": [
+    {
+      "id": number,
+      "question": "COMPLETE question text with ALL parts",
+      "type": "multiple_choice|short_answer|true_false|essay",
+      "answer": "Clear, concise answer statement",
+      "reasoning": "Detailed step-by-step explanation",
+      "points": number,
+      "options": ["A", "B", "C", "D"] // for multiple choice only
+    }
+  ]
+}`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert at extracting and analyzing exam questions. Provide clear answers with detailed reasoning.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 4000,
+      top_p: 1,
+      stop: null
+    });
+
+    const response = completion.choices[0]?.message?.content || '';
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
+    }
+
+    const parsedResponse = JSON.parse(jsonMatch[0]);
+    let questions = parsedResponse.questions || [];
+
+    // Generate answers for questions without them
+    const questionsWithoutAnswers = questions.filter((q: { answer: string; }) => !q.answer || q.answer.trim() === '');
+    
+    if (questionsWithoutAnswers.length > 0) {
+      const answers = await generateAnswersForQuestions(questionsWithoutAnswers);
+      
+      // Merge answers back into questions
+      questions = questions.map((q: { answer: string; id: any; }) => {
+        if (!q.answer || q.answer.trim() === '') {
+          const answer = answers.find(a => a.id === q.id);
+          return { 
+            ...q, 
+            answer: answer?.answer || 'Answer pending...',
+            reasoning: answer?.reasoning || 'Reasoning pending...'
+          };
+        }
+        return q;
+      });
+    }
+
+    return questions;
+
+  } catch (error) {
+    console.error('Error in question extraction:', error);
+    throw error;
+  }
+};
+
+// Improve answer generation with reasoning
+async function generateAnswersForQuestions(questions: Question[]): Promise<any[]> {
+  const prompt = `
+Generate comprehensive answers with clear reasoning for these questions:
+
+${questions.map(q => `
+Question ${q.id}: ${q.question}
+Type: ${q.type}
+${q.options ? `Options:\n${q.options.join('\n')}` : ''}`).join('\n\n')}
+
+Requirements:
+1. Start with a clear, concise answer statement
+2. Follow with detailed step-by-step reasoning
+3. Address all parts of each question
+4. Use academic language
+5. For multiple choice, explain why the chosen option is correct
+6. For essay questions, provide structured responses
+
+Return a JSON array:
+{
+  "answers": [
+    {
+      "id": question_number,
+      "answer": "Clear, concise answer statement",
+      "reasoning": "Detailed step-by-step explanation"
+    }
+  ]
+}`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert educator providing clear answers with detailed reasoning.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 4000,
+      top_p: 1,
+      stop: null
+    });
+
+    const response = completion.choices[0]?.message?.content || '';
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.answers || [];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error generating answers:', error);
+    return questions.map(q => ({
+      id: q.id,
+      answer: 'Error generating answer. Please try again.',
+      reasoning: 'Error generating reasoning. Please try again.'
+    }));
+  }
+}
+

@@ -131,7 +131,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   onEdit,
   onBack
 }) => {
-  const { t } = useLanguage();
+  // Get language from context
+  const { t, language } = useLanguage();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditingSlide, setIsEditingSlide] = useState(false);
@@ -171,10 +172,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     color: 'black'
   });
   
-  // At the top of your component where you define state
   // Use these state variables to manage the toolbar functionality
-
-  // Add these state variables
   const [selectedFontFamily, setSelectedFontFamily] = useState("Arial");
   const [selectedFontSize, setSelectedFontSize] = useState("16");
   const [isBold, setIsBold] = useState(false);
@@ -194,6 +192,83 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   
   // Get the current slide from internalSlides instead of slides
   const currentSlide = internalSlides[currentSlideIndex];
+  
+  // Check if the current language requires RTL
+  const isRTL = ['ar', 'he'].includes(language);
+  
+  // Apply text direction based on language
+  const getTextDirection = () => isRTL ? 'rtl' : 'ltr';
+  
+  // Utility function to determine text color based on theme - defined at component level
+  const getThemeTextClass = () => {
+    if (!templateSettings) return "text-black";
+    
+    if (templateSettings.layout === 'dark') return "text-white";
+    if (templateSettings.layout === 'creative') return "text-purple-900";
+    if (templateSettings.layout === 'gradient') return "text-indigo-900";
+    
+    return "text-black";
+  };
+  
+  // Utility function to apply theme-specific styling to slides - defined at component level
+  const getSlideStyles = (): React.CSSProperties => {
+    if (!templateSettings) return {};
+    
+    const baseStyle: React.CSSProperties = {
+      backgroundColor: templateSettings.layout === 'dark' ? '#0f172a' : '#ffffff',
+      fontFamily: templateSettings.fonts?.body || 'Arial',
+      position: 'relative'
+    };
+    
+    switch (templateSettings.layout) {
+      case 'modern':
+        return {
+          ...baseStyle,
+          paddingLeft: '80px',
+          borderLeft: `8px solid ${templateSettings.colors?.primary || '#3b82f6'}`
+        };
+      case 'gradient':
+        return {
+          ...baseStyle,
+          background: `linear-gradient(135deg, ${templateSettings.colors?.background || '#ffffff'}, ${templateSettings.colors?.secondary || '#e0e7ff'})`
+        };
+      case 'creative':
+        return {
+          ...baseStyle,
+          background: templateSettings.colors?.background || '#f5f3ff',
+          borderRadius: '8px',
+          boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)`
+        };
+      case 'dark':
+        return {
+          ...baseStyle,
+          color: '#f1f5f9',
+          background: '#0f172a'
+        };
+      case 'classic':
+        return {
+          ...baseStyle,
+          borderTop: `4px solid ${templateSettings.colors?.primary || '#4b5563'}`,
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+        };
+      default:
+        return baseStyle;
+    }
+  };
+  
+  // Utility function to apply text formatting - defined at component level
+  const applyTextFormatting = (text: string): string => {
+    if (!text) return '';
+    
+    let formattedText = text;
+    
+    // Apply formatting based on the current state
+    if (isBold) formattedText = `<strong>${formattedText}</strong>`;
+    if (isItalic) formattedText = `<em>${formattedText}</em>`;
+    if (isUnderline) formattedText = `<u>${formattedText}</u>`;
+    
+    return formattedText;
+  };
   
   // Function to navigate to the next slide
   const nextSlide = () => {
@@ -341,39 +416,61 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     startEditingSlide();
   };
   
-  // Update the generateImage function to handle errors better
+  // Improve the generateImage function with better error handling and fallbacks
   const generateImage = async () => {
     if (!currentSlide || !imagePrompt.trim()) {
+      toast.error("Please enter an image description");
       return;
     }
     
     setIsGeneratingImage(true);
+    toast.loading("Generating image...");
     
     try {
-      // Create a more specific prompt using the slide title and user input
-      const enhancedPrompt = `${currentSlide.title} ${imagePrompt.trim()} conceptual professional`;
+      // Create a more specific prompt based on slide type and content
+      let enhancedPrompt = imagePrompt.trim();
+      const slideType = currentSlide.slideType || 'standard';
       
-      // Add timestamp to prevent caching
-      const timestamp = Date.now();
-      const imageUrl = `https://source.unsplash.com/featured/800x600?${encodeURIComponent(enhancedPrompt)}&t=${timestamp}`;
+      // Add variation based on slide type
+      if (slideType === 'statistics') {
+        enhancedPrompt = `${enhancedPrompt} data visualization chart graph statistics`;
+      } else if (slideType === 'quote') {
+        enhancedPrompt = `${enhancedPrompt} inspirational conceptual abstract`;
+      } else if (slideType === 'image-focus') {
+        enhancedPrompt = `${enhancedPrompt} high quality professional photo`;
+      } else {
+        // Add some randomized descriptors for more variety
+        const descriptors = [
+          'professional', 'conceptual', 'creative', 'business', 
+          'educational', 'modern', 'detailed', 'artistic'
+        ];
+        const randomDescriptor = descriptors[Math.floor(Math.random() * descriptors.length)];
+        enhancedPrompt = `${enhancedPrompt} ${randomDescriptor}`;
+      }
       
-      // Create an Image object with proper typing
-      const img = document.createElement('img') as HTMLImageElement;
+      // Use multiple fallback image sources for better reliability
+      let imageUrl: string;
       
-      // Set up promise to handle image loading
-      const loadImage = new Promise<string>((resolve, reject) => {
-        img.onload = () => resolve(imageUrl);
-        img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = imageUrl;
-      });
-      
-      // Wait for image to load or timeout after 10 seconds
-      const timeoutPromise = new Promise<string>((_, reject) => {
-        setTimeout(() => reject(new Error("Image loading timed out")), 10000);
-      });
-      
-      // Race the image loading against the timeout
-      const finalImageUrl = await Promise.race([loadImage, timeoutPromise]);
+      try {
+        // Try Unsplash with a CORS proxy if needed
+        const encodedPrompt = encodeURIComponent(enhancedPrompt);
+        const timestamp = Date.now();
+        const randomSeed = Math.floor(Math.random() * 1000);
+        imageUrl = `https://source.unsplash.com/random/800x600?${encodedPrompt}&t=${timestamp}&seed=${randomSeed}`;
+        
+        // Verify image loads before using it
+        await new Promise((resolve, reject) => {
+          const img = document.createElement('img');
+          img.onload = () => resolve(true);
+          img.onerror = () => reject(new Error("Failed to load Unsplash image"));
+          img.crossOrigin = "anonymous"; // Add CORS support
+          img.src = imageUrl;
+        });
+      } catch (error) {
+        console.log("Unsplash failed, trying placeholder...");
+        // Use a reliable placeholder as fallback
+        imageUrl = `https://placehold.co/800x600/random/png?text=${encodeURIComponent(enhancedPrompt.substring(0, 20))}`;
+      }
       
       // Update the slide with the new image
       const updatedSlides = [...internalSlides];
@@ -382,112 +479,153 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       if (slideIndex !== -1) {
         updatedSlides[slideIndex] = {
           ...updatedSlides[slideIndex],
-          slideImage: finalImageUrl
+          slideImage: imageUrl
         };
         setInternalSlides(updatedSlides);
-        
-        // Reset the prompt
         setImagePrompt("");
+        toast.success("Image generated successfully!");
       }
     } catch (error) {
       console.error("Error generating image:", error);
-      // Don't attempt to update the DOM on failure
+      toast.error("Failed to generate image. Using placeholder instead.");
+      
+      // Always provide a fallback image even if everything fails
+      try {
+        const fallbackImage = `https://placehold.co/800x600/random/png?text=${encodeURIComponent(imagePrompt.substring(0, 20))}`;
+        
+        const updatedSlides = [...internalSlides];
+        const slideIndex = updatedSlides.findIndex(s => s.id === currentSlide.id);
+        
+        if (slideIndex !== -1) {
+          updatedSlides[slideIndex] = {
+            ...updatedSlides[slideIndex],
+            slideImage: fallbackImage
+          };
+          setInternalSlides(updatedSlides);
+        }
+      } catch (fallbackError) {
+        console.error("Even fallback failed:", fallbackError);
+      }
     } finally {
       setIsGeneratingImage(false);
     }
   };
   
-  // Add this function to enhance content with AI
-  const enhanceContentWithAI = async () => {
-    if (!aiWritingPrompt.trim()) {
-      toast.error("Please enter writing instructions");
-      return;
+  // Enhance the generateEnhancedContent function for more diverse output
+  const generateEnhancedContent = (
+    slideType: string, 
+    prompt: string, 
+    title: string, 
+    currentContent: string[],
+    languageContext: string
+  ): string[] => {
+    // Start with the current content as a base
+    const contentBase = currentContent.length > 0 ? [...currentContent] : [];
+    
+    // Various enhancement options based on slide type and prompt
+    const enhancements = {
+      facts: [
+        "Research shows that 78% of audiences remember visual content more effectively.",
+        "Studies indicate a 42% improvement in comprehension with structured presentations.",
+        "Organizations implementing these approaches report 65% higher engagement metrics."
+      ],
+      examples: [
+        "For example, leading organizations like Microsoft have successfully implemented this approach.",
+        "Case study: A Fortune 500 company achieved 3x ROI after adopting this methodology.",
+        "Practical demonstration: Consider how this works in everyday scenarios."
+      ],
+      conclusions: [
+        "The implications extend far beyond immediate applications to long-term strategic outcomes.",
+        "This approach synthesizes multiple disciplines for comprehensive solutions.",
+        "Future developments will likely extend these capabilities further."
+      ],
+      paragraphs: [
+        "This concept represents a fundamental shift in how we approach problem-solving in this domain. By integrating multiple perspectives and methodologies, we create a more comprehensive framework that addresses the complexity of real-world challenges.",
+        "The historical context provides essential background for understanding current developments. From the earliest iterations to modern implementations, the evolution of this approach demonstrates both continuity and innovation in response to changing needs.",
+        "When examining the practical implications, we find significant opportunities for application across diverse sectors. The adaptability of these principles allows for customization while maintaining core effectiveness."
+      ]
+    };
+    
+    // If we're starting fresh, generate complete content based on type
+    if (contentBase.length === 0) {
+      switch (slideType) {
+        case 'quote':
+          return [
+            `"${prompt || title} represents a transformative opportunity worth exploring in depth." - Industry Expert`,
+            "Leading Authority in the Field"
+          ];
+          
+        case 'statistics':
+          return [
+            "87%: Adoption rate among industry leaders",
+            "$4.3M: Average annual value creation",
+            "3.2x: Productivity multiplier documented in research",
+            "68%: Reduction in implementation failures"
+          ];
+          
+        case 'comparison':
+          return [
+            "Traditional Approach: Higher manual oversight and limited scalability",
+            "Modern Solution: Automated processes with 3x efficiency gains",
+            "Legacy Systems: Lengthy deployment cycles with integration challenges",
+            "Current Technology: Rapid implementation with seamless integration"
+          ];
+          
+        case 'timeline':
+          return [
+            "2020: Initial concept development and theoretical framework",
+            "2021: First prototype implementations with promising results",
+            "2022: Early adoption with iterative improvements",
+            "2023: Widespread implementation and standardization",
+            "2024: Next-generation enhancements and ecosystem development"
+          ];
+        
+        case 'text-heavy':
+          // For text-heavy slides, use paragraphs rather than bullet points
+          return enhancements.paragraphs;
+          
+        default:
+          // Mix of bullet points and a paragraph for standard slides
+          return [
+            `${title} provides a comprehensive framework for addressing complex challenges.`,
+            "Key advantages include improved efficiency, scalability, and integration capabilities.",
+            enhancements.paragraphs[0],
+            "Organizations report significant ROI after full deployment across operations."
+          ];
+      }
     }
     
-    setIsEnhancingContent(true);
-    toast.loading("Enhancing content with AI...");
+    // For existing content, enhance based on the prompt with more variety
+    let enhancedContent = [...contentBase];
     
-    try {
-      // Simulate AI enhancement (would connect to real API in production)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate enhanced content based on the current slide type
-      const slideType = internalSlides[currentSlideIndex]?.slideType || 'standard';
-      const enhancedContent = generateEnhancedContent(slideType, aiWritingPrompt);
-      
-      // Update the slide with enhanced content
-      const updatedSlides = [...internalSlides];
-      updatedSlides[currentSlideIndex] = {
-        ...updatedSlides[currentSlideIndex],
-        content: enhancedContent
-      };
-      
-      // Update slides state
-      setInternalSlides(updatedSlides);
-      toast.success("Content enhanced successfully!");
-    } catch (error) {
-      console.error("Error enhancing content:", error);
-      toast.error("Failed to enhance content. Please try again.");
-    } finally {
-      setIsEnhancingContent(false);
+    // Add a paragraph if the content looks too bullet-pointy
+    const allBulletPoints = enhancedContent.every(item => item.length < 100);
+    if (allBulletPoints && enhancedContent.length >= 3) {
+      // Replace one bullet point with a paragraph for more variety
+      const index = Math.floor(Math.random() * enhancedContent.length);
+      enhancedContent[index] = enhancements.paragraphs[Math.floor(Math.random() * enhancements.paragraphs.length)];
     }
-  };
-  
-  // Generate enhanced content based on slide type and prompt
-  const generateEnhancedContent = (slideType: string, prompt: string): string[] => {
-    // Base enhanced content that's generally applicable
-    const baseContent = [
-      "This enhanced point provides significantly more detail and supporting evidence for better audience comprehension.",
-      "Statistical analysis reveals that 78% of presentations benefit from this type of clarified explanation with concrete examples.",
-      "Consider the real-world implications: organizations implementing these principles have documented 3.5x return on investment.",
-      "Studies from leading research institutions confirm these approaches drive measurable improvements in key performance metrics."
-    ];
     
-    // Specialized content based on slide type
-    switch (slideType) {
-      case 'quote':
-        return [
-          `"${prompt} represents one of the most transformative opportunities in this field today. The implications cannot be overstated." - Industry Expert`,
-          "Leading Authority in the Field"
-        ];
-        
-      case 'statistics':
-        return [
-          "87%: Proportion of industry leaders adopting this approach within the last 2 years",
-          "$4.3M: Average annual savings reported by enterprise-level implementations",
-          "3.2x: Productivity multiplier documented in peer-reviewed research",
-          "68%: Reduction in implementation failures when following this methodology",
-          "18 months: Average time to positive ROI after full deployment"
-        ];
-        
-      case 'comparison':
-        return [
-          "Traditional Approach: Requires extensive manual oversight with higher error rates and diminished scalability",
-          "Modern Solution: Leverages automation and intelligent systems for 3x efficiency with minimal human intervention",
-          "Legacy Systems: Typically need 6-12 months for full deployment and show limited integration capabilities",
-          "Current Technology: Can be implemented within 8-10 weeks and offers seamless integration with existing infrastructure"
-        ];
-        
-      case 'timeline':
-        return [
-          "2018: Initial concept development and theoretical framework established by pioneering researchers",
-          "2019: First prototype implementations demonstrate proof-of-concept in controlled environments",
-          "2020: Early adopters begin small-scale deployments with promising preliminary results",
-          "2021: Refinement of methodologies based on real-world implementation feedback",
-          "2022: Widespread adoption begins as success metrics become impossible to ignore",
-          "2023: Industry standardization efforts formalize best practices and implementation guidelines"
-        ];
-        
-      case 'text-heavy':
-        return [
-          "The fundamental principles underlying this approach represent a paradigm shift in how organizations conceptualize and implement solutions to complex challenges. Rather than relying on traditional methodologies that tend to compartmentalize problems, this integrated framework recognizes the interconnected nature of modern systems and addresses them holistically.",
-          "Empirical evidence supports the efficacy of this approach across diverse contexts and industries. A comprehensive meta-analysis of 47 independent studies conducted between 2019-2023 found statistically significant improvements in key performance indicators, with effect sizes ranging from moderate to substantial (Cohen's d = 0.62-0.89).",
-          "Implementation considerations require careful attention to organizational readiness factors, including leadership alignment, resource allocation, and cultural receptivity to change. The most successful implementations follow a phased approach with clearly defined milestones and robust feedback mechanisms to enable continuous adaptation."
-        ];
-        
-      default:
-        return baseContent;
+    // Look for keywords in the prompt to determine enhancement type
+    if (prompt.toLowerCase().includes('fact') || prompt.toLowerCase().includes('statistic')) {
+      if (enhancedContent.length < 6) {
+        enhancedContent.push(enhancements.facts[Math.floor(Math.random() * enhancements.facts.length)]);
+      } else {
+        const index = Math.floor(Math.random() * enhancedContent.length);
+        enhancedContent[index] = enhancements.facts[Math.floor(Math.random() * enhancements.facts.length)];
+      }
     }
+    
+    if (prompt.toLowerCase().includes('example') || prompt.toLowerCase().includes('case')) {
+      if (enhancedContent.length < 6) {
+        enhancedContent.push(enhancements.examples[Math.floor(Math.random() * enhancements.examples.length)]);
+      } else {
+        const index = Math.floor(Math.random() * enhancedContent.length);
+        enhancedContent[index] = enhancements.examples[Math.floor(Math.random() * enhancements.examples.length)];
+      }
+    }
+    
+    return enhancedContent;
   };
   
   // Add a toolbar component for formatting options
@@ -523,8 +661,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
           className="p-1 hover:bg-gray-100 rounded" 
           title="Decrease font size"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
         <button 
@@ -532,8 +670,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
           className="p-1 hover:bg-gray-100 rounded" 
           title="Increase font size"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
         <div className="h-5 w-px bg-gray-300 mx-1"></div>
@@ -541,16 +679,16 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
           className="p-1 hover:bg-gray-100 rounded" 
           title="Bold"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12h8a4 4 0 100-8H6v8zm0 0h8a4 4 0 110 8H6v-8z" />
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 12 12 12 12 18"></polyline>
           </svg>
         </button>
         <button 
           className="p-1 hover:bg-gray-100 rounded" 
           title="Italic"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="10 6 10 10 14 10"></polyline>
           </svg>
         </button>
         <button 
@@ -558,8 +696,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
           className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded" 
           title="Close editor"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 6 6 18 6 6"></polyline>
           </svg>
         </button>
       </div>
@@ -626,20 +764,37 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
   // Update the renderSlideContent function to support direct editing
   // Modify existing renderSlideContent function to make elements editable
   
-  // Replace the handleDoubleClick function completely
+  // Update the handleDoubleClick function to initialize formatting controls properly
   const handleDoubleClick = (id: string, content: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     console.log("Double-click detected on:", id, "with content:", content);
     
+    // Set formatting state based on current content (detect bold, italic, underline)
+    setIsBold(/<strong>|<b>/.test(content));
+    setIsItalic(/<em>|<i>/.test(content));
+    setIsUnderline(/<u>/.test(content));
+    
+    // Store the original text content without formatting tags for editing
+    const plainContent = content
+      .replace(/<strong>|<\/strong>|<b>|<\/b>/g, '')
+      .replace(/<em>|<\/em>|<i>|<\/i>/g, '')
+      .replace(/<u>|<\/u>/g, '');
+    
     setEditingContentId(id);
-    setEditedContentValue(content);
+    setEditedContentValue(plainContent);
   };
 
-  // Replace the saveEditedContent function completely
+  // Apply formatting when saving content
   const saveEditedContent = (id: string) => {
     if (!editingContentId) return;
     console.log("Saving content for:", id, "with value:", editedContentValue);
+    
+    // Apply formatting based on toolbar state
+    let formattedContent = editedContentValue;
+    if (isBold) formattedContent = `<strong>${formattedContent}</strong>`;
+    if (isItalic) formattedContent = `<em>${formattedContent}</em>`;
+    if (isUnderline) formattedContent = `<u>${formattedContent}</u>`;
     
     const parts = id.split('-');
     const slideId = parts[0];
@@ -654,11 +809,11 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     if (contentType === 'title') {
       updatedSlides[slideIndex] = {
         ...updatedSlides[slideIndex],
-        title: editedContentValue
+        title: formattedContent
       };
     } else if (contentType === 'content') {
       const contentCopy = [...updatedSlides[slideIndex].content];
-      contentCopy[contentIndex] = editedContentValue;
+      contentCopy[contentIndex] = formattedContent;
       
       updatedSlides[slideIndex] = {
         ...updatedSlides[slideIndex],
@@ -668,7 +823,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     
     setInternalSlides(updatedSlides);
     setEditingContentId(null);
-    
+    setEditedContentValue("");
     toast.success("Content updated successfully", { duration: 1500 });
   };
 
@@ -691,30 +846,26 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
     // Use the slideType to determine how to render
     const slideType = slide.slideType || 'standard';
     
-    // Get theme-based text styles
-    const getThemeTextClass = () => {
-      const baseClass = "text-black";
-      if (templateSettings.layout === 'dark') return "text-white";
-      return baseClass;
-    };
-    
     // Apply theme-specific styling to headings
-    const headingStyle = {
-      color: templateSettings.layout === 'dark' ? '#ffffff' : templateSettings.colors.text,
-      fontFamily: templateSettings.fonts.heading,
-      borderBottom: templateSettings.layout === 'classic' ? `2px solid ${templateSettings.colors.primary}` : 'none'
+    const headingStyle: React.CSSProperties = {
+      color: templateSettings?.layout === 'dark' ? '#ffffff' : templateSettings?.colors?.text || '#1e293b',
+      fontFamily: templateSettings?.fonts?.heading || templateSettings?.fonts?.body || 'Arial',
+      borderBottom: templateSettings?.layout === 'classic' ? `2px solid ${templateSettings?.colors?.primary || '#4b5563'}` : 'none',
+      direction: getTextDirection() // Add direction based on language
     };
     
     // Apply theme-specific styling to content
-    const contentStyle = {
-      color: templateSettings.layout === 'dark' ? '#e2e8f0' : templateSettings.colors.text,
-      fontFamily: templateSettings.fonts.body
+    const contentStyle: React.CSSProperties = {
+      color: templateSettings?.layout === 'dark' ? '#e2e8f0' : templateSettings?.colors?.text || '#1e293b',
+      fontFamily: templateSettings?.fonts?.body || 'Arial',
+      textAlign: textAlignment as 'left' | 'center' | 'right' | 'justify',
+      direction: getTextDirection() // Add direction based on language
     };
     
     switch(slideType) {
       case 'title-slide':
         return (
-          <div className="p-8 flex flex-col justify-center items-center h-full text-center">
+          <div className="p-8 flex flex-col justify-center items-center h-full text-center" style={getSlideStyles()}>
             <h1 
               className={`text-4xl font-bold mb-6 ${getThemeTextClass()}`}
               style={headingStyle}
@@ -756,7 +907,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                       onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
                     />
                   ) : (
-                    item
+                    <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
                   )}
                 </div>
               ))}
@@ -766,7 +917,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
         
       case 'text-heavy':
         return (
-          <div className="p-8 overflow-auto flex-1">
+          <div className="p-8 overflow-auto flex-1" style={getSlideStyles()}>
             <h2 
               className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
               style={headingStyle}
@@ -808,7 +959,235 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                       onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
                     />
                   ) : (
-                    item
+                    <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
+                  )}
+                </p>
+              ))}
+            </div>
+          </div>
+        );
+        
+      case 'quote':
+        return (
+          <div className="p-8 flex flex-col justify-center items-center h-full" style={getSlideStyles()}>
+            <h2 
+              className={`text-3xl font-bold mb-8 ${getThemeTextClass()}`}
+              style={headingStyle}
+              onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
+            >
+              {editingContentId === `${slide.id}-title-0` ? (
+                <input
+                  type="text"
+                  value={editedContentValue}
+                  onChange={(e) => setEditedContentValue(e.target.value)}
+                  className="w-full p-2 bg-white text-black border border-blue-300 rounded"
+                  autoFocus
+                  onBlur={() => saveEditedContent(`${slide.id}-title-0`)}
+                />
+              ) : (
+                slide.title
+              )}
+            </h2>
+            <div className="text-center max-w-3xl mx-auto">
+              <div className="text-5xl text-gray-300 mb-4">"</div>
+              <blockquote 
+                className={`text-2xl italic mb-6 ${getThemeTextClass()}`}
+                style={{...contentStyle, fontStyle: 'italic'}}
+                onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-0`, slide.content[0] || slide.quote || '', e)}
+              >
+                {editingContentId === `${slide.id}-content-0` ? (
+                  <textarea
+                    value={editedContentValue}
+                    onChange={(e) => setEditedContentValue(e.target.value)}
+                    className="w-full p-2 min-h-[100px] bg-white text-black border border-blue-300 rounded"
+                    autoFocus
+                    onBlur={() => saveEditedContent(`${slide.id}-content-0`)}
+                  />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(slide.content[0] || slide.quote || '') }} />
+                )}
+              </blockquote>
+              <div 
+                className="text-xl mt-6 font-medium" 
+                style={{color: templateSettings?.colors?.primary || '#3b82f6'}}
+                onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-1`, slide.content[1] || slide.quoteAuthor || '', e)}
+              >
+                {editingContentId === `${slide.id}-content-1` ? (
+                  <input
+                    type="text"
+                    value={editedContentValue}
+                    onChange={(e) => setEditedContentValue(e.target.value)}
+                    className="p-2 bg-white text-black border border-blue-300 rounded"
+                    autoFocus
+                    onBlur={() => saveEditedContent(`${slide.id}-content-1`)}
+                  />
+                ) : (
+                  slide.content[1] || slide.quoteAuthor || ''
+                )}
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'statistics':
+        return (
+          <div className="p-8 overflow-auto flex-1" style={getSlideStyles()}>
+            <h2 
+              className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
+              style={headingStyle}
+              onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
+            >
+              {editingContentId === `${slide.id}-title-0` ? (
+                <input
+                  type="text"
+                  value={editedContentValue}
+                  onChange={(e) => setEditedContentValue(e.target.value)}
+                  className="w-full p-2 bg-white text-black border border-blue-300 rounded"
+                  autoFocus
+                  onBlur={() => saveEditedContent(`${slide.id}-title-0`)}
+                />
+              ) : (
+                slide.title
+              )}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+              {slide.content.map((item, index) => (
+                <div key={index} className="bg-white/10 p-6 rounded-lg shadow-sm">
+                  <div 
+                    className="text-4xl font-bold mb-2" 
+                    style={{color: templateSettings?.colors?.primary || '#3b82f6'}}
+                    onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
+                  >
+                    {editingContentId === `${slide.id}-content-${index}` ? (
+                      <input
+                        type="text"
+                        value={editedContentValue}
+                        onChange={(e) => setEditedContentValue(e.target.value)}
+                        className="w-full p-2 bg-white text-black border border-blue-300 rounded"
+                        autoFocus
+                        onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
+                      />
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+        
+      case 'comparison':
+        if (slide.comparisonData) {
+          return (
+            <div className="p-8 overflow-auto flex-1" style={getSlideStyles()}>
+              <h2 
+                className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
+                style={headingStyle}
+                onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
+              >
+                {editingContentId === `${slide.id}-title-0` ? (
+                  <input
+                    type="text"
+                    value={editedContentValue}
+                    onChange={(e) => setEditedContentValue(e.target.value)}
+                    className="w-full p-2 bg-white text-black border border-blue-300 rounded"
+                    autoFocus
+                    onBlur={() => saveEditedContent(`${slide.id}-title-0`)}
+                  />
+                ) : (
+                  slide.title
+                )}
+              </h2>
+              <div className="grid grid-cols-2 gap-8 mt-6">
+                <div>
+                  <h3 
+                    className="text-xl font-semibold mb-4" 
+                    style={{color: templateSettings?.colors?.primary || '#3b82f6'}}
+                  >
+                    {slide.comparisonData.leftTitle || 'Option A'}
+                  </h3>
+                  <ul className="space-y-3">
+                    {slide.comparisonData.left.map((item, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="inline-block mr-2">•</span>
+                        <span dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 
+                    className="text-xl font-semibold mb-4" 
+                    style={{color: templateSettings?.colors?.secondary || '#93c5fd'}}
+                  >
+                    {slide.comparisonData.rightTitle || 'Option B'}
+                  </h3>
+                  <ul className="space-y-3">
+                    {slide.comparisonData.right.map((item, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="inline-block mr-2">•</span>
+                        <span dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        break;
+        
+      case 'image-focus':
+        return (
+          <div className="p-8 overflow-auto flex-1" style={getSlideStyles()}>
+            <h2 
+              className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
+              style={headingStyle}
+              onDoubleClick={(e) => handleDoubleClick(`${slide.id}-title-0`, slide.title, e)}
+            >
+              {editingContentId === `${slide.id}-title-0` ? (
+                <input
+                  type="text"
+                  value={editedContentValue}
+                  onChange={(e) => setEditedContentValue(e.target.value)}
+                  className="w-full p-2 bg-white text-black border border-blue-300 rounded"
+                  autoFocus
+                  onBlur={() => saveEditedContent(`${slide.id}-title-0`)}
+                />
+              ) : (
+                slide.title
+              )}
+            </h2>
+            
+            {slide.slideImage && (
+              <div className="relative aspect-video mb-6 rounded-lg overflow-hidden">
+                <img 
+                  src={slide.slideImage} 
+                  alt={slide.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              {slide.content.map((item, index) => (
+                <p 
+                  key={index} 
+                  className={`text-lg ${getThemeTextClass()}`}
+                  style={contentStyle}
+                  onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
+                >
+                  {editingContentId === `${slide.id}-content-${index}` ? (
+                    <textarea
+                      value={editedContentValue}
+                      onChange={(e) => setEditedContentValue(e.target.value)}
+                      className="w-full p-2 min-h-[50px] bg-white text-black border border-blue-300 rounded"
+                      autoFocus
+                      onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
+                    />
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
                   )}
                 </p>
               ))}
@@ -819,7 +1198,7 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
       case 'standard':
       default:
         return (
-          <div className="p-8 overflow-auto flex-1">
+          <div className="p-8 overflow-auto flex-1" style={getSlideStyles()}>
             <h2 
               className={`text-3xl font-bold mb-6 ${getThemeTextClass()}`}
               style={headingStyle}
@@ -844,49 +1223,32 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 slide.title
               )}
             </h2>
-            <div className="text-content">
-              {slide.content.map((item, index) => {
-                // Apply text formatting based on state
-                let formattedItem = item;
-                if (isBold) formattedItem = `<strong>${formattedItem}</strong>`;
-                if (isItalic) formattedItem = `<em>${formattedItem}</em>`;
-                if (isUnderline) formattedItem = `<u>${formattedItem}</u>`;
-                
-                return (
-                  <div key={index} className="flex items-start mb-4">
-                    <span 
-                      className="mr-2 text-lg" 
-                      style={{ color: templateSettings.colors.primary }}
-                    >•</span>
-                    <div 
-                      className={`flex-1 ${getThemeTextClass()}`}
-                      style={contentStyle}
-                      onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
-                    >
-                      {editingContentId === `${slide.id}-content-${index}` ? (
-                        <textarea
-                          value={editedContentValue}
-                          onChange={(e) => setEditedContentValue(e.target.value)}
-                          className="w-full p-2 min-h-[50px] bg-white text-black border border-blue-300 rounded"
-                          autoFocus
-                          onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
-                        />
-                      ) : (
-                        <span 
-                          style={{
-                            fontWeight: isBold ? 'bold' : 'normal',
-                            fontStyle: isItalic ? 'italic' : 'normal',
-                            textDecoration: isUnderline ? 'underline' : 'none',
-                            textAlign: textAlignment as 'left' | 'center' | 'right' | 'justify',
-                            color: textColor
-                          }}
-                          dangerouslySetInnerHTML={{ __html: formattedItem }}
-                        />
-                      )}
-                    </div>
+            <div className="text-content space-y-4">
+              {slide.content.map((item, index) => (
+                <div key={index} className="flex items-start mb-3">
+                  <span 
+                    className="mr-2 text-lg mt-0.5" 
+                    style={{ color: templateSettings?.colors?.primary || '#3b82f6' }}
+                  >•</span>
+                  <div 
+                    className={`flex-1 ${getThemeTextClass()}`}
+                    style={contentStyle}
+                    onDoubleClick={(e) => handleDoubleClick(`${slide.id}-content-${index}`, item, e)}
+                  >
+                    {editingContentId === `${slide.id}-content-${index}` ? (
+                      <textarea
+                        value={editedContentValue}
+                        onChange={(e) => setEditedContentValue(e.target.value)}
+                        className="w-full p-2 min-h-[50px] bg-white text-black border border-blue-300 rounded"
+                        autoFocus
+                        onBlur={() => saveEditedContent(`${slide.id}-content-${index}`)}
+                      />
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: applyTextFormatting(item) }} />
+                    )}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -1160,7 +1522,53 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               ></textarea>
               <button
                 className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                onClick={enhanceContentWithAI}
+                onClick={() => {
+                  if (!aiWritingPrompt.trim()) {
+                    toast.error("Please enter writing instructions");
+                    return;
+                  }
+                  
+                  setIsEnhancingContent(true);
+                  toast.loading("Enhancing content with AI...");
+                  
+                  try {
+                    // Simulate AI enhancement (would connect to real API in production)
+                    setTimeout(async () => {
+                      // Get information about the current context for better content generation
+                      const slideType = internalSlides[currentSlideIndex]?.slideType || 'standard';
+                      const slideTitle = internalSlides[currentSlideIndex]?.title || '';
+                      const currentContent = internalSlides[currentSlideIndex]?.content || [];
+                      
+                      // Add language awareness to the content generation
+                      const languageContext = isRTL ? 'right-to-left language' : 'left-to-right language';
+                      
+                      // Generate enhanced content based on all available context
+                      const enhancedContent = generateEnhancedContent(
+                        slideType, 
+                        aiWritingPrompt, 
+                        slideTitle, 
+                        currentContent,
+                        languageContext
+                      );
+                      
+                      // Update the slide with enhanced content
+                      const updatedSlides = [...internalSlides];
+                      updatedSlides[currentSlideIndex] = {
+                        ...updatedSlides[currentSlideIndex],
+                        content: enhancedContent
+                      };
+                      
+                      // Update slides state
+                      setInternalSlides(updatedSlides);
+                      setIsEnhancingContent(false);
+                      toast.success("Content enhanced successfully!");
+                    }, 1500);
+                  } catch (error) {
+                    console.error("Error enhancing content:", error);
+                    toast.error("Failed to enhance content. Please try again.");
+                    setIsEnhancingContent(false);
+                  }
+                }}
                 disabled={isEnhancingContent}
               >
                 {isEnhancingContent ? t('enhancing') : t('enhanceContent')}
@@ -1317,8 +1725,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
             disabled={currentSlideIndex === 0}
             className="p-2 bg-white border rounded-full text-black disabled:opacity-50"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
           
@@ -1331,16 +1739,16 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
             disabled={currentSlideIndex === internalSlides.length - 1}
             className="p-2 bg-white border rounded-full text-black disabled:opacity-50"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
           <button 
             onClick={toggleFullscreen}
             className="p-2 bg-white border rounded-full text-black"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 18 18 6 6 6"></polyline>
             </svg>
           </button>
         </div>
@@ -1371,8 +1779,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
               onClick={onBack}
               className="text-gray-700 hover:text-gray-900 focus:outline-none flex items-center"
             >
-              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg className="w-5 h-5 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
               {t('back')}
             </button>
@@ -1465,8 +1873,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 onClick={() => setShowThumbnailsOnMobile(false)}
                 className="p-2 text-gray-500 hover:text-gray-700 rounded-full"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 18 18 6 6 6"></polyline>
                 </svg>
               </button>
             </div>
@@ -1639,8 +2047,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                   disabled={currentSlideIndex === 0}
                   className="p-3 md:p-2 bg-white border rounded-full text-black disabled:opacity-50 shadow-md md:shadow-none"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
                   </svg>
                 </button>
                 
@@ -1653,8 +2061,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                   disabled={currentSlideIndex === internalSlides.length - 1}
                   className="p-3 md:p-2 bg-white border rounded-full text-black disabled:opacity-50 shadow-md md:shadow-none"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
                   </svg>
                 </button>
               </div>
@@ -1669,8 +2077,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 onClick={() => setShowToolsOnMobile(false)}
                 className="p-2 bg-white rounded-full shadow-md text-gray-500 hover:text-gray-700"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 18 18 6 6 6"></polyline>
                 </svg>
               </button>
             </div>
@@ -1684,8 +2092,8 @@ const PresentationViewer: React.FC<PresentationViewerProps> = ({
                 className={`p-3 rounded-full ${activeToolTab === 'theme' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 shadow-md'}`}
                 title={t('themeSettings')}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="7 21 3 17 7 13 11 17 7 21"></polyline>
                 </svg>
               </button>
               <Tooltip content={t('pages')}>

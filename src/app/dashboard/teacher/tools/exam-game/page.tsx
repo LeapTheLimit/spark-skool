@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
@@ -18,17 +18,43 @@ import {
   AdjustmentsHorizontalIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { toast } from 'react-hot-toast';
 
-// Add imports for all game types
-import MemoryGame from './memory-game';
-import WordSearch from './word-search';
-import WordScramble from './word-scramble';
-import QuizShow from './quiz-show';
-import Crossword from './crossword';
-import Timeline from './timeline';
+// Import new game components
+import QuizBattle from './quiz-battle';
+import FlashcardMemory from './flashcard-memory';
+import FillBlanks from './fill-blanks';
+import MatchingGame from './matching-game';
+import SimulationGame from './simulation-game';
+import ChemicalMixingGame from './chemical-mixing-game';
+import CircuitConnectionGame from './circuit-connection-game';
+import BallDropGame from './ball-drop-game';
+import TimelineGame from './timeline-game';
+import SequenceGame from './sequence-game';
 
 // Add import for Groq integration
 import { generateExamFromText } from '@/services/groq';
+
+// Import SparkMascot and MascotImage components
+import SparkMascot from '@/components/SparkMascot';
+import MascotImage from '@/components/MascotImage';
+
+// Type definitions
+type SubjectType = 'math' | 'science' | 'language' | 'history' | 'computer';
+type AnimationType = 'bounce' | 'pulse' | 'shake' | 'spin' | 'fade' | 'slide' | 'type';
+
+// Add new game type definitions
+type GameType = 
+  | 'quiz-battle'
+  | 'flashcard-memory'
+  | 'fill-blanks'
+  | 'matching'
+  | 'simulation'
+  | 'chemical-mixing'
+  | 'circuit-connection'
+  | 'ball-drop'
+  | 'timeline'
+  | 'sequence';
 
 interface GameQuestion {
   id: number;
@@ -41,54 +67,50 @@ interface GameQuestion {
   imageUrl?: string;
   animation?: string;
   soundEffect?: string;
+  explanation?: string;
+  context?: string;
 }
 
+// Update GameState interface
 interface GameState {
-  currentQuestion: number;
-  score: number;
-  timeRemaining: number;
   isPlaying: boolean;
-  showAnswer: boolean;
-  selectedAnswer: string | null;
+  score: number;
   streak: number;
-  totalQuestions: number;
-  gameType: 'kahoot' | 'memory' | 'wordsearch' | 'wordscramble' | 'quizshow' | 'crossword' | 'timeline';
-  usedQuestionIds: number[]; // Add tracking for used questions to prevent repetition
-  activeStudent: string | null; // Track which student raised their hand
+  timeStarted: Date;
+  timeEnded: Date;
+  gameType: GameType;
+  timeRemaining: number;
+  usedQuestionIds: string[];
+  currentQuestionIndex: number;
+  activeStudent: string | null;
+  difficulty: 'easy' | 'medium' | 'hard';
+  subject: SubjectType;
+  topic: string;
 }
 
-// Add QuestionAttempt interface to track detailed analytics
-interface QuestionAttempt {
-  questionId: number;
-  questionText: string;
-  correctAnswer: string;
-  selectedAnswer: string | null;
-  isCorrect: boolean;
-  timeTaken: number;
-  points: number;
-}
+// Update initial game state
+const initialGameState: GameState = {
+  gameType: 'quiz-battle',
+  isPlaying: false,
+  score: 0,
+  streak: 0,
+  timeStarted: new Date(),
+  timeEnded: new Date(),
+  timeRemaining: 60,
+  usedQuestionIds: [],
+  currentQuestionIndex: 0,
+  activeStudent: null,
+  difficulty: 'medium',
+  subject: 'math',
+  topic: 'Algebra'
+};
 
-interface GameSettings {
-  timePerQuestion: number;
-  pointsPerQuestion: number;
-  bonusPoints: {
-    streak: number;
-    speed: number;
-  };
-  showTimer: boolean;
-  showHints: boolean;
-  allowSkip: boolean;
-  backgroundMusic: boolean;
-  soundEffects: boolean;
-  difficultyProgression: boolean;
-  passingScore: number;
-  gameTitle: string;
-  gameDescription: string;
-  teacherName: string;
-  schoolName: string;
-}
-
+// Update GameStats interface
 interface GameStats {
+  score: number;
+  timeStarted: Date;
+  timeEnded: Date;
+  questionAttempts: QuestionAttempt[];
   totalScore: number;
   correctAnswers: number;
   wrongAnswers: number;
@@ -96,18 +118,54 @@ interface GameStats {
   longestStreak: number;
   totalTimeTaken: number;
   completed: boolean;
-  questionAttempts: QuestionAttempt[]; // Add detailed tracking of each question
-  startTime?: Date;
-  endTime?: Date;
+  startTime: Date;
+  endTime: Date;
 }
 
-// Define animation type at the top level
-type AnimationType = 'bounce' | 'pulse' | 'shake' | 'spin' | 'fade' | 'slide' | 'type';
+// Update initialGameStats
+const initialGameStats: GameStats = {
+  score: 0,
+  timeStarted: new Date(),
+  timeEnded: new Date(),
+  questionAttempts: [],
+  totalScore: 0,
+  correctAnswers: 0,
+  wrongAnswers: 0,
+  averageTime: 0,
+  longestStreak: 0,
+  totalTimeTaken: 0,
+  completed: false,
+  startTime: new Date(),
+  endTime: new Date()
+};
 
-// Define subject type to ensure type safety
-type SubjectType = 'math' | 'science' | 'language' | 'history' | 'computer';
+// Update QuestionAttempt interface
+interface QuestionAttempt {
+  questionId: string;
+  questionText: string;
+  selectedAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  timeTaken: number;
+}
 
-// Add subject options with icons
+// Update GameUIState interface
+interface GameUIState {
+  timeRemaining: number;
+  usedQuestionIds: number[];
+  showAnswer: boolean;
+  selectedAnswer: string | null;
+}
+
+// Update initial states
+const initialGameUIState: GameUIState = {
+  timeRemaining: 60,
+  usedQuestionIds: [],
+  showAnswer: false,
+  selectedAnswer: null,
+};
+
+// Define subject options with icons
 const subjects = [
   { id: 'math' as SubjectType, name: 'Mathematics', icon: '📐', topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics'] },
   { id: 'science' as SubjectType, name: 'Science', icon: '🔬', topics: ['Physics', 'Chemistry', 'Biology', 'Earth Science'] },
@@ -116,58 +174,14 @@ const subjects = [
   { id: 'computer' as SubjectType, name: 'Computer Science', icon: '💻', topics: ['Programming', 'Web Development', 'Databases', 'Networking'] }
 ];
 
-// Define subject-specific game types to filter appropriate games for each subject
-const subjectGameMapping: Record<SubjectType, string[]> = {
-  'math': ['kahoot', 'crossword', 'quizshow'],
-  'science': ['kahoot', 'quizshow', 'timeline', 'crossword'],
-  'language': ['wordscramble', 'wordsearch', 'crossword', 'kahoot'],
-  'history': ['timeline', 'kahoot', 'quizshow'],
-  'computer': ['kahoot', 'quizshow', 'crossword']
+// Update subject-specific game types
+const subjectGameMapping: Record<SubjectType, GameType[]> = {
+  'math': ['quiz-battle', 'fill-blanks', 'simulation'],
+  'science': ['quiz-battle', 'chemical-mixing', 'circuit-connection', 'ball-drop'],
+  'language': ['flashcard-memory', 'fill-blanks', 'matching'],
+  'history': ['timeline', 'sequence', 'quiz-battle'],
+  'computer': ['quiz-battle', 'fill-blanks', 'simulation']
 };
-
-// Define game types with icons, descriptions and animations
-const gameTypes = [
-  {
-    id: 'quiz-show',
-    name: 'اختبار كاهوت',
-    icon: '🚀',
-    color: 'purple',
-    component: QuizShow,
-    description: 'قم بإنشاء اختبار كاهوت باستخدام الذكاء الاصطناعي'
-  },
-  {
-    id: 'word-search',
-    name: 'البحث عن الكلمات',
-    icon: '🔍',
-    color: 'blue',
-    component: WordSearch,
-    description: 'قم بإنشاء لعبة البحث عن الكلمات باستخدام الذكاء الاصطناعي'
-  },
-  {
-    id: 'word-scramble',
-    name: 'الكلمات المتقاطعة',
-    icon: '🧩',
-    color: 'green',
-    component: WordScramble,
-    description: 'قم بإنشاء لعبة الكلمات المتقاطعة باستخدام الذكاء الاصطناعي'
-  },
-  {
-    id: 'crossword',
-    name: 'كلمات متشابكة',
-    icon: '📝',
-    color: 'orange',
-    component: Crossword,
-    description: 'قم بإنشاء لعبة الكلمات المتشابكة باستخدام الذكاء الاصطناعي'
-  },
-  {
-    id: 'timeline',
-    name: 'الجدول الزمني',
-    icon: '⏰',
-    color: 'red',
-    component: Timeline,
-    description: 'قم بإنشاء جدول زمني باستخدام الذكاء الاصطناعي'
-  }
-];
 
 // Define subject-specific themes
 const subjectThemes: Record<SubjectType, {
@@ -222,23 +236,132 @@ interface Player {
   avatar?: string;
 }
 
+// Add component props interfaces
+interface QuizBattleProps {
+  questions: GameQuestion[];
+  onGameComplete: (score: number) => void;
+  difficulty: 'easy' | 'medium' | 'hard';
+  theme?: {
+    mainColor: string;
+    accentColor: string;
+    icon: string;
+  };
+}
+
+// Add function for game page generation
+const generateGamePage = () => {
+  // Implementation for generating standalone game page
+  console.log('Generating game page...');
+};
+
+// Add GameComponents mapping
+const GameComponents: Record<GameType, React.ComponentType<any>> = {
+  'quiz-battle': QuizBattle,
+  'flashcard-memory': FlashcardMemory,
+  'fill-blanks': FillBlanks,
+  'matching': MatchingGame,
+  'simulation': SimulationGame,
+  'chemical-mixing': ChemicalMixingGame,
+  'circuit-connection': CircuitConnectionGame,
+  'ball-drop': BallDropGame,
+  'timeline': TimelineGame,
+  'sequence': SequenceGame
+};
+
+// Add type definitions for game components
+interface GameTypeDefinition {
+  id: GameType;
+  name: string;
+  icon: string;
+  color: string;
+  component: React.ComponentType<any>;
+  description: string;
+}
+
+// Update GameHeader component to receive setShowTutorial as a prop
+interface GameHeaderProps {
+  setShowTutorial: (show: boolean) => void;
+}
+
+const GameHeader: React.FC<GameHeaderProps> = ({ setShowTutorial }) => {
+  const { t } = useLanguage();
+  
+  return (
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-bold text-gray-800">{t('game.selectGameMode')}</h1>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          {t('game.howToPlay')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Add LeaderboardModal component
+interface LeaderboardModalProps {
+  leaderboard: LeaderboardEntry[];
+  onClose: () => void;
+}
+
+const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ leaderboard, onClose }) => {
+  const { t } = useLanguage();
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <h2 className="text-xl font-bold mb-4">{t('leaderboard')}</h2>
+        <div className="space-y-2">
+          {leaderboard.map((entry: LeaderboardEntry, index: number) => (
+            <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <span>{index + 1}. {entry.name}</span>
+              <span>{entry.score} pts</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
+        >
+          {t('close')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Add type for leaderboard entry
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+  time: number;
+  date: Date;
+}
+
+// Add this style at the top of the component
+const textStyles = {
+  color: '#000000',
+  fontWeight: 500
+};
+
 export default function ExamGamePage() {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Move state declarations inside the component
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const [gameUIState, setGameUIState] = useState<GameUIState>(initialGameUIState);
+  const [students, setStudents] = useState<string[]>([]);
+  const [newStudent, setNewStudent] = useState('');
+  const [studentAnswer, setStudentAnswer] = useState('');
+  const [gameStats, setGameStats] = useState<GameStats>(initialGameStats);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [questions, setQuestions] = useState<GameQuestion[]>([]);
-  const [gameState, setGameState] = useState<GameState>({
-    currentQuestion: 0,
-    score: 0,
-    timeRemaining: 0,
-    isPlaying: false,
-    showAnswer: false,
-    selectedAnswer: null,
-    streak: 0,
-    totalQuestions: 0,
-    gameType: 'kahoot', // Default game type
-    usedQuestionIds: [], // Initialize empty array to track used questions
-    activeStudent: null // Initialize with no active student
-  });
   const [showMaterialSelector, setShowMaterialSelector] = useState(false);
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -252,8 +375,7 @@ export default function ExamGamePage() {
     type: 'info'
   });
   const [correctAnimation, setCorrectAnimation] = useState(false);
-
-  const [gameSettings, setGameSettings] = useState<GameSettings>({
+  const [gameSettings, setGameSettings] = useState({
     timePerQuestion: 20,
     pointsPerQuestion: 100,
     bonusPoints: {
@@ -270,50 +392,40 @@ export default function ExamGamePage() {
     gameTitle: '',
     gameDescription: '',
     teacherName: '',
-    schoolName: ''
+    schoolName: '',
+    multiplayer: false,
+    leaderboard: true,
+    adaptiveDifficulty: true
   });
-
-  const [gameStats, setGameStats] = useState<GameStats>({
-    totalScore: 0,
-    correctAnswers: 0,
-    wrongAnswers: 0,
-    averageTime: 0,
-    longestStreak: 0,
-    totalTimeTaken: 0,
-    completed: false,
-    questionAttempts: [], // Initialize empty array for tracking attempts
-    startTime: undefined,
-    endTime: undefined
-  });
-
-  // Add state to track time spent on each question
   const [questionStartTime, setQuestionStartTime] = useState<Date | null>(null);
-
   const [showSetup, setShowSetup] = useState(false);
   const [examFile, setExamFile] = useState<File | null>(null);
   const [aiContext, setAiContext] = useState('');
-
-  // Game Phases
   const [gamePhase, setGamePhase] = useState<'setup' | 'playing' | 'results'>('setup');
-
-  // Add new state for AI generation
   const [selectedSubject, setSelectedSubject] = useState<SubjectType | ''>('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [questionCount, setQuestionCount] = useState(10);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [examContext, setExamContext] = useState(''); // Add exam context state
-
-  // Add state for compact view
+  const [examContext, setExamContext] = useState('');
   const [compactView, setCompactView] = useState(true);
-
-  // Add state for theme and animations
   const [currentTheme, setCurrentTheme] = useState(subjectThemes['math']);
   const [showAnimation, setShowAnimation] = useState(false);
   const [animationType, setAnimationType] = useState<AnimationType | ''>('');
   const [gameStartAnimation, setGameStartAnimation] = useState(false);
   const [confetti, setConfetti] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [isRTL, setIsRTL] = useState(false);
+  const [multiplayerState, setMultiplayerState] = useState<{
+    isActive: boolean;
+    players: Array<{
+      id: string;
+      name: string;
+      score: number;
+      avatar?: string;
+    }>;
+  }>({
+    isActive: false,
+    players: []
+  });
 
   // Default theme for initialization
   const defaultTheme = subjectThemes['math'];
@@ -707,11 +819,9 @@ export default function ExamGamePage() {
 
   // Get next unique question
   const getNextUniqueQuestion = () => {
-    if (!questions || questions.length === 0) return -1;
-    
     // Filter out questions that have already been used
     const availableQuestions = questions.filter(
-      q => !gameState.usedQuestionIds.includes(q.id)
+      q => !gameState.usedQuestionIds.includes(q.id.toString())
     );
     
     if (availableQuestions.length === 0) {
@@ -719,540 +829,170 @@ export default function ExamGamePage() {
       if (gameState.usedQuestionIds.length === questions.length) {
         return -1; // All questions used, signal completion
       }
-      // Alternatively, reset used questions and start over
-      setGameState(prev => ({...prev, usedQuestionIds: []}));
-      return questions[0].id;
+      // Reset used questions and start over
+      setGameState(prev => ({
+        ...prev,
+        usedQuestionIds: []
+      }));
+      return getNextUniqueQuestion();
     }
     
-    // Randomly select from available questions
+    // Get a random question from available ones
     const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-    return availableQuestions[randomIndex].id;
+    return availableQuestions[randomIndex].id.toString();
   };
 
-  // Enhanced navigation functions - Fixed to prevent repeating questions
-  const goToNextQuestion = () => {
-    if (gameState.currentQuestion < questions.length - 1) {
-      // Get the index of a question that hasn't been used
-      const nextQuestionId = getNextUniqueQuestion();
-      
-      if (nextQuestionId === -1) {
-        // If all questions have been used, show results
-        finishExam();
-        return;
-      }
-      
-      // Find the index of this question in the questions array
-      const nextIndex = questions.findIndex(q => q.id === nextQuestionId);
-      
-      // Add current question to used questions
-      const currentQuestionId = questions[gameState.currentQuestion]?.id;
-      const updatedUsedIds = currentQuestionId 
-        ? [...gameState.usedQuestionIds, currentQuestionId]
-        : gameState.usedQuestionIds;
-        
+  // Update handleComplete function
+  const handleComplete = (stats: GameStats) => {
+    const updatedStats: GameStats = {
+      ...stats,
+      startTime: stats.timeStarted,
+      endTime: stats.timeEnded
+    };
+    setGameStats(updatedStats);
       setGameState(prev => ({
         ...prev,
-        currentQuestion: nextIndex,
-        timeRemaining: safeGetTimeLimit(nextIndex),
-        isPlaying: true,
-        showAnswer: false,
-        selectedAnswer: null,
-        usedQuestionIds: updatedUsedIds,
-        activeStudent: null // Reset active student
-      }));
-      setStudentAnswer(''); // Clear previous student answer
-      setQuestionStartTime(new Date());
-    } else {
-      // If last question, show results
-      finishExam();
-    }
+      isPlaying: false,
+      timeEnded: new Date()
+    }));
   };
-  
-  const goToPrevQuestion = () => {
-    if (gameState.currentQuestion > 0) {
-      setGameState(prev => ({
+
+  // Update handleAnswerReveal function
+  const handleAnswerReveal = (answer: string | null) => {
+    setGameUIState(prev => ({
         ...prev,
-        currentQuestion: prev.currentQuestion - 1,
-        timeRemaining: gameSettings.timePerQuestion,
-        isPlaying: true,
-        showAnswer: false,
-        selectedAnswer: null
-      }));
-      setQuestionStartTime(new Date());
-    }
+      showAnswer: true,
+      selectedAnswer: answer,
+    }));
   };
 
-  // Add the missing startGame function
-  const startGame = (gameType = gameState.gameType) => {
-    if (questions.length === 0) {
-      setNotification({
-        show: true,
-        message: t('noQuestionsAvailable'),
-        type: 'error'
-      });
-      return;
-    }
-
-    // Start animation
-    setGameStartAnimation(true);
-    setTimeout(() => {
-      setGameStartAnimation(false);
-      
-      // Reset game stats
-      setGameStats({
-        totalScore: 0,
+  const finishExam = () => {
+    const stats: GameStats = {
+      score: gameState.score,
+      timeStarted: gameState.timeStarted,
+      timeEnded: new Date(),
+      questionAttempts: [],
+      totalScore: gameState.score,
         correctAnswers: 0,
         wrongAnswers: 0,
         averageTime: 0,
-        longestStreak: 0,
+      longestStreak: gameState.streak,
         totalTimeTaken: 0,
-        completed: false,
-        questionAttempts: [],
-        startTime: new Date(), // Track when the game started
-        endTime: undefined
-      });
-      
-      setGameState({
-        currentQuestion: 0,
-        score: 0,
-        timeRemaining: safeGetTimeLimit(0), // Use safe function to get timeLimit
-        isPlaying: true,
+      completed: true,
+      startTime: gameState.timeStarted,
+      endTime: new Date()
+    };
+    handleComplete(stats);
+  };
+
+  // Update navigation functions
+  const goToPrevQuestion = () => {
+    if (gameState.currentQuestionIndex > 0) {
+    setGameState(prev => ({
+      ...prev,
+        currentQuestionIndex: prev.currentQuestionIndex - 1,
+      }));
+      setGameUIState(prev => ({
+        ...prev,
         showAnswer: false,
         selectedAnswer: null,
-        streak: 0,
-        totalQuestions: questions.length,
-        gameType: gameType,
-        usedQuestionIds: [], // Reset used questions
-        activeStudent: null // Reset active student
-      });
-      
-      // Track when the first question started
-      setQuestionStartTime(new Date());
-      
-      setGamePhase('playing');
-      
-      // Show quick tutorial once game starts
-      setTimeout(() => {
-        setShowTutorial(true);
-        setTimeout(() => {
-          setShowTutorial(false);
-        }, 3000);
-      }, 500);
-    }, 1500);
-  };
-
-  // Finish exam function
-  const finishExam = () => {
-    // Calculate final stats
-    const endTime = new Date();
-    const totalTime = gameStats.startTime ? 
-      (endTime.getTime() - gameStats.startTime.getTime()) / 1000 : 0;
-    
-    // Calculate average time per question
-    const avgTime = gameStats.questionAttempts.length > 0 ? 
-      gameStats.questionAttempts.reduce((sum, q) => sum + q.timeTaken, 0) / gameStats.questionAttempts.length : 0;
-    
-    setGameStats(prev => ({
-      ...prev,
-      totalTimeTaken: Math.round(totalTime),
-      averageTime: Math.round(avgTime),
-      completed: true,
-      endTime: endTime
-    }));
-    
-    setGamePhase('results');
-  };
-
-  // Add the missing toggle play/pause function
-  const toggleGamePlay = () => {
-    setGameState(prev => ({
-      ...prev,
-      isPlaying: !prev.isPlaying
-    }));
-  };
-
-  // Enhanced answer reveal with detailed tracking - fixed for timeLimit errors
-  const handleAnswerReveal = (selectedAnswer: string | null) => {
-    const currentQ = questions[gameState.currentQuestion];
-    if (!currentQ) return; // Guard against undefined question
-    
-    const isCorrect = selectedAnswer === currentQ.correctAnswer;
-    
-    // Calculate time taken on this question
-    const timeTaken = questionStartTime ? 
-      Math.round((new Date().getTime() - questionStartTime.getTime()) / 1000) : 
-      gameSettings.timePerQuestion - gameState.timeRemaining;
-    
-    // Calculate points based on time remaining and streak
-    let pointsEarned = 0;
-    if (isCorrect) {
-      const timeBonus = Math.floor(gameState.timeRemaining / (currentQ.timeLimit || 20) * 50);
-      const streakBonus = Math.floor(gameState.streak * 10);
-      pointsEarned = (currentQ.points || 100) + timeBonus + streakBonus;
-      
-      // Instead of using confetti, we'll use state to trigger animations
-      setCorrectAnimation(true);
-      
-      // Reset the animation after a delay
-      setTimeout(() => {
-        setCorrectAnimation(false);
-      }, 2000);
+      }));
     }
+  };
 
-    // Track this question attempt
-    const questionAttempt: QuestionAttempt = {
-      questionId: currentQ.id,
-      questionText: currentQ.question,
-      correctAnswer: currentQ.correctAnswer,
-      selectedAnswer: selectedAnswer,
-      isCorrect: isCorrect,
-      timeTaken: timeTaken,
-      points: isCorrect ? pointsEarned : 0
-    };
-    
-    // Update game stats with this attempt
-    setGameStats(prev => ({
-      ...prev,
-      totalScore: isCorrect ? prev.totalScore + pointsEarned : prev.totalScore,
-      correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
-      wrongAnswers: !isCorrect ? prev.wrongAnswers + 1 : prev.wrongAnswers,
-      longestStreak: Math.max(prev.longestStreak, isCorrect ? gameState.streak + 1 : gameState.streak),
-      questionAttempts: [...prev.questionAttempts, questionAttempt]
-    }));
-
+  const goToNextQuestion = () => {
+    if (gameState.currentQuestionIndex < questions.length - 1) {
     setGameState(prev => ({
       ...prev,
-      score: isCorrect ? prev.score + pointsEarned : prev.score,
-      streak: isCorrect ? prev.streak + 1 : 0,
-      isPlaying: false,
-      showAnswer: true,
-      selectedAnswer: selectedAnswer
-    }));
-
-    // Prepare for next question
-    setQuestionStartTime(new Date());
-
-    // Automatically move to next question after delay
-    setTimeout(() => {
-      if (gameState.currentQuestion < questions.length - 1) {
-        const nextIndex = gameState.currentQuestion + 1;
-        setGameState(prev => ({
+        currentQuestionIndex: prev.currentQuestionIndex + 1,
+      }));
+      setGameUIState(prev => ({
           ...prev,
-          currentQuestion: nextIndex,
-          timeRemaining: safeGetTimeLimit(nextIndex),
-          isPlaying: true,
           showAnswer: false,
-          selectedAnswer: null
+        selectedAnswer: null,
         }));
-      } else {
-        // If this was the last question, show a complete button
-        // We don't auto finish so user can review their last answer
       }
-    }, 3000);
   };
 
-  // Handle game completion
-  const handleGameComplete = (score: number) => {
-    setGameStats({
-      totalScore: score,
-      correctAnswers: Math.floor(questions.length * (score / (questions.length * gameSettings.pointsPerQuestion))),
-      wrongAnswers: questions.length - Math.floor(questions.length * (score / (questions.length * gameSettings.pointsPerQuestion))),
-      averageTime: 0, // This would be calculated from actual gameplay data
-      longestStreak: gameState.streak,
-      totalTimeTaken: 0, // This would be calculated from actual gameplay data
-      completed: true,
-      questionAttempts: [],
-      startTime: new Date(),
-      endTime: new Date()
-    });
-    setGamePhase('results');
-  };
-
-  // Add adapter function for QuizShow
-  const handleQuizShowComplete = (winners: Player[]) => {
-    // Extract the highest score from the winners array
-    let highestScore = 0;
-    if (winners.length > 0) {
-      // Find the highest score among all players
-      highestScore = Math.max(...winners.map(player => player.score));
-    }
-    // Set end time for analytics
-    setGameStats(prev => ({
-      ...prev,
-      endTime: new Date()
-    }));
-    // Call the original handleGameComplete with the score
-    handleGameComplete(highestScore);
-  };
-
-  // Function to generate a standalone game page
-  const generateGamePage = () => {
-    const gameHtml = `
-      <!DOCTYPE html>
-      <html lang="${language}">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${gameSettings.gameTitle || 'Exam Game'}</title>
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <style>
-          /* Add custom game styles here */
-          .game-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          /* Add more custom styles */
-        </style>
-      </head>
-      <body class="bg-gradient-to-br from-purple-50 to-blue-50 min-h-screen">
-        <div class="game-container">
-          <h1 class="text-3xl font-bold text-center mb-8">${gameSettings.gameTitle}</h1>
-          <div class="bg-white rounded-xl shadow-lg p-6">
-            <!-- Game content will be injected here -->
-            <div id="game-root"></div>
-          </div>
-        </div>
-        <script>
-          // Inject game data
-          window.gameData = ${JSON.stringify({
-            settings: gameSettings,
-            questions: questions,
-            translations: {
-              // Add your translations here
-            }
-          })};
-          // Add game logic here
-        </script>
-      </body>
-      </html>
-    `;
-
-    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(gameHtml);
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataUrl);
-    downloadAnchorNode.setAttribute("download", `${gameSettings.gameTitle || 'exam-game'}.html`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-
-  // Add GameSetupModal component
-  const GameSetupModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-black">{t('gameSetup')}</h2>
+  // Update renderGameComponent function
+  const renderGameComponent = () => {
+    if (!gameState.gameType || !GameComponents[gameState.gameType]) {
+      console.error('Invalid game type:', gameState.gameType);
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-600">{t('errors.invalidGameType')}</p>
           <button
-            onClick={() => setShowSetup(false)}
-            className="text-black hover:text-gray-600"
+            onClick={() => setGamePhase('setup')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            <XMarkIcon className="w-6 h-6" />
+            {t('actions.backToSelection')}
+          </button>
+          </div>
+      );
+    }
+
+    // Ensure we have questions before rendering the game component
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-600">{t('errors.noQuestionsAvailable')}</p>
+          <button
+            onClick={() => setGamePhase('setup')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {t('actions.backToSelection')}
           </button>
         </div>
+      );
+    }
 
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <div>
-            <h3 className="text-lg font-medium text-black mb-3">{t('basicInfo')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('gameTitle')}
-                </label>
-                <input
-                  type="text"
-                  value={gameSettings.gameTitle}
-                  onChange={(e) => setGameSettings({...gameSettings, gameTitle: e.target.value})}
-                  className="w-full p-2 border rounded text-black"
-                  placeholder={t('enterGameTitle')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('difficultyLevel')}
-                </label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                  className="w-full p-2 border rounded text-black"
-                >
-                  <option value="easy">{t('easy')}</option>
-                  <option value="medium">{t('medium')}</option>
-                  <option value="hard">{t('hard')}</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-3">
-              <label className="block text-sm font-medium text-black mb-1">
-                {t('gameDescription')}
-              </label>
-              <textarea
-                value={gameSettings.gameDescription}
-                onChange={(e) => setGameSettings({...gameSettings, gameDescription: e.target.value})}
-                className="w-full p-2 border rounded text-black"
-                rows={2}
-                placeholder={t('enterGameDescription')}
-              />
-            </div>
-          </div>
-
-          {/* Game Timing */}
-          <div>
-            <h3 className="text-lg font-medium text-black mb-3">{t('gameTiming')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('timePerQuestion')} (seconds)
-                </label>
-                <input
-                  type="number"
-                  min="5"
-                  max="120"
-                  value={gameSettings.timePerQuestion}
-                  onChange={(e) => setGameSettings({...gameSettings, timePerQuestion: parseInt(e.target.value)})}
-                  className="w-full p-2 border rounded text-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('pointsPerQuestion')}
-                </label>
-                <input
-                  type="number"
-                  min="10"
-                  max="1000"
-                  step="10"
-                  value={gameSettings.pointsPerQuestion}
-                  onChange={(e) => setGameSettings({...gameSettings, pointsPerQuestion: parseInt(e.target.value)})}
-                  className="w-full p-2 border rounded text-black"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Game Features */}
-          <div>
-            <h3 className="text-lg font-medium text-black mb-3">{t('gameFeatures')}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="flex items-center text-black">
-                  <input
-                    type="checkbox"
-                    checked={gameSettings.showTimer}
-                    onChange={(e) => setGameSettings({...gameSettings, showTimer: e.target.checked})}
-                    className="mr-2"
-                  />
-                  {t('showTimer')}
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center text-black">
-                  <input
-                    type="checkbox"
-                    checked={gameSettings.showHints}
-                    onChange={(e) => setGameSettings({...gameSettings, showHints: e.target.checked})}
-                    className="mr-2"
-                  />
-                  {t('showHints')}
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center text-black">
-                  <input
-                    type="checkbox"
-                    checked={gameSettings.allowSkip}
-                    onChange={(e) => setGameSettings({...gameSettings, allowSkip: e.target.checked})}
-                    className="mr-2"
-                  />
-                  {t('allowSkip')}
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center text-black">
-                  <input
-                    type="checkbox"
-                    checked={gameSettings.soundEffects}
-                    onChange={(e) => setGameSettings({...gameSettings, soundEffects: e.target.checked})}
-                    className="mr-2"
-                  />
-                  {t('soundEffects')}
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Bonus Points */}
-          <div>
-            <h3 className="text-lg font-medium text-black mb-3">{t('bonusPoints')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('streakBonus')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={gameSettings.bonusPoints.streak}
-                  onChange={(e) => setGameSettings({
-                    ...gameSettings,
-                    bonusPoints: {
-                      ...gameSettings.bonusPoints,
-                      streak: parseInt(e.target.value)
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">
-                  {t('speedBonus')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={gameSettings.bonusPoints.speed}
-                  onChange={(e) => setGameSettings({
-                    ...gameSettings,
-                    bonusPoints: {
-                      ...gameSettings.bonusPoints,
-                      speed: parseInt(e.target.value)
-                    }
-                  })}
-                  className="w-full p-2 border rounded text-black"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-4 mt-6">
+    const GameComponent = GameComponents[gameState.gameType];
+    
+    try {
+      return (
+        <GameComponent
+          questions={questions}
+          onGameComplete={handleGameComplete}
+          difficulty={gameState.difficulty}
+          theme={currentTheme}
+          multiplayer={multiplayerState.isActive}
+          players={multiplayerState.players}
+          onLeaderboardUpdate={updateLeaderboard}
+        />
+      );
+    } catch (error) {
+      console.error('Error rendering game component:', error);
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-600">{t('errors.gameLoadError')}</p>
             <button
-              onClick={() => setShowSetup(false)}
-              className="px-4 py-2 border border-gray-300 rounded text-black hover:bg-gray-100"
-            >
-              {t('cancel')}
+            onClick={() => setGamePhase('setup')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {t('actions.tryAgain')}
             </button>
-            <button
-              onClick={() => {
-                setShowSetup(false);
-                setNotification({
-                  show: true,
-                  message: t('gameSettingsSaved'),
-                  type: 'success'
-                });
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {t('saveSettings')}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
+    }
+  };
+
+  // Update getGameIcon function
+  const getGameIcon = (gameType: GameState['gameType']) => {
+    switch (gameType) {
+      case 'quiz-battle':
+        return '🎯';
+      case 'flashcard-memory':
+        return '🎴';
+      case 'fill-blanks':
+        return '📝';
+      case 'matching':
+        return '🔄';
+      case 'simulation':
+        return '🎮';
+      default:
+        return '❓';
+    }
+  };
 
   // Add export options to the game interface
   const ExportOptions = () => (
@@ -1300,7 +1040,7 @@ export default function ExamGamePage() {
   const evaluateStudentAnswer = (isCorrect: boolean) => {
     if (!gameState.activeStudent) return;
     
-    const currentQ = questions[gameState.currentQuestion];
+    const currentQ = questions[gameState.currentQuestionIndex];
     if (!currentQ) return;
     
     // Calculate time taken and points
@@ -1324,17 +1064,16 @@ export default function ExamGamePage() {
 
     // Track this question attempt
     const questionAttempt: QuestionAttempt = {
-      questionId: currentQ.id,
+      questionId: currentQ.id.toString(),
       questionText: currentQ.question,
+      selectedAnswer: gameUIState.selectedAnswer || '',
       correctAnswer: currentQ.correctAnswer,
-      selectedAnswer: studentAnswer,
       isCorrect: isCorrect,
       timeTaken: timeTaken,
-      points: isCorrect ? pointsEarned : 0
     };
     
     // Update game stats
-    setGameStats(prev => ({
+    setGameStats((prev: GameStats) => ({
       ...prev,
       totalScore: isCorrect ? prev.totalScore + pointsEarned : prev.totalScore,
       correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
@@ -1349,7 +1088,7 @@ export default function ExamGamePage() {
       score: isCorrect ? prev.score + pointsEarned : prev.score,
       streak: isCorrect ? prev.streak + 1 : 0,
       showAnswer: true,
-      selectedAnswer: studentAnswer
+      selectedAnswer: gameUIState.selectedAnswer || ''
     }));
 
     // Show appropriate notification
@@ -1367,9 +1106,9 @@ export default function ExamGamePage() {
     }, 3000);
   };
 
-  // QuizShow specific controls component
-  const QuizShowControls = () => {
-    if (gameState.gameType !== 'quizshow') return null;
+  // QuizBattle specific controls component
+  const QuizBattleControls = () => {
+    if (gameState.gameType !== 'quiz-battle') return null;
     
     return (
       <div className="mt-6 border-t pt-4 border-gray-200">
@@ -1454,1095 +1193,674 @@ export default function ExamGamePage() {
     );
   };
 
-  // Modified GamePlayingUI to include QuizShow controls
-  const GamePlayingUI = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      {/* Progress and Stats - Fixed spacing */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-black font-semibold text-base">
-          {t('question')} {gameState.currentQuestion + 1}/{questions.length}
+  // Modified GamePlayingUI to include QuizBattle controls
+  const GamePlayingUI = () => {
+    const safeQuestions = questions || []; // Ensure questions is never undefined
+    const currentQuestionIndex = Math.min(gameState.currentQuestionIndex, safeQuestions.length - 1);
+    
+    return (
+      <div>
+        {/* Game progress */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-lg font-bold">
+            {t('question')} {currentQuestionIndex + 1} / {safeQuestions.length}
         </div>
-        <div className="text-black font-semibold text-base">
+          <div className="text-lg">
           {t('score')}: {gameState.score}
         </div>
-        {gameSettings.showTimer && (
-          <div className="text-black font-semibold text-base">
-            {t('time')}: {gameState.timeRemaining}s
+          <div className="text-lg">
+            {t('time')}: {gameUIState.timeRemaining}s
           </div>
-        )}
       </div>
 
-      {/* Question - Improved typography and spacing */}
-      <div className="mb-8">
-        <h3 className="text-xl font-bold text-black mb-5 leading-relaxed">
-          {questions[gameState.currentQuestion]?.question}
-        </h3>
-        
-        {/* Options - Better spacing and interaction */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {questions[gameState.currentQuestion]?.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handleAnswerReveal(option)}
-              disabled={gameState.showAnswer || gameState.gameType === 'quizshow'}
-              className={`p-5 rounded-xl text-left transition-all transform hover:scale-102 active:scale-98 ${
-                gameState.showAnswer
-                  ? option === questions[gameState.currentQuestion].correctAnswer
-                    ? 'bg-green-100 border-2 border-green-500 text-green-800'
-                    : option === gameState.selectedAnswer
-                    ? 'bg-red-100 border-2 border-red-500 text-red-800'
-                    : 'bg-gray-100 border-2 border-gray-300'
-                  : 'bg-white border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50'
-              }`}
-            >
-              <div className="flex items-center">
-                <span className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center mr-4 text-black font-bold">
-                  {String.fromCharCode(65 + index)}
-                </span>
-                <span className="text-black font-medium text-lg">{option}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Game content */}
+        {renderGameComponent()}
 
-      {/* Quiz Show Controls for teacher to manage student answers */}
-      {gameState.gameType === 'quizshow' && <QuizShowControls />}
-
-      {/* Game Controls - Enhanced with play/pause and navigation */}
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
-          {gameSettings.allowSkip && (
+        {/* Navigation buttons */}
+        <div className="flex justify-between mt-4">
             <button
-              onClick={() => handleAnswerReveal('')}
-              className="px-5 py-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
-            >
-              {t('skipQuestion')}
-            </button>
-          )}
-          {gameSettings.showHints && (
-            <button
-              onClick={() => {
-                // Simple hint logic - show first letter of correct answer
-                setNotification({
-                  show: true,
-                  message: `Hint: The answer starts with ${questions[gameState.currentQuestion].correctAnswer.charAt(0)}`,
-                  type: 'info'
-                });
-              }}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              {t('showHint')}
-            </button>
-          )}
-        </div>
-        
-        {/* New Play Controls */}
-        <div className="flex justify-center items-center gap-4 mt-2 bg-gray-50 p-3 rounded-lg">
-          <button
             onClick={goToPrevQuestion}
-            disabled={gameState.currentQuestion === 0}
-            className="p-2 rounded-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={currentQuestionIndex === 0 || gameState.gameType === 'quiz-battle'}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
           >
-            <ChevronLeftIcon className="w-5 h-5" />
-          </button>
-          
-          <button
-            onClick={toggleGamePlay}
-            disabled={gameState.activeStudent !== null}
-            className="p-3 rounded-full bg-green-600 text-white hover:bg-green-700 flex items-center justify-center disabled:bg-gray-400"
-          >
-            {gameState.isPlaying ? (
-              <PauseIcon className="w-6 h-6" />
-            ) : (
-              <PlayIcon className="w-6 h-6" />
-            )}
-          </button>
-          
-          <button
+            {t('previous')}
+            </button>
+            <button
             onClick={goToNextQuestion}
-            className="p-2 rounded-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
-          >
-            <ForwardIcon className="w-5 h-5" />
-          </button>
+            disabled={currentQuestionIndex === safeQuestions.length - 1}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+            {t('next')}
+            </button>
         </div>
         
-        {/* Finish Button - Only show on last question */}
-        {gameState.currentQuestion === questions.length - 1 && (
-          <button
-            onClick={finishExam}
-            className="mt-4 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium self-center"
-          >
-            {t('finishExam')}
-          </button>
-        )}
-      </div>
+        {/* Quiz Battle controls */}
+        {gameState.gameType === 'quiz-battle' && <QuizBattleControls />}
     </div>
   );
-
-  // Enhanced analytics page with visualizations and detailed breakdown
-  const GameResultsUI = () => {
-    // Calculate percentage score
-    const percentageScore = gameState.totalQuestions > 0 
-      ? Math.round((gameStats.correctAnswers / gameState.totalQuestions) * 100) 
-      : 0;
-    
-    // Format time for display
-    const formatTime = (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
-    
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-black mb-4 text-center">
-          {gameStats.totalScore >= gameSettings.passingScore
-            ? t('congratulations')
-            : t('goodTry')}
-        </h2>
-        
-        {/* Score Summary Card */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-5 mb-8 text-center shadow-sm">
-          <div className="text-3xl font-bold text-blue-800 mb-3">
-            {percentageScore}%
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-gray-600 text-sm">{t('score')}</p>
-              <p className="text-black font-bold">{gameStats.totalScore}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">{t('correctAnswers')}</p>
-              <p className="text-black font-bold">{gameStats.correctAnswers}/{gameState.totalQuestions}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">{t('bestStreak')}</p>
-              <p className="text-black font-bold">{gameStats.longestStreak}</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Time Analysis */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-gray-600 text-sm mb-1">{t('totalTime')}</p>
-            <p className="text-black font-bold">{formatTime(gameStats.totalTimeTaken)}</p>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-gray-600 text-sm mb-1">{t('averageTime')}</p>
-            <p className="text-black font-bold">{formatTime(gameStats.averageTime)}</p>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-gray-600 text-sm mb-1">{t('fastestAnswer')}</p>
-            <p className="text-black font-bold">
-              {formatTime(Math.min(...gameStats.questionAttempts.map(q => q.timeTaken)))}
-            </p>
-          </div>
-        </div>
-        
-        {/* Question-by-question breakdown */}
-        <h3 className="text-lg font-bold text-black mb-3">{t('questionBreakdown')}</h3>
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 max-h-80 overflow-y-auto">
-          {gameStats.questionAttempts.map((attempt, index) => (
-            <div 
-              key={index}
-              className={`mb-3 p-3 rounded-lg ${
-                attempt.isCorrect ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div className="font-medium text-black">{t('question')} {index + 1}</div>
-                <div className={`text-sm ${attempt.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                  {attempt.isCorrect ? t('correct') : t('incorrect')} • {formatTime(attempt.timeTaken)}
-                </div>
-              </div>
-              <p className="text-sm text-gray-700 mb-1">{attempt.questionText}</p>
-              <div className="text-xs mt-1">
-                <span className="text-gray-600">{t('yourAnswer')}: </span>
-                <span className={attempt.isCorrect ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                  {attempt.selectedAnswer || t('skipped')}
-                </span>
-                {!attempt.isCorrect && (
-                  <span className="ml-2">
-                    <span className="text-gray-600">{t('correctAnswer')}: </span>
-                    <span className="text-green-600 font-medium">{attempt.correctAnswer}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-wrap justify-center gap-4 mt-6">
-          <button
-            onClick={() => {
-              setGamePhase('setup');
-              setGameState({
-                currentQuestion: 0,
-                score: 0,
-                timeRemaining: gameSettings.timePerQuestion,
-                isPlaying: false,
-                showAnswer: false,
-                selectedAnswer: null,
-                streak: 0,
-                totalQuestions: questions.length,
-                gameType: 'kahoot',
-                usedQuestionIds: [], // Add missing property
-                activeStudent: null // Add missing property
-              });
-            }}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            {t('playAgain')}
-          </button>
-          <button
-            onClick={exportGame}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            {t('exportResults')}
-          </button>
-          <button
-            onClick={() => {
-              // Print or show a printable version
-              window.print();
-            }}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            {t('printResults')}
-          </button>
-        </div>
-      </div>
-    );
   };
 
-  // Game mode selection UI - Updated with subject-specific filtering
-  const GameModeSelector = () => {
-    const availableGames = getAvailableGameModes();
-    
-    return (
-      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-base font-bold text-black">{t('selectGameMode')}</h3>
-          
-          {selectedSubject && (
-            <div className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700">
-              {t('recommendedFor')} {t(selectedSubject)}
-            </div>
-          )}
-        </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {availableGames.map(type => (
-            <motion.button
-              key={type.id}
-              onClick={() => setGameState(prev => ({ ...prev, gameType: type.id as any }))}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg border-2 ${
-                gameState.gameType === type.id 
-                  ? `border-${type.color}-500 bg-${type.color}-50` 
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              } transition-colors flex flex-col items-center text-center gap-1.5`}
-            >
-              <span className="text-2xl">{type.icon}</span>
-              <span className="text-sm font-medium text-black">{type.name}</span>
-              <span className="text-xs text-gray-500 hidden sm:block">{type.description}</span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  // Add animation components
+  const SubjectAnimation = () => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5 }}
+      className="fixed inset-0 flex items-center justify-center pointer-events-none"
+    >
+      <div className="text-6xl">🎓</div>
+    </motion.div>
+  );
 
-  // Update the renderGameComponent function to use the adapter
-  const renderGameComponent = () => {
-    switch (gameState.gameType) {
-      case 'wordsearch':
-        return <WordSearch 
-          words={questions.map(q => q.correctAnswer)} 
-          definitions={questions.map(q => q.question)}
-          onGameComplete={handleGameComplete} 
-        />;
-      case 'wordscramble':
-        return <WordScramble 
-          words={questions.map(q => ({ 
-            word: q.correctAnswer, 
-            hint: q.question 
-          }))} 
-          onGameComplete={handleGameComplete} 
-        />;
-      case 'quizshow':
-        // Fix the difficulty type issue by ensuring it's one of the allowed values
-        const safetyDifficulty = difficulty === 'easy' || difficulty === 'medium' || difficulty === 'hard' 
-          ? difficulty as 'easy' | 'medium' | 'hard'
-          : 'medium'; // Default to medium if not one of the allowed values
-          
-        return <QuizShow 
-          questions={questions.map(q => ({ 
-            id: q.id,
-            question: q.question, 
-            answer: q.correctAnswer,
-            category: selectedTopic || '',
-            difficulty: safetyDifficulty,
-            points: q.points,
-            timeLimit: q.timeLimit
-          }))} 
-          onGameComplete={handleQuizShowComplete} // Use the adapter function here
-        />;
-      case 'crossword':
-        return <Crossword 
-          clues={questions.map(q => ({ 
-            question: q.question, 
-            answer: q.correctAnswer 
-          }))} 
-          onGameComplete={handleGameComplete} 
-        />;
-      case 'timeline':
-        return <Timeline 
-          events={questions.map((q, index) => ({ 
-            id: q.id,
-            title: q.correctAnswer,
-            description: q.question,
-            date: `Item ${index + 1}`,
-            correctOrder: index + 1
-          }))} 
-          onGameComplete={handleGameComplete} 
-        />;
-      case 'kahoot':
-      default:
-        return <GamePlayingUI />;
-    }
-  };
+  const StartGameAnimation = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="fixed inset-0 flex items-center justify-center pointer-events-none"
+    >
+      <div className="text-6xl">🎮</div>
+    </motion.div>
+  );
 
-  // Confetti Animation Component
   const ConfettiAnimation = () => (
-    <div className="fixed inset-0 w-full h-full z-50 pointer-events-none">
-      <div className="absolute inset-0 flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ 
-            opacity: [0, 1, 1, 0],
-            scale: [0.5, 1.2, 1, 0.8],
-            rotate: [0, 10, -10, 0]
-          }}
-          transition={{ duration: 3, times: [0, 0.2, 0.8, 1] }}
-          className="relative"
-        >
-          {/* This creates the confetti effect */}
-          {Array.from({ length: 50 }).map((_, i) => {
-            const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const randomLeft = `${Math.random() * 100}%`;
-            const randomSize = `${Math.random() * 0.5 + 0.2}rem`;
-            const randomDuration = `${Math.random() * 3 + 1}s`;
-            
-            return (
-              <motion.div
-                key={i}
-                className={`absolute ${randomColor} rounded-sm`}
-                style={{
-                  left: randomLeft,
-                  width: randomSize,
-                  height: randomSize,
-                }}
-                initial={{ y: 0, opacity: 0 }}
-                animate={{
-                  y: [0, -100, 100],
-                  x: [0, Math.random() * 100 - 50, Math.random() * 100 - 50],
-                  rotate: [0, Math.random() * 360, Math.random() * 720],
-                  opacity: [0, 1, 0]
-                }}
-                transition={{ duration: parseInt(randomDuration), ease: "easeOut" }}
-              />
-            );
-          })}
-          <div className="text-3xl font-bold text-center mb-4 text-black">
-            {t('questionsReady')}! 🎉
-          </div>
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 pointer-events-none"
+    >
+      <div className="text-6xl">🎉</div>
         </motion.div>
-      </div>
-    </div>
   );
 
-  // Tutorial Component
+  // Add GameTutorial component
   const GameTutorial = () => (
-    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="bg-white bg-opacity-90 rounded-xl shadow-lg p-4 max-w-md"
-      >
-        <h3 className="text-lg font-bold text-black mb-2">
-          {t('howToPlay')} {gameTypes.find(g => g.id === gameState.gameType)?.name}
-        </h3>
-        <p className="text-black text-sm mb-2">
-          {gameState.gameType === 'kahoot' && t('kahootInstructions')}
-          {gameState.gameType === 'memory' && t('memoryInstructions')}
-          {gameState.gameType === 'wordsearch' && t('wordsearchInstructions')}
-          {gameState.gameType === 'wordscramble' && t('wordscrambleInstructions')}
-          {gameState.gameType === 'quizshow' && t('quizshowInstructions')}
-          {gameState.gameType === 'crossword' && t('crosswordInstructions')}
-          {gameState.gameType === 'timeline' && t('timelineInstructions')}
-        </p>
-        <div className="text-center text-gray-500 text-xs">
-          {t('tutorialDismiss')}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div className="bg-white rounded-lg p-6 max-w-md">
+        <h2 className="text-xl font-bold mb-4">{t('howToPlay')}</h2>
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">1</div>
+            <p className="text-black">{t('game.tutorialStep1', { defaultValue: 'Select a game mode from the available options that best suits your learning style.' })}</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">2</div>
+            <p className="text-black">{t('game.tutorialStep2', { defaultValue: 'Choose your subject, topic, and difficulty level. You can also set the number of questions.' })}</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">3</div>
+            <p className="text-black">{t('game.tutorialStep3', { defaultValue: 'Use the AI generation feature by providing context about your topic to create custom questions.' })}</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">4</div>
+            <p className="text-black">{t('game.tutorialStep4', { defaultValue: 'Answer questions within the time limit and use power-ups to help you succeed.' })}</p>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">5</div>
+            <p className="text-black">{t('game.tutorialStep5', { defaultValue: 'Track your progress and compete for high scores on the leaderboard.' })}</p>
+          </div>
         </div>
-      </motion.div>
-    </div>
+          <button
+          onClick={() => setShowTutorial(false)}
+          className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full"
+          >
+          {t('game.gotIt')}
+          </button>
+      </div>
+    </motion.div>
   );
 
-  // Subject Icon Animation
-  const SubjectAnimation = () => {
-    const animations: Record<AnimationType, {
-      animate: any;
-      transition: {
-        duration: number;
-        times?: number[];
-        staggerChildren?: number;
-      };
-    }> = {
-      'bounce': {
-        animate: { 
-          y: [0, -30, 0],
-          scale: [1, 1.2, 1]
-        },
-        transition: { 
-          duration: 1,
-          times: [0, 0.5, 1]
-        }
-      },
-      'pulse': {
-        animate: { 
-          scale: [1, 1.3, 1], 
-          opacity: [1, 0.7, 1] 
-        },
-        transition: { 
-          duration: 1,
-          times: [0, 0.5, 1]
-        }
-      },
-      'shake': {
-        animate: { 
-          rotate: [0, 10, -10, 10, -10, 0] 
-        },
-        transition: { 
-          duration: 1,
-          times: [0, 0.2, 0.4, 0.6, 0.8, 1]
-        }
-      },
-      'spin': {
-        animate: { 
-          rotate: [0, 360] 
-        },
-        transition: { 
-          duration: 1
-        }
-      },
-      'fade': {
-        animate: { 
-          opacity: [0, 1] 
-        },
-        transition: { 
-          duration: 1
-        }
-      },
-      'slide': {
-        animate: { 
-          x: [-50, 0],
-          opacity: [0, 1]
-        },
-        transition: { 
-          duration: 1
-        }
-      },
-      'type': {
-        animate: { 
-          opacity: [0, 1],
-          scale: [0.95, 1]
-        },
-        transition: { 
-          duration: 1,
-          staggerChildren: 0.1
-        }
-      }
-    };
+  // Add getLocalizedText function
+  const getLocalizedText = (key: string, en: string, ar: string, he: string) => {
+    switch (language) {
+      case 'ar':
+        return ar;
+      case 'he':
+        return he;
+      default:
+        return en;
+    }
+  };
 
-    // No need for type guard since we're properly typed now
-    const currentAnimation = animationType 
-      ? animations[animationType] 
-      : animations['bounce'];
+  // Define game types with icons, descriptions and animations
+  const gameTypes: GameTypeDefinition[] = useMemo(() => [
+    {
+      id: 'quiz-battle',
+      name: t('gameTypes.quizBattle'),
+      icon: 'target',
+      color: '#FF5722',
+      component: QuizBattle,
+      description: t('gameTypes.quizBattleDesc'),
+    },
+    {
+      id: 'flashcard-memory',
+      name: t('gameTypes.flashcardMemory'),
+      icon: 'brain',
+      color: '#9C27B0',
+      component: FlashcardMemory,
+      description: t('gameTypes.flashcardMemoryDesc'),
+    },
+    {
+      id: 'fill-blanks',
+      name: t('gameTypes.fillBlanks'),
+      icon: 'pencil',
+      color: '#2196F3',
+      component: FillBlanks,
+      description: t('gameTypes.fillBlanksDesc'),
+    },
+    {
+      id: 'matching',
+      name: t('gameTypes.matching'),
+      icon: 'puzzle',
+      color: '#4CAF50',
+      component: MatchingGame,
+      description: t('gameTypes.matchingDesc'),
+    },
+    {
+      id: 'simulation',
+      name: t('gameTypes.simulation'),
+      icon: 'beaker',
+      color: '#FF9800',
+      component: SimulationGame,
+      description: t('gameTypes.simulationDesc'),
+    },
+    {
+      id: 'chemical-mixing',
+      name: t('gameTypes.chemicalMixing'),
+      icon: 'flask',
+      color: '#673AB7',
+      component: ChemicalMixingGame,
+      description: t('gameTypes.chemicalMixingDesc'),
+    },
+    {
+      id: 'circuit-connection',
+      name: t('gameTypes.circuitConnection'),
+      icon: 'bolt',
+      color: '#795548',
+      component: CircuitConnectionGame,
+      description: t('gameTypes.circuitConnectionDesc'),
+    },
+    {
+      id: 'ball-drop',
+      name: t('gameTypes.ballDrop'),
+      icon: 'ball',
+      color: '#607D8B',
+      component: BallDropGame,
+      description: t('gameTypes.ballDropDesc'),
+    },
+    {
+      id: 'timeline',
+      name: t('gameTypes.timeline'),
+      icon: 'timeline',
+      color: '#4CAF50',
+      component: TimelineGame,
+      description: t('gameTypes.timelineDesc'),
+    },
+    {
+      id: 'sequence',
+      name: t('gameTypes.sequence'),
+      icon: 'list',
+      color: '#009688',
+      component: SequenceGame,
+      description: t('gameTypes.sequenceDesc'),
+    }
+  ], [t]);
 
+  // Update GameModeSelector to use proper types and styling
+  const GameModeSelector = () => {
+    const { t } = useLanguage();
+    
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-40 pointer-events-none">
-        <motion.div
-          key={animationType}
-          initial={{ opacity: 0 }}
-          animate={{ ...currentAnimation.animate, opacity: [0, 1, 0] }}
-          transition={currentAnimation.transition}
-          className="text-7xl"
-        >
-          {currentTheme.icon}
-        </motion.div>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <SparkMascot width={60} height={60} variant="blue" blinking />
+            <h2 className="text-2xl font-bold text-black">{t('game.selectGameMode')}</h2>
+          </div>
+            </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {gameTypes.map((type: GameTypeDefinition) => (
+            <motion.div
+              key={type.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative group"
+            >
+              <button
+                onClick={() => {
+                  setGameState(prev => ({
+                    ...prev,
+                    gameType: type.id as GameType
+                  }));
+                  setShowSetup(true);
+                }}
+                className="w-full h-full bg-white rounded-xl shadow-lg hover:shadow-xl transition-all p-6 text-left border-2 border-transparent hover:border-blue-500"
+              >
+                <div className="absolute top-4 right-4 text-2xl">
+                  {type.icon}
+        </div>
+        
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-black">{type.name}</h3>
+                  <p className="text-black">{type.description}</p>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-white bg-${type.color}-500`}>
+                      {t(`gameTypes.${type.id}Tag1`)}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full bg-${type.color}-100 text-${type.color}-700`}>
+                      {t(`gameTypes.${type.id}Tag2`)}
+                    </span>
+          </div>
+          </div>
+              </button>
+            </motion.div>
+          ))}
+          </div>
+        </div>
+    );
+  };
+
+  // Update GameResultsUI component
+  const GameResultsUI = ({ stats }: { stats: GameStats }) => {
+    const { t } = useLanguage();
+    
+    return (
+      <div className="bg-white rounded-lg p-6 shadow-lg">
+        <h2 className="text-2xl font-bold mb-4 text-black">{t('game.gameResults')}</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-black">{t('game.score')}</p>
+            <p className="text-2xl font-bold text-black">{stats.score}</p>
+                </div>
+          <div>
+            <p className="text-black">{t('game.timeTaken')}</p>
+            <p className="text-2xl font-bold text-black">{stats.totalTimeTaken}s</p>
+              </div>
+          <div>
+            <p className="text-black">{t('game.correctAnswers')}</p>
+            <p className="text-2xl font-bold text-black">{stats.correctAnswers}</p>
+              </div>
+          <div>
+            <p className="text-black">{t('game.wrongAnswers')}</p>
+            <p className="text-2xl font-bold text-black">{stats.wrongAnswers}</p>
+            </div>
+        </div>
+        
+        <div className="mt-8 flex justify-end gap-4">
+          <button
+            onClick={() => {
+              setGamePhase('setup');
+              setShowSetup(false);
+              setQuestions([]);
+              setGameState(initialGameState);
+            }}
+            className="px-6 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            {t('game.playAgain')}
+          </button>
+          <button
+            onClick={() => router.push('/dashboard' as any)}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {t('game.backToDashboard')}
+          </button>
+        </div>
       </div>
     );
   };
 
-  // Start Game Animation
-  const StartGameAnimation = () => (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40 pointer-events-none">
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ 
-          scale: [0.5, 1.2, 1],
-          opacity: [0, 1, 0]
-        }}
-        transition={{ 
-          duration: 1.5,
-          times: [0, 0.7, 1]
-        }}
-        className="bg-white rounded-3xl px-12 py-8 text-center"
-      >
-        <div className="text-5xl mb-4">
-          {gameTypes.find(g => g.id === gameState.gameType)?.icon}
-        </div>
-        <div className="text-3xl font-bold text-black mb-2">
-          {gameTypes.find(g => g.id === gameState.gameType)?.name}
-        </div>
-        <div className="text-lg text-gray-700">
-          {t('starting')}...
-        </div>
-      </motion.div>
+  // Add new function for handling multiplayer
+  const handleMultiplayerToggle = () => {
+    setMultiplayerState(prev => ({
+      ...prev,
+      isActive: !prev.isActive
+    }));
+  };
+
+  // Add new function for updating leaderboard
+  const updateLeaderboard = (player: { name: string; score: number; time: number }) => {
+    setLeaderboard(prev => {
+      const newLeaderboard = [...prev, { ...player, date: new Date() }]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+      return newLeaderboard;
+    });
+  };
+
+  // Add new function for adaptive difficulty
+  const adjustDifficulty = (performance: number) => {
+    if (!gameSettings.adaptiveDifficulty) return;
+    
+    if (performance > 0.8) {
+      setDifficulty('hard');
+    } else if (performance > 0.6) {
+      setDifficulty('medium');
+    } else {
+      setDifficulty('easy');
+    }
+  };
+
+  // Update startGame function with proper type
+  const startGame = (gameType: GameType = 'quiz-battle') => {
+    setGameState({
+      isPlaying: true,
+      score: 0,
+      streak: 0,
+      timeStarted: new Date(),
+      timeEnded: new Date(),
+      gameType,
+      timeRemaining: 60,
+      usedQuestionIds: [],
+      currentQuestionIndex: 0,
+      activeStudent: null,
+      difficulty: 'medium',
+      subject: 'math',
+      topic: 'Algebra'
+    });
+    setGameStats(initialGameStats);
+  };
+
+  // Add GameSetupModal component
+  const GameSetupModal = () => {
+            return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h2 className="text-xl font-bold mb-4">{t('gameSetup')}</h2>
+          {/* Add your game setup form here */}
+      </div>
     </div>
   );
+  };
 
-  // Add the missing handleAIGeneration function
+  // Update handleGameComplete function
+  const handleGameComplete = (score: number) => {
+    const stats: GameStats = {
+      score,
+      timeStarted: gameState.timeStarted,
+      timeEnded: new Date(),
+      questionAttempts: [],
+      totalScore: score,
+      correctAnswers: 0,
+      wrongAnswers: 0,
+      averageTime: 0,
+      longestStreak: gameState.streak,
+      totalTimeTaken: 0,
+      completed: true,
+      startTime: gameState.timeStarted,
+      endTime: new Date()
+    };
+    handleComplete(stats);
+  };
+
+  // Update handleAIGeneration function
   const handleAIGeneration = async () => {
-    if (!selectedSubject || !selectedTopic) {
-      setNotification({
-        show: true,
-        message: t('pleaseSelectSubjectAndTopic'),
-        type: 'error'
-      });
+    if (!selectedSubject || !selectedTopic || !difficulty) {
+      toast.error(t('game.pleaseCompleteAllFields'));
       return;
     }
 
-    setLoading(true);
-    // Show animation while generating
-    setAnimationType('pulse');
-    setShowAnimation(true);
-    
     try {
-      // Build a base prompt with selected options - add language context and exam context
-      const contextInfo = examContext ? `\nExam Context: ${examContext}` : '';
-      const basePrompt = `Generate ${questionCount} ${difficulty} difficulty questions about ${selectedTopic} in ${selectedSubject}. The questions should be in ${language === 'ar' ? 'Arabic' : language === 'he' ? 'Hebrew' : 'English'} language.${contextInfo}`;
-      
-      // Use user-provided prompt if available, otherwise use the base prompt
-      const finalPrompt = aiPrompt.trim() ? aiPrompt : basePrompt;
-      
-      console.log("AI Prompt:", finalPrompt); // Debug info
-      
-      // First try using Groq API if available
-      try {
-        const generatedQuestions = await generateExamFromText(finalPrompt, {
-          language: language, // Ensure system language is passed
+      setLoading(true);
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           subject: selectedSubject,
-          grade: "high school",
-          questionTypes: ["multiple_choice"],
-          difficulty: [difficulty]
-          // Context is already included in the finalPrompt, so no need to pass it separately
-        });
-        
-        if (generatedQuestions && generatedQuestions.length > 0) {
-          // If Groq successfully generated questions
-          console.log("Groq generated questions:", generatedQuestions.length);
-          
-          // Convert to game format and enforce system language
-          const gameQuestions = generatedQuestions.map((q, index) => ({
+          difficulty: difficulty,
+          count: questionCount,
+          topic: selectedTopic,
+          context: examContext
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate questions');
+      }
+      
+      const data = await response.json();
+      if (!data.questions || !Array.isArray(data.questions)) {
+        throw new Error('Invalid questions data received');
+      }
+      
+      // Initialize game questions with proper structure
+      const gameQuestions = data.questions.map((q: any, index: number) => ({
             id: index,
-            question: q.question,
-            options: q.options || ['Option A', 'Option B', 'Option C', 'Option D'],
-            correctAnswer: q.answer,
+        question: q.question || '',
+        options: Array.isArray(q.options) ? q.options : [],
+        correctAnswer: q.answer || '',
             points: q.points || 100,
             timeLimit: difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15,
-            type: 'multiple_choice' as const,
-            animation: getRandomAnimation(),
-            soundEffect: getRandomSoundEffect()
+        type: q.type || 'multiple_choice',
+        imageUrl: q.imageUrl || '',
+        explanation: q.explanation || ''
           }));
           
           setQuestions(gameQuestions);
-          setGameState(prev => ({
-            ...prev,
-            totalQuestions: gameQuestions.length
-          }));
-          
-          // Suggest appropriate game mode for this subject
-          if (selectedSubject && subjectGameMapping[selectedSubject]?.length > 0) {
-            const recommendedGame = subjectGameMapping[selectedSubject][0];
-            setGameState(prev => ({
-              ...prev,
-              gameType: recommendedGame as any
-            }));
-          }
-          
-          // Fix spacing in title and description
-          setGameSettings(prev => ({
-            ...prev,
-            gameTitle: `${t(selectedSubject)} - ${selectedTopic} ${t('quiz')}`.trim(), 
-            gameDescription: `${t('a')} ${t(difficulty)} ${t('levelQuiz')} ${t('about')} ${selectedTopic}`.trim(),
-            timePerQuestion: difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15,
-            pointsPerQuestion: difficulty === 'easy' ? 100 : difficulty === 'medium' ? 150 : 200
-          }));
-          
-          // Show success animation
-          setConfetti(true);
-          setTimeout(() => {
-            setConfetti(false);
-          }, 3000);
-          
-          setNotification({
-            show: true,
-            message: `${gameQuestions.length} ${t('questionsGenerated')}!`,
-            type: 'success'
-          });
-          return;
-        }
-      } catch (groqError) {
-        console.error("Groq API error:", groqError);
-        // Continue to fallback if Groq fails
-      }
-      
-      // Fallback to local generation if Groq failed
-      console.log("Falling back to local generation");
-      const sampleQuestions = generateSampleQuestions(selectedSubject, selectedTopic, difficulty, questionCount);
-      const gameQuestions = convertToGameQuestions(sampleQuestions);
-      
-      setQuestions(gameQuestions);
-      setGameState(prev => ({
-        ...prev,
-        totalQuestions: gameQuestions.length
-      }));
-      
-      // Suggest appropriate game mode for this subject
-      if (selectedSubject && subjectGameMapping[selectedSubject]?.length > 0) {
-        const recommendedGame = subjectGameMapping[selectedSubject][0];
-        setGameState(prev => ({
-          ...prev,
-          gameType: recommendedGame as any
-        }));
-      }
-      
-      setGameSettings(prev => ({
-        ...prev,
-        gameTitle: `${t(selectedSubject)} - ${selectedTopic} ${t('quiz')}`,
-        gameDescription: `${t('a')} ${t(difficulty)} ${t('levelQuiz')} ${t('about')} ${selectedTopic}`,
-        timePerQuestion: difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15,
-        pointsPerQuestion: difficulty === 'easy' ? 100 : difficulty === 'medium' ? 150 : 200
-      }));
-
-      // Show success animation
-      setConfetti(true);
-      setTimeout(() => {
-        setConfetti(false);
-      }, 3000);
-
-      setNotification({
-        show: true,
-        message: `${gameQuestions.length} ${t('questionsGenerated')}!`,
-        type: 'success'
-      });
+      setGamePhase('playing');
+      toast.success(t('game.questionsGenerated'));
     } catch (error) {
-      console.error("Generation error:", error);
-      setNotification({
-        show: true,
-        message: t('errorGeneratingQuestions'),
-        type: 'error'
-      });
+      console.error('Error generating questions:', error);
+      toast.error(t('game.errorGeneratingQuestions'));
+      setQuestions([]); // Reset questions to empty array on error
     } finally {
       setLoading(false);
-      setShowAnimation(false);
     }
   };
 
-  // Add state for student management
-  const [students, setStudents] = useState<string[]>([]);
-  const [newStudent, setNewStudent] = useState<string>('');
-  const [studentAnswer, setStudentAnswer] = useState<string>('');
-
-  // Add language direction detection
-  const isRTL = language === 'ar' || language === 'he';
-
-  // Improved language-aware function for displaying text based on the current system language
-  const getLocalizedText = (key: string, enText: string, arText: string, heText: string) => {
-    if (language === 'ar') return arText;
-    if (language === 'he') return heText;
-    return enText;
-  };
-
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.mainColor} overflow-auto max-h-screen ${isRTL ? 'rtl' : 'ltr'}`}>
-      <div className="max-w-5xl mx-auto p-5">
-        {/* Animations */}
-        <AnimatePresence>
-          {showAnimation && <SubjectAnimation />}
-          {gameStartAnimation && <StartGameAnimation />}
-          {confetti && <ConfettiAnimation />}
-          {showTutorial && <GameTutorial />}
-        </AnimatePresence>
-
-        {/* Notification */}
-        <AnimatePresence>
-          {notification.show && (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-auto pb-12">
+      <div className="max-w-7xl mx-auto p-6">
+        <GameHeader setShowTutorial={setShowTutorial} />
+        
+        {/* Game Phase Management */}
+        {gamePhase === 'setup' && (
+          <div className="space-y-8">
+            <GameModeSelector />
+            
+            {showSetup && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`mb-4 p-3 rounded-lg ${
-                notification.type === 'success' ? 'bg-green-100 border border-green-300' :
-                notification.type === 'error' ? 'bg-red-100 border border-red-300' :
-                'bg-blue-100 border border-blue-300'
-              }`}
-            >
-              <p className="text-black">{notification.message}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Animation for correct answers */}
-        <AnimatePresence>
-          {correctAnimation && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              className="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
-            >
-              <motion.div 
-                className="bg-green-500 text-white text-3xl font-bold rounded-full px-8 py-4"
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 10, -10, 0]
-                }}
-                transition={{ duration: 1, repeat: 1 }}
+                className="bg-white rounded-xl shadow-lg p-8"
               >
-                <CheckIcon className="w-8 h-8 inline-block mr-2" />
-                {t('correct')}!
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Header - More compact but with proper spacing */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="space-y-2">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-black hover:text-blue-600 transition-colors"
-            >
-              <ChevronLeftIcon className={`w-5 h-5 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-              <span className="whitespace-nowrap">{t('backToTools')}</span>
-            </button>
-            <h1 className="text-2xl font-bold text-black">{t('examGame')}</h1>
-            <p className="text-lg text-black whitespace-normal">{t('examGameDesc')}</p>
+                <div className="flex items-center gap-4 mb-6">
+                  <SparkMascot width={50} height={50} variant="blue" blinking />
+                  <h2 className="text-2xl font-bold text-black">{t('gameSetup.title')}</h2>
           </div>
           
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setCompactView(!compactView)}
-              className="px-3 py-1.5 bg-gray-100 text-black rounded hover:bg-gray-200 transition-colors text-sm whitespace-nowrap"
-            >
-              {compactView ? 
-                getLocalizedText('expandedView', 'Expanded View', 'عرض موسع', 'תצוגה מורחבת') : 
-                getLocalizedText('compactView', 'Compact View', 'عرض مضغوط', 'תצוגה מצומצמת')
-              }
-            </button>
-            
-            {gamePhase === 'setup' && (
-              <button
-                onClick={() => setShowSetup(true)}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
-              >
-                <AdjustmentsHorizontalIcon className="w-4 h-4" />
-                <span>{getLocalizedText('gameSetup', 'Game Setup', 'إعداد اللعبة', 'הגדרת משחק')}</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Game Phases - with scrollable container and improved padding */}
-        {gamePhase === 'setup' && (
-          <div className="max-h-[calc(100vh-180px)] overflow-y-auto pr-2 space-y-6 pb-12">
-            {/* Quick Action Buttons - New Compact Row with better spacing */}
-            <div className="bg-white rounded-lg shadow-md p-4 flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowMaterialSelector(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm flex items-center gap-2 flex-shrink-0 whitespace-nowrap"
-              >
-                <DocumentTextIcon className="w-4 h-4" />
-                <span>{getLocalizedText('selectMaterial', 'Select Material', 'اختيار المادة', 'בחר חומר')}</span>
-              </button>
-              
-              <label className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-sm flex items-center gap-2 cursor-pointer flex-shrink-0 whitespace-nowrap">
-                <CloudArrowUpIcon className="w-4 h-4" />
-                <span>{getLocalizedText('uploadExam', 'Upload Exam', 'رفع امتحان', 'העלה מבחן')}</span>
-                <input
-                  type="file"
-                  accept=".json,.pdf,.doc,.docx,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-              
-              <button
-                onClick={handleAIGeneration}
-                disabled={!selectedSubject || !selectedTopic}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-sm flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                <span>{getLocalizedText('generateQuestions', 'Generate Questions', 'إنشاء الأسئلة', 'צור שאלות')}</span>
-              </button>
-            </div>
-
-            {/* AI Generation Settings - Better organized with proper spacing */}
-            <div className={`bg-white rounded-lg shadow-md p-5`}>
-              <h3 className="text-lg font-bold text-black mb-4 flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-purple-600" />
-                <span className="whitespace-normal">
-                  {getLocalizedText('generateWithAI', 'Generate with AI', 'إنشاء بالذكاء الاصطناعي', 'צור באמצעות בינה מלאכותית')}
-                </span>
-              </h3>
-              
-              <div className="space-y-5">
-                {/* Subject Selection - Horizontal grid with better spacing */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                    {getLocalizedText('selectSubject', 'Select Subject', 'اختر المادة', 'בחר נושא')}
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {subjects.map(subject => (
-                      <motion.button
-                        key={subject.id}
-                        onClick={() => {
-                          setSelectedSubject(subject.id);
-                          setSelectedTopic('');
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`p-2 rounded-lg flex flex-row items-center transition-colors ${
-                          selectedSubject === subject.id
-                            ? 'bg-purple-200 border-purple-300 text-purple-900'
-                            : 'bg-white border-gray-200 hover:bg-purple-100 text-gray-700'
-                        } border text-center`}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-black font-medium">{t('gameSetup.subject')}</span>
+                      <select
+                        value={selectedSubject}
+                        onChange={(e) => setSelectedSubject(e.target.value as SubjectType)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-black"
                       >
-                        <span className="text-xl mr-2">{subject.icon}</span>
-                        <span className="text-black text-sm font-medium whitespace-nowrap">
-                          {subject.id === 'math' && isRTL ? 
-                            (language === 'ar' ? "الرياضيات" : "מתמטיקה") : 
-                           subject.id === 'science' && isRTL ? 
-                            (language === 'ar' ? "العلوم" : "מדעים") :
-                           subject.id === 'language' && isRTL ? 
-                            (language === 'ar' ? "اللغة" : "שפה") :
-                           subject.id === 'history' && isRTL ? 
-                            (language === 'ar' ? "التاريخ" : "היסטוריה") :
-                           subject.id === 'computer' && isRTL ? 
-                            (language === 'ar' ? "علوم الحاسوب" : "מדעי המחשב") :
-                           t(subject.id)}
-                        </span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Settings Grid - 3 columns with better spacing */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Topic Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                      {getLocalizedText('selectTopic', 'Select Topic', 'اختر الموضوع', 'בחר נושא משנה')}
+                        <option value="">{t('gameSetup.selectSubject')}</option>
+                    {subjects.map(subject => (
+                          <option key={subject.id} value={subject.id} className="bg-white text-black">
+                            {subject.icon} {subject.name}
+                          </option>
+                        ))}
+                      </select>
                     </label>
+
+                    <label className="block">
+                      <span className="text-black font-medium">{t('gameSetup.topic')}</span>
                     <select
                       value={selectedTopic}
                       onChange={(e) => setSelectedTopic(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-black text-sm"
-                      disabled={!selectedSubject}
-                    >
-                      <option value="">
-                        {getLocalizedText('chooseTopic', 'Choose Topic', 'اختر الموضوع', 'בחר נושא')}
-                      </option>
-                      {subjects.find(s => s.id === selectedSubject)?.topics.map(topic => (
-                        <option key={topic} value={topic}>{topic}</option>
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-black"
+                      >
+                        <option value="">{t('gameSetup.selectTopic')}</option>
+                        {selectedSubject && subjects.find(s => s.id === selectedSubject)?.topics.map(topic => (
+                          <option key={topic} value={topic} className="bg-white text-black">{topic}</option>
                       ))}
                     </select>
+                    </label>
                   </div>
                   
-                  {/* Difficulty */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                      {getLocalizedText('selectDifficulty', 'Select Difficulty', 'اختر الصعوبة', 'בחר רמת קושי')}
-                    </label>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-black font-medium">{t('gameSetup.difficulty')}</span>
                     <select
                       value={difficulty}
                       onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                      className="w-full p-2 border border-gray-300 rounded text-black text-sm"
-                    >
-                      <option value="easy">{getLocalizedText('easy', 'Easy', 'سهل', 'קל')}</option>
-                      <option value="medium">{getLocalizedText('medium', 'Medium', 'متوسط', 'בינוני')}</option>
-                      <option value="hard">{getLocalizedText('hard', 'Hard', 'صعب', 'קשה')}</option>
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-black"
+                      >
+                        <option value="easy" className="bg-white text-black">{t('gameSetup.difficultyLevels.easy')}</option>
+                        <option value="medium" className="bg-white text-black">{t('gameSetup.difficultyLevels.medium')}</option>
+                        <option value="hard" className="bg-white text-black">{t('gameSetup.difficultyLevels.hard')}</option>
                     </select>
-                  </div>
-                  
-                  {/* Question Count */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                      {getLocalizedText('numberOfQuestions', 'Number of Questions', 'عدد الأسئلة', 'מספר שאלות')}
                     </label>
-                    <div className="flex items-center gap-3">
+
+                    <label className="block">
+                      <span className="text-black font-medium">{t('gameSetup.questionCount')}</span>
                       <input
-                        type="range"
-                        min="5"
-                        max="20"
-                        step="5"
+                        type="number"
                         value={questionCount}
-                        onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                        className="flex-grow h-2"
+                        onChange={(e) => setQuestionCount(Number(e.target.value))}
+                        min="1"
+                        max="20"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-black"
                       />
-                      <span className="text-black text-sm font-medium w-8 text-center">{questionCount}</span>
-                    </div>
+                    </label>
                   </div>
                 </div>
 
-                {/* Custom AI Prompt - Better spacing */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                    {getLocalizedText('customPrompt', 'Custom AI Prompt', 'طلب مخصص للذكاء الاصطناعي', 'הנחיה מותאמת אישית לבינה מלאכותית')}
-                  </label>
-                  <textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder={language === 'ar' 
-                      ? `مثال: قم بإنشاء ${questionCount} سؤالاً بصعوبة ${difficulty === 'easy' ? 'سهل' : difficulty === 'medium' ? 'متوسط' : 'صعب'} حول ${selectedTopic || 'الموضوع المختار'} في ${selectedSubject ? (
-                        selectedSubject === 'math' ? 'الرياضيات' :
-                        selectedSubject === 'science' ? 'العلوم' :
-                        selectedSubject === 'language' ? 'اللغة' :
-                        selectedSubject === 'history' ? 'التاريخ' :
-                        selectedSubject === 'computer' ? 'علوم الحاسوب' : 'المادة المختارة'
-                      ) : 'المادة المختارة'}`
-                      : language === 'he'
-                      ? `לדוגמה: צור ${questionCount} שאלות ברמת קושי ${difficulty === 'easy' ? 'קלה' : difficulty === 'medium' ? 'בינונית' : 'קשה'} בנושא ${selectedTopic || 'הנושא שנבחר'} ב${selectedSubject ? (
-                        selectedSubject === 'math' ? 'מתמטיקה' :
-                        selectedSubject === 'science' ? 'מדעים' :
-                        selectedSubject === 'language' ? 'שפה' :
-                        selectedSubject === 'history' ? 'היסטוריה' :
-                        selectedSubject === 'computer' ? 'מדעי המחשב' : 'נושא שנבחר'
-                      ) : 'נושא שנבחר'}`
-                      : `E.g., Generate ${questionCount} ${difficulty} questions about ${selectedTopic || 'your topic'} in ${selectedSubject ? t(selectedSubject) : 'your subject'}`
-                    }
-                    className="w-full p-3 border border-gray-300 rounded text-black text-sm h-24"
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                  />
-                </div>
-
-                {/* Exam Context - Added as requested */}
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2 whitespace-normal">
-                    {getLocalizedText('examContext', 'Exam Context (optional)', 'سياق الامتحان (اختياري)', 'הקשר המבחן (אופציונלי)')}
-                  </label>
+                <div className="mt-6">
+                  <label className="block">
+                    <span className="text-black font-medium">{t('gameSetup.aiGeneration')}</span>
                   <textarea
                     value={examContext}
                     onChange={(e) => setExamContext(e.target.value)}
-                    placeholder={language === 'ar' 
-                      ? 'أضف سياقًا أو معلومات إضافية للامتحان، مثل: امتحان الفصل الدراسي الثاني للصف العاشر'
-                      : language === 'he'
-                      ? 'הוסף הקשר או מידע נוסף למבחן, לדוגמה: מבחן סמסטר שני לכיתה י׳'
-                      : 'Add context or additional information for the exam, e.g., 10th Grade Biology Midterm, Chapter 4-5'
-                    }
-                    className="w-full p-3 border border-gray-300 rounded text-black text-sm h-24"
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                  />
-                </div>
-              </div>
+                      placeholder={t('gameSetup.enterContext')}
+                      rows={4}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-black"
+                    />
+                  </label>
             </div>
 
-            {/* Start Game Button with Game Selection - Better organized with spacing */}
-            {questions.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-5">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold text-black whitespace-normal">
-                    {getLocalizedText('readyToBegin', 'Ready to Begin', 'جاهز للبدء', 'מוכן להתחיל')}
-                  </h2>
-                  <span className="text-sm text-black bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">
-                    {questions.length} {getLocalizedText('questions', 'questions', 'سؤال', 'שאלות')} • {gameSettings.timePerQuestion}s
-                  </span>
-                </div>
-                
-                {/* Add Game Mode Selector - With proper spacing */}
-                <GameModeSelector />
-                
-                <div className="text-center mt-5">
-                  <motion.button
-                    onClick={() => startGame()}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium inline-flex items-center gap-2"
+                <div className="mt-8 flex justify-end">
+                  <button
+                    onClick={handleAIGeneration}
+                    disabled={loading}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
-                    <PlayIcon className="w-5 h-5" />
-                    <span className="whitespace-nowrap">
-                      {getLocalizedText('startPlaying', 'Start Playing', 'ابدأ اللعب', 'התחל לשחק')}
-                    </span>
-                  </motion.button>
+                    {loading ? (
+                      <>
+                        <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                        {t('gameSetup.generating')}
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon className="w-5 h-5" />
+                        {t('gameSetup.generateQuestions')}
+                      </>
+                    )}
+                  </button>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         )}
 
-        {/* Render appropriate game component based on selected game type */}
+        {/* Game Playing Section */}
         {gamePhase === 'playing' && (
-          <div className="pb-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white rounded-xl shadow-lg p-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <SparkMascot width={50} height={50} variant="blue" blinking />
+                <h2 className="text-2xl font-bold text-black">{t('playing')}</h2>
+          </div>
+              <div className="flex items-center gap-4">
+                <span className="text-lg font-semibold text-black">
+                  {t('score')}: {gameState.score}
+                </span>
+                <span className="text-lg font-semibold text-black">
+                  {t('time')}: {gameUIState.timeRemaining}s
+                </span>
+              </div>
+            </div>
+
             {renderGameComponent()}
-          </div>
-        )}
-        
-        {gamePhase === 'results' && (
-          <div className="pb-12">
-            <GameResultsUI />
-          </div>
+          </motion.div>
         )}
 
-        {/* Loading Overlay with animation */}
-        {loading && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        {/* Results Section */}
+        {gamePhase === 'results' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-lg p-8"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <SparkMascot width={50} height={50} variant="blue" blinking />
+              <h2 className="text-2xl font-bold text-black">{t('results')}</h2>
+          </div>
+
+            <GameResultsUI stats={gameStats} />
+          </motion.div>
+        )}
+
+        {/* Tutorial Modal */}
+        <AnimatePresence>
+          {showTutorial && (
             <motion.div 
-              className="bg-white p-6 rounded-lg shadow-lg"
-              animate={{ 
-                scale: [1, 1.02, 1],
-              }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             >
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-black font-bold text-lg whitespace-normal">{t('processing')}</p>
-                <p className="text-gray-600 text-sm text-center max-w-xs whitespace-normal">
-                  {t('generating Questions')} {selectedTopic} {t('in Subject')} {t(selectedSubject)}
-                </p>
+              <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-6 text-black">{t('game.howToPlay')}</h2>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">1</div>
+                    <p className="text-black">{t('game.tutorialStep1', { defaultValue: 'Select a game mode from the available options that best suits your learning style.' })}</p>
+              </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">2</div>
+                    <p className="text-black">{t('game.tutorialStep2', { defaultValue: 'Choose your subject, topic, and difficulty level. You can also set the number of questions.' })}</p>
+          </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">3</div>
+                    <p className="text-black">{t('game.tutorialStep3', { defaultValue: 'Use the AI generation feature by providing context about your topic to create custom questions.' })}</p>
+          </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">4</div>
+                    <p className="text-black">{t('game.tutorialStep4', { defaultValue: 'Answer questions within the time limit and use power-ups to help you succeed.' })}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">5</div>
+                    <p className="text-black">{t('game.tutorialStep5', { defaultValue: 'Track your progress and compete for high scores on the leaderboard.' })}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTutorial(false)}
+                  className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full"
+                >
+                  {t('game.gotIt')}
+                </button>
               </div>
             </motion.div>
-          </div>
-        )}
-
-        {/* Game Setup Modal */}
-        {showSetup && <GameSetupModal />}
-
-        {/* AI Generation banner title - Fix spacing */}
-        {isRTL && gamePhase === 'setup' && (
-          <div className="fixed top-24 right-6 z-10 pointer-events-none">
-            <h2 className="text-xl font-bold text-purple-800 opacity-70 tracking-wider letter-spacing-widest whitespace-normal">
-              إنشاء الذكاء الاصطناعي
-            </h2>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

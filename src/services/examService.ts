@@ -114,4 +114,16 @@ export async function getAnswerKey(): Promise<SavedAnswerKey | null> {
     console.error('Error getting answer key:', error);
     return null;
   }
+}
+
+export function extractQuestions(text: string) {
+  // Implement question extraction logic
+  return {
+    questions: [],
+    metadata: {
+      examType: 'unknown',
+      subject: 'unknown',
+      questionCount: 0
+    }
+  };
 } 

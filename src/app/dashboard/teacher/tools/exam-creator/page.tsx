@@ -26,6 +26,7 @@ import SparkMascot from '@/components/SparkMascot';
 import Link from 'next/link';
 import type { Route } from 'next';
 import Image from 'next/image';
+import { toast } from 'react-hot-toast';
 
 // Helper function for cookies
 const getUserFromCookies = (): {
@@ -467,41 +468,62 @@ export default function ExamCreator() {
     }
   }, [editingQuestion, loading, notification.show, showMaterialSelector]);
 
-  // File upload handling
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setLoading(true);
-      
-      try {
-        let extractedText = '';
-        
-        if (file.type.includes('pdf')) {
-          extractedText = await extractTextFromPDF(file);
-        } else if (file.type.includes('image')) {
-          extractedText = await extractTextFromImage(file);
-        }
-        
-        // Instead of generating questions immediately, set as AI prompt context
-        if (extractedText) {
-          setAiPrompt(`Based on this content, create exam questions:\n\n${extractedText.substring(0, 2000)}`);
-          
-          setNotification({
-            show: true,
-            message: 'Text extracted from file and added as context',
-            type: 'success'
-          });
-        }
-      } catch (error) {
-        console.error('Error processing file:', error);
-        setNotification({
-          show: true,
-          message: 'Failed to process file',
-          type: 'error'
-        });
-      } finally {
-        setLoading(false);
+  // Update the file processing logic in your exam creator page
+  const handleFileUpload = async (file: File) => {
+    let extractedText = '';
+    try {
+      // Convert File to Buffer first
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      if (file.type.includes('pdf')) {
+        extractedText = await extractTextFromPDF(buffer);
+      } else if (file.type.includes('image')) {
+        extractedText = await extractTextFromImage(buffer);
+      } else {
+        throw new Error('Unsupported file type');
       }
+
+      // Process the extracted text...
+      return extractedText;
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw error;
+    }
+  };
+
+  // Add these state variables near the top of your component with other state declarations
+  const [processingFile, setProcessingFile] = useState(false);
+  const [processingStage, setProcessingStage] = useState('');
+
+  // Then update the onDrop function to properly use these states
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    const file = acceptedFiles[0];
+    setLoading(true);
+    setProcessingFile(true);
+    setProcessingStage('Processing file...');
+
+    try {
+      const extractedText = await handleFileUpload(file);
+      
+      if (!extractedText) {
+        throw new Error('No text could be extracted from the file');
+      }
+
+      // Process the extracted text for questions
+      const questions = await extractQuestionsFromText(extractedText);
+      setQuestions(questions);
+      
+      toast.success(`Successfully processed ${questions.length} questions`);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process file');
+    } finally {
+      setLoading(false);
+      setProcessingFile(false);
+      setProcessingStage('');
     }
   }, []);
 
@@ -509,11 +531,36 @@ export default function ExamCreator() {
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png']
+      'text/plain': ['.txt'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc']
     },
     maxFiles: 1
   });
+
+  // Make sure your services are properly typed
+  const extractQuestionsFromText = async (text: string) => {
+    try {
+      // Your question extraction logic here
+      const response = await fetch('/api/extract-questions/direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to extract questions');
+      }
+
+      const data = await response.json();
+      return data.questions;
+    } catch (error) {
+      console.error('Error extracting questions:', error);
+      throw error;
+    }
+  };
 
   // Generate questions with AI
   const handleAIGeneration = async () => {

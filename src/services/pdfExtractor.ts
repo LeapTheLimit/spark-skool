@@ -1,29 +1,38 @@
-import { getDocument, GlobalWorkerOptions, version } from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 
-if (typeof window !== 'undefined') {
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
-}
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-export const extractTextFromPDF = async (file: File): Promise<string> => {
+export async function extractTextFromPDF(input: Buffer | File): Promise<string> {
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = getDocument({ data: arrayBuffer });
+    // Convert input to Uint8Array
+    let data: Uint8Array;
+    if (input instanceof File) {
+      const arrayBuffer = await input.arrayBuffer();
+      data = new Uint8Array(arrayBuffer);
+    } else {
+      data = new Uint8Array(input);
+    }
+
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data });
     const pdf = await loadingTask.promise;
-    let fullText = '';
     
+    let extractedText = '';
+    
+    // Extract text from each page
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
-        .filter((item: any) => 'str' in item)
         .map((item: any) => item.str)
         .join(' ');
-      fullText += pageText + '\n';
+      extractedText += pageText + '\n';
     }
-    
-    return fullText;
+
+    return extractedText.trim();
   } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw error;
+    console.error('PDF extraction error:', error);
+    throw new Error(error instanceof Error ? error.message : 'PDF extraction failed');
   }
-}; 
+} 

@@ -13,7 +13,6 @@ const nextConfig = {
   },
   experimental: {
     typedRoutes: true,
-    serverActions: true,
   },
   env: {
     REDIS_URL: process.env.REDIS_URL,

@@ -751,27 +751,27 @@ export default function ToolsPage() {
         </div>
 
         {/* Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {toolCards.map(tool => (
-            <div 
-              key={tool.id} 
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {toolCards.map(tool => (
+                <div 
+                  key={tool.id} 
               className={`rounded-xl overflow-hidden border border-gray-200 shadow-sm relative ${tool.comingSoon ? 'opacity-80 cursor-default' : 'hover:shadow-lg transition-all group cursor-pointer'} h-[180px] ${tool.color} bg-opacity-5`}
               onClick={!tool.comingSoon ? (() => tool.link && router.push(tool.link as Route)) : undefined}
-            >
+                >
               <div className="p-5 h-full flex flex-col">
                 {/* Tags */}
-                {tool.new && !tool.comingSoon && (
-                  <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                    {t('new')}
-                  </span>
-                )}
-                
-                {tool.comingSoon && (
+                    {tool.new && !tool.comingSoon && (
+                      <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        {t('new')}
+                      </span>
+                    )}
+                    
+                    {tool.comingSoon && (
                   <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-orange-500 text-white rounded-full z-10">
-                    {language === 'ar' ? 'قريباً' : language === 'he' ? 'בקרוב' : 'COMING SOON'}
-                  </span>
-                )}
-                
+                        {language === 'ar' ? 'قريباً' : language === 'he' ? 'בקרוב' : 'COMING SOON'}
+                      </span>
+                    )}
+                    
                 {/* Mascot in top left corner */}
                 <div className="absolute top-3 left-3">
                   <TeacherMascot width={32} height={32} variant={
@@ -784,7 +784,7 @@ export default function ToolsPage() {
                     tool.id === 'lesson-planner' ? 'emerald' :
                     tool.id === 'rubric-creator' ? 'amber' : 'blue'
                   } />
-                </div>
+                      </div>
                 
                 {/* Centered title and icon - larger size */}
                 <div className="flex flex-col items-center justify-center my-4 text-center flex-1">
@@ -795,16 +795,16 @@ export default function ToolsPage() {
                   </div>
                   
                   <h3 className="text-xl font-bold text-black mb-1">
-                    {tool.title}
-                  </h3>
+                      {tool.title}
+                    </h3>
                   <p className="text-sm text-gray-600">{tool.powerDescription}</p>
                 </div>
                 
                 {/* Description and button that show on hover */}
                 <div className="hidden group-hover:flex flex-col items-center justify-center absolute inset-0 bg-white bg-opacity-95 p-5 transition-all">
                   <p className="text-sm text-gray-700 mb-4 text-center">
-                    {tool.description}
-                  </p>
+                      {tool.description}
+                    </p>
                   
                   {!tool.comingSoon && (
                     <button 
@@ -814,80 +814,80 @@ export default function ToolsPage() {
                       {t('start', { defaultValue: 'Start' })}
                     </button>
                   )}
-                </div>
+                  </div>
               </div>
               
               {/* Bottom accent line with animation */}
               {!tool.comingSoon && (
                 <div className={`absolute bottom-0 left-0 h-1 w-0 ${tool.color} group-hover:w-full transition-all duration-300 ease-in-out`}></div>
               )}
-            </div>
-          ))}
-        </div>
-            
-        {/* Recently Used Section */}
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-black mb-5">{t('recentlyUsed')}</h2>
-          <div className="space-y-3">
-            {recentlyUsedTools.length > 0 ? (
-              recentlyUsedTools.map((tool, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`bg-${
-                      tool.id === 'exam-grading' ? 'blue' : 
-                      tool.id === 'exam-creator' ? 'purple' : 
-                      'gray'
-                    }-100 p-3 rounded-lg`}>
-                      {tool.id === 'exam-grading' ? (
-                        <ClipboardDocumentCheckIcon className="w-6 h-6 text-blue-600" />
-                      ) : tool.id === 'exam-creator' ? (
-                        <AcademicCapIcon className="w-6 h-6 text-purple-600" />
-                      ) : (
-                        <DocumentTextIcon className="w-6 h-6 text-black-600" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-black">{tool.title}</h3>
-                      <p className="text-sm text-black">
-                        {new Date(tool.timestamp).toLocaleDateString(language === 'ar' ? 'ar-SA' : 
-                        language === 'he' ? 'he-IL' : undefined)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <span className={`text-sm px-3 py-1 rounded-full ${
-                      tool.status === 'graded' ? 'bg-green-100 text-green-800' :
-                      tool.status === 'draft' ? 'bg-amber-100 text-amber-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {t(tool.status)}
-                    </span>
-                    
-                    <button 
-                      onClick={() => {
-                        if (tool.id === 'exam-grading') {
-                          restorePreviousWork();
-                        } else {
-                          router.push(`/dashboard/teacher/tools/${tool.id}` as Route);
-                        }
-                      }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      {t('continueWork')}
-                    </button>
-                  </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-black">{t('noRecentTools', { defaultValue: 'No recently used tools' })}</p>
-            )}
-          </div>
-        </div>
-      </div>
+              ))}
+            </div>
+            
+            {/* Recently Used Section */}
+            <div className="mt-10">
+              <h2 className="text-xl font-semibold text-black mb-5">{t('recentlyUsed')}</h2>
+              <div className="space-y-3">
+                {recentlyUsedTools.length > 0 ? (
+                  recentlyUsedTools.map((tool, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`bg-${
+                          tool.id === 'exam-grading' ? 'blue' : 
+                          tool.id === 'exam-creator' ? 'purple' : 
+                          'gray'
+                        }-100 p-3 rounded-lg`}>
+                          {tool.id === 'exam-grading' ? (
+                            <ClipboardDocumentCheckIcon className="w-6 h-6 text-blue-600" />
+                          ) : tool.id === 'exam-creator' ? (
+                            <AcademicCapIcon className="w-6 h-6 text-purple-600" />
+                          ) : (
+                            <DocumentTextIcon className="w-6 h-6 text-black-600" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-black">{tool.title}</h3>
+                          <p className="text-sm text-black">
+                            {new Date(tool.timestamp).toLocaleDateString(language === 'ar' ? 'ar-SA' : 
+                            language === 'he' ? 'he-IL' : undefined)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm px-3 py-1 rounded-full ${
+                          tool.status === 'graded' ? 'bg-green-100 text-green-800' :
+                          tool.status === 'draft' ? 'bg-amber-100 text-amber-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {t(tool.status)}
+                        </span>
+                        
+                        <button 
+                          onClick={() => {
+                            if (tool.id === 'exam-grading') {
+                              restorePreviousWork();
+                            } else {
+                              router.push(`/dashboard/teacher/tools/${tool.id}` as Route);
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          {t('continueWork')}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-black">{t('noRecentTools', { defaultValue: 'No recently used tools' })}</p>
+                )}
+              </div>
+            </div>
+                              </div>
     </div>
   );
 } 

@@ -22,13 +22,135 @@ interface ToolCategories {
   resources: string;
 }
 
-// Update the translations interface to support nested objects
-interface TranslationStrings {
-  [key: string]: string | MaterialCategories | { toolCategories: ToolCategories };
+// Add game-specific translations interface
+interface GameTranslations {
+  selectGameMode: string;
+  playing: string;
+  results: string;
+  score: string;
+  time: string;
+  playAgain: string;
+  backToDashboard: string;
+  gameResults: string;
+  timeTaken: string;
+  correctAnswers: string;
+  wrongAnswers: string;
+  questionsGenerated: string;
+  errorGeneratingQuestions: string;
+  raisedHand: string;
+  isAnswering: string;
+  typeStudentAnswer: string;
+  correct: string;
+  incorrect: string;
+  previous: string;
+  next: string;
+  tutorialStep1: string;
+  tutorialStep2: string;
+  tutorialStep3: string;
+  gotIt: string;
+  enterStudentName: string;
+  addStudent: string;
+  raiseHand: string;
+  question: string;
+  generating: string;
 }
 
+// Add game type translations interface
+interface GameTypeTranslations {
+  quizBattle: string;
+  quizBattleDesc: string;
+  quizBattleTag1: string;
+  quizBattleTag2: string;
+  flashcardMemory: string;
+  flashcardMemoryDesc: string;
+  flashcardMemoryTag1: string;
+  flashcardMemoryTag2: string;
+  fillBlanks: string;
+  fillBlanksDesc: string;
+  fillBlanksTag1: string;
+  fillBlanksTag2: string;
+  matching: string;
+  matchingDesc: string;
+  matchingTag1: string;
+  matchingTag2: string;
+  simulation: string;
+  simulationDesc: string;
+  simulationTag1: string;
+  simulationTag2: string;
+  timeline: string;
+  timelineDesc: string;
+  timelineArrangeInOrder: string;
+  timelineCheckOrder: string;
+  timelineResetGame: string;
+  timelineMoves: string;
+  timelineScore: string;
+  timelineTimeLeft: string;
+  timelineGameOver: string;
+  timelineFinalScore: string;
+  timelinePlayAgain: string;
+  timelineCorrect: string;
+  timelineIncorrect: string;
+  chemicalMixing: string;
+  chemicalMixingDesc: string;
+  circuitConnection: string;
+  circuitConnectionDesc: string;
+  ballDrop: string;
+  ballDropDesc: string;
+  sequence: string;
+  sequenceDesc: string;
+}
+
+// Add error and action translations interfaces
+interface ErrorTranslations {
+  invalidGameType: string;
+  gameLoadError: string;
+  unexpectedError: string;
+}
+
+interface ActionTranslations {
+  backToSelection: string;
+  tryAgain: string;
+  continue: string;
+  restart: string;
+}
+
+// Update TranslationStrings interface to properly handle nested objects
+interface TranslationStrings {
+  [key: string]: string | MaterialCategories | ToolCategories | GameSetup | GameTranslations | GameTypeTranslations | ErrorTranslations | ActionTranslations | Record<string, any>;
+  game: GameTranslations;
+  gameTypes: GameTypeTranslations;
+  errors: ErrorTranslations;
+  actions: ActionTranslations;
+  tools: {
+    toolCategories: ToolCategories;
+  };
+}
+
+interface GameSetup {
+  title: string;
+  subject: string;
+  selectSubject: string;
+  topic: string;
+  selectTopic: string;
+  difficulty: string;
+  questionCount: string;
+  aiGeneration: string;
+  enterContext: string;
+  generateQuestions: string;
+  howToPlay: string;
+  leaderboard: string;
+  difficultyLevels: {
+    easy: string;
+    medium: string;
+    hard: string;
+  };
+}
+
+// Update Translations type to ensure unique language sections
 interface Translations {
-  [key: string]: TranslationStrings;
+  en: TranslationStrings;
+  ar: TranslationStrings;
+  he: TranslationStrings;
 }
 
 // Update the translation function type
@@ -40,7 +162,8 @@ interface LanguageContextType {
   t: (key: string, params?: TranslationParams) => string;
 }
 
-export const translations: Translations = {
+// Define translations for each language
+const translations = {
   en: {
     // Dashboard & Common
     welcomeMessage: 'Welcome, {name}! 👋',
@@ -780,6 +903,133 @@ export const translations: Translations = {
     aiWritingAssistantDesc: 'Describe how you want to enhance this slide\'s content',
     describeEnhancement: 'What would you like to add or improve? (e.g., \'Add more detailed statistics about market growth\')',
     enhancing: 'Enhancing...',
+    // Game Setup
+    gameSetup: {
+      title: 'Game Setup',
+      subject: 'Subject',
+      selectSubject: 'Select Subject',
+      topic: 'Topic',
+      selectTopic: 'Select Topic',
+      difficulty: 'Difficulty',
+      questionCount: 'Question Count',
+      aiGeneration: 'AI Generation',
+      enterContext: 'Enter Context',
+      generateQuestions: 'Generate Questions',
+      howToPlay: 'How To Play',
+      leaderboard: 'Leaderboard',
+      difficultyLevels: {
+        easy: 'Easy',
+        medium: 'Medium',
+        hard: 'Hard'
+      }
+    },
+    game: {
+      selectGameMode: 'Select Game Mode',
+      playing: 'Playing',
+      results: 'Results',
+      score: 'Score',
+      time: 'Time',
+      playAgain: 'Play Again',
+      backToDashboard: 'Back to Dashboard',
+      gameResults: 'Game Results',
+      timeTaken: 'Time Taken',
+      correctAnswers: 'Correct Answers',
+      wrongAnswers: 'Wrong Answers',
+      questionsGenerated: 'Questions generated successfully!',
+      errorGeneratingQuestions: 'Error generating questions',
+      raisedHand: 'raised their hand',
+      isAnswering: 'is answering',
+      typeStudentAnswer: 'Type student\'s answer',
+      correct: 'Correct',
+      incorrect: 'Incorrect',
+      previous: 'Previous',
+      next: 'Next',
+      tutorialStep1: 'Select a game mode to begin',
+      tutorialStep2: 'Answer questions to earn points',
+      tutorialStep3: 'Complete all questions to see your results',
+      gotIt: 'Got it!',
+      enterStudentName: 'Enter student name',
+      addStudent: 'Add Student',
+      raiseHand: 'Raise Hand',
+      question: 'Question',
+      generating: 'Generating...'
+    },
+    
+    gameTypes: {
+      quizBattle: 'Quiz Battle',
+      quizBattleDesc: 'Compete in real-time quiz competitions with interactive multiplayer support',
+      quizBattleTag1: '⚡ Fast-paced',
+      quizBattleTag2: '👥 Multiplayer',
+      
+      flashcardMemory: 'Flashcard Memory',
+      flashcardMemoryDesc: 'Test memory and recall with interactive flashcard exercises',
+      flashcardMemoryTag1: '🧠 Memory',
+      flashcardMemoryTag2: '🎯 Focus',
+      
+      fillBlanks: 'Fill in the Blanks',
+      fillBlanksDesc: 'Complete sentences and passages with missing words',
+      fillBlanksTag1: '📝 Writing',
+      fillBlanksTag2: '✍️ Creative',
+      
+      matching: 'Matching Game',
+      matchingDesc: 'Match related pairs of concepts, terms, or images',
+      matchingTag1: '🔄 Matching',
+      matchingTag2: '🤝 Pairing',
+      
+      simulation: 'Interactive Simulation',
+      simulationDesc: 'Learn through interactive simulations and virtual experiments',
+      simulationTag1: '🎮 Interactive',
+      simulationTag2: '🎲 Dynamic',
+
+      timeline: 'Timeline Game',
+      timelineDesc: 'Arrange historical events in chronological order.',
+      timelineArrangeInOrder: 'Arrange Events in Chronological Order',
+      timelineCheckOrder: 'Check Order',
+      timelineResetGame: 'Reset Game',
+      timelineMoves: 'Moves',
+      timelineScore: 'Score',
+      timelineTimeLeft: 'Time Left',
+      timelineGameOver: 'Game Over',
+      timelineFinalScore: 'Final Score',
+      timelinePlayAgain: 'Play Again',
+      timelineCorrect: 'Correct Order!',
+      timelineIncorrect: 'Try Again',
+
+      chemicalMixing: 'Chemical Mixing',
+      chemicalMixingDesc: 'Mix chemicals and observe reactions in a virtual lab environment.',
+      circuitConnection: 'Circuit Connection',
+      circuitConnectionDesc: 'Build and test electrical circuits to understand electronics.',
+      ballDrop: 'Ball Drop',
+      ballDropDesc: 'Learn physics concepts through interactive ball dropping experiments.',
+      sequence: 'Sequence Game',
+      sequenceDesc: 'Put steps or events in the correct order.'
+    },
+
+    errors: {
+      invalidGameType: 'Invalid game type selected',
+      gameLoadError: 'Error loading game component',
+      unexpectedError: 'An unexpected error occurred'
+    },
+
+    actionss: {
+      backToSelection: 'Back to Game Selection',
+      tryAgain: 'Try Again',
+      continue: 'Continue',
+      restart: 'Restart'
+    },
+    timelinee: {
+      arrangeInOrder: 'Arrange Events in Chronological Order',
+      checkOrder: 'Check Order',
+      resetGame: 'Reset Game',
+      moves: 'Moves',
+      score: 'Score',
+      timeLeft: 'Time Left',
+      gameOver: 'Game Over',
+      finalScore: 'Final Score',
+      playAgain: 'Play Again',
+      correct: 'Correct Order!',
+      incorrect: 'Try Again',
+    }
   },
   ar: {
     // Dashboard & Common
@@ -1114,7 +1364,8 @@ export const translations: Translations = {
     answer: 'الإجابة',
     explanation: 'الشرح',
     options: 'الخيارات',
-    difficulty: 'الصعوبة',
+    difficulty: 'مستوى الصعوبة',
+    subject: 'المادة',
     easy: 'سهل',
     medium: 'متوسط',
     hard: 'صعب',
@@ -1519,6 +1770,133 @@ export const translations: Translations = {
     aiWritingAssistantDesc: 'Describe how you want to enhance this slide\'s content',
     describeEnhancement: 'What would you like to add or improve? (e.g., \'Add more detailed statistics about market growth\')',
     enhancing: 'Enhancing...',
+    // Game Setup
+    gameSetup: {
+      title: 'إعداد اللعبة',
+      subject: 'المادة',
+      selectSubject: 'اختر المادة',
+      topic: 'الموضوع',
+      selectTopic: 'اختر الموضوع',
+      difficulty: 'مستوى الصعوبة',
+      questionCount: 'عدد الأسئلة',
+      aiGeneration: 'توليد الذكاء الاصطناعي',
+      enterContext: 'أدخل السياق',
+      generateQuestions: 'توليد الأسئلة',
+      howToPlay: 'كيفية اللعب',
+      leaderboard: 'لوحة المتصدرين',
+      difficultyLevels: {
+        easy: 'سهل',
+        medium: 'متوسط',
+        hard: 'صعب'
+      }
+    },
+    game: {
+      selectGameMode: 'اختر وضع اللعبة',
+      playing: 'جاري اللعب',
+      results: 'النتائج',
+      score: 'النتيجة',
+      time: 'الوقت',
+      playAgain: 'العب مرة أخرى',
+      backToDashboard: 'العودة إلى لوحة التحكم',
+      gameResults: 'نتائج اللعبة',
+      timeTaken: 'الوقت المستغرق',
+      correctAnswers: 'الإجابات الصحيحة',
+      wrongAnswers: 'الإجابات الخاطئة',
+      questionsGenerated: 'تم إنشاء الأسئلة بنجاح!',
+      errorGeneratingQuestions: 'خطأ في إنشاء الأسئلة',
+      raisedHand: 'رفع يده',
+      isAnswering: 'يجيب',
+      typeStudentAnswer: 'اكتب إجابة الطالب',
+      correct: 'صحيح',
+      incorrect: 'خاطئ',
+      previous: 'السابق',
+      next: 'التالي',
+      tutorialStep1: 'اختر وضع اللعبة للبدء',
+      tutorialStep2: 'أجب على الأسئلة لكسب النقاط',
+      tutorialStep3: 'أكمل جميع الأسئلة لرؤية نتائجك',
+      gotIt: 'فهمت!',
+      enterStudentName: 'أدخل اسم الطالب',
+      addStudent: 'إضافة طالب',
+      raiseHand: 'ارفع يدك',
+      question: 'سؤال',
+      generating: 'جاري الإنشاء...'
+    },
+    
+    gameTypes: {
+      quizBattle: 'معركة الاختبار',
+      quizBattleDesc: 'تنافس في مسابقات الاختبارات في الوقت الفعلي مع دعم اللعب الجماعي التفاعلي',
+      quizBattleTag1: '⚡ سريع الوتيرة',
+      quizBattleTag2: '👥 متعدد اللاعبين',
+      
+      flashcardMemory: 'ذاكرة البطاقات',
+      flashcardMemoryDesc: 'اختبر الذاكرة والتذكر مع تمارين البطاقات التفاعلية',
+      flashcardMemoryTag1: '🧠 الذاكرة',
+      flashcardMemoryTag2: '🎯 التركيز',
+      
+      fillBlanks: 'ملء الفراغات',
+      fillBlanksDesc: 'أكمل الجمل والفقرات بالكلمات المفقودة',
+      fillBlanksTag1: '📝 الكتابة',
+      fillBlanksTag2: '✍️ إبداعي',
+      
+      matching: 'لعبة المطابقة',
+      matchingDesc: 'طابق بين أزواج المفاهيم والمصطلحات أو الصور المرتبطة',
+      matchingTag1: '🔄 المطابقة',
+      matchingTag2: '🤝 الإقران',
+      
+      simulation: 'محاكاة تفاعلية',
+      simulationDesc: 'تعلم من خلال المحاكاة التفاعلية والتجارب الافتراضية',
+      simulationTag1: '🎮 تفاعلي',
+      simulationTag2: '🎲 ديناميكي',
+
+      timeline: 'لعبة الخط الزمني',
+      timelineDesc: 'رتب الأحداث التاريخية بالترتيب الزمني لاختبار فهمك للتسلسل التاريخي.',
+      timelineArrangeInOrder: 'رتب الأحداث بالترتيب الزمني',
+      timelineCheckOrder: 'تحقق من الترتيب',
+      timelineResetGame: 'إعادة اللعبة',
+      timelineMoves: 'الحركات',
+      timelineScore: 'النتيجة',
+      timelineTimeLeft: 'الوقت المتبقي',
+      timelineGameOver: 'انتهت اللعبة',
+      timelineFinalScore: 'النتيجة النهائية',
+      timelinePlayAgain: 'العب مرة أخرى',
+      timelineCorrect: 'ترتيب صحيح!',
+      timelineIncorrect: 'حاول مرة أخرى',
+
+      chemicalMixing: 'خلط المواد الكيميائية',
+      chemicalMixingDesc: 'اخلط المواد الكيميائية وراقب التفاعلات في بيئة مختبر افتراضية.',
+      circuitConnection: 'توصيل الدوائر',
+      circuitConnectionDesc: 'قم ببناء واختبار الدوائر الكهربائية لفهم الإلكترونيات.',
+      ballDrop: 'إسقاط الكرة',
+      ballDropDesc: 'تعلم مفاهيم الفيزياء من خلال تجارب إسقاط الكرة التفاعلية.',
+      sequence: 'لعبة التسلسل',
+      sequenceDesc: 'ضع الخطوات أو الأحداث في الترتيب الصحيح.'
+    },
+
+    errors: {
+      invalidGameType: 'نوع اللعبة المحدد غير صالح',
+      gameLoadError: 'خطأ في تحميل مكون اللعبة',
+      unexpectedError: 'حدث خطأ غير متوقع'
+    },
+
+    actionss: {
+      backToSelection: 'العودة إلى اختيار اللعبة',
+      tryAgain: 'حاول مرة أخرى',
+      continue: 'استمر',
+      restart: 'إعادة التشغيل'
+    },
+    timelinee: {
+      arrangeInOrder: 'رتب الأحداث بالترتيب الزمني',
+      checkOrder: 'تحقق من الترتيب',
+      resetGame: 'إعادة اللعبة',
+      moves: 'الحركات',
+      score: 'النتيجة',
+      timeLeft: 'الوقت المتبقي',
+      gameOver: 'انتهت اللعبة',
+      finalScore: 'النتيجة النهائية',
+      playAgain: 'العب مرة أخرى',
+      correct: 'ترتيب صحيح!',
+      incorrect: 'حاول مرة أخرى',
+    }
   },
   he: {
     // Dashboard & Common
@@ -1626,7 +2004,7 @@ export const translations: Translations = {
     language: 'שפה',
     selectPreferredLanguage: 'בחר את השפה המועדפת',
     english: 'English',
-    arabic: 'العרبية',
+    arabic: 'العربية',
     hebrew: 'עברית',
     notifications: 'התראות',
     manageNotificationPreferences: 'ניהול העדפות התראות',
@@ -1782,305 +2160,614 @@ export const translations: Translations = {
     middleSchoolLevel: 'תלמידי חטיבת ביניים',
     highSchoolLevel: 'תלמידי תיכון',
     formalStyle: 'פורמלי ומובנה',
-    conversationalStyle: 'שיחתי ומעורר עניין',
-    socraticStyle: 'מבוסס חקר ודיאלוג',
-    commonCoreDesc: 'מותאם לתקני הליבה המשותפים',
-    ibProgramDesc: 'על פי מסגרת IB',
-    customCurriculumDesc: 'שימוש בתקני תכנית לימודים גמישים',
-    generalChat: 'צ\'אט כללי',
-    recentMaterials: 'חומרים אחרונים',
-    examGrading: 'בדיקת מבחנים',
-    examGradingDesc: 'בדיקת מבחנים במהירות על-אנושית עם סיוע AI וניתוחים מפורטים',
-    examCreator: 'מנשר המבחנים',
-    examCreatorDesc: 'יצירת מבחנים מקצועיים עם בינה מלאכותית ושיתופם עם תלמידים',
-    gamifyExam: 'הפוך מבחן למשחק',
-    gamifyExamDesc: 'הפוך את המבחנים שלך למשחקים אינטראקטיביים כמו Kahoot',
-    homeworkMaker: 'יוצר שיעורי בית',
-    homeworkMakerDesc: 'יצירת שיעורי בית מחומרי הלימוד שלך',
-    feedbackGenerator: 'יוצר משוב',
-    feedbackGeneratorDesc: 'יצירת משוב אישי לתלמידים בעזרת בינה מלאכותית',
-    analyticsInsights: 'ניתוח ותובנות',
-    analyticsDesc: 'הצגה חזותית של נתוני ביצועי תלמידים עם תובנות מעשיות',
+    conversationalStyle: 'تفاعلي وجذاب',
+    socraticStyle: 'قائم على الاستقصاء والحوار',
+    commonCoreDesc: 'متوافق مع المعايير الأساسية المشتركة',
+    ibProgramDesc: 'يتبع إطار البكالوريا الدولية',
+    customCurriculumDesc: 'باستخدام معايير مرنة للمناهج',
+    generalChat: 'محادثة عامة',
+    recentMaterials: 'المواد الأخيرة',
+    examGrading: 'تصحيح الامتحانات',
+    examGradingDesc: 'تصحيح الامتحانات بسرعة بمساعدة الذكاء الاصطناعي وتحليلات مفصلة',
+    examCreator: 'منشئ الامتحانات',
+    examCreatorDesc: 'إنشاء امتحانات احترافية باستخدام الذكاء الاصطناعي ومشاركتها مع الطلاب',
+    gamifyExam: 'تحويل الامتحان إلى لعبة',
+    gamifyExamDesc: 'تحويل امتحاناتك إلى ألعاب تفاعلية مثل كاهوت',
+    homeworkMaker: 'منشئ الواجبات',
+    homeworkMakerDesc: 'إنشاء واجبات منزلية من مواد دروسك',
+    feedbackGenerator: 'منشئ التقييمات',
+    feedbackGeneratorDesc: 'إنشاء تقييمات مخصصة للطلاب بمساعدة الذكاء الاصطناعي',
+    analyticsInsights: 'التحليلات والإحصاءات',
+    analyticsDesc: 'تصور بيانات أداء الطلاب مع رؤى قابلة للتنفيذ',
     lessonPlannerDesc: 'Design comprehensive lesson plans with curriculum alignment',
-    rubricCreator: 'יוצר רובריקות',
-    rubricCreatorDesc: 'יצירת רובריקות הערכה מפורטות למטלות ופרוייקטים',
-    teachingTools: 'כלי הוראה',
-    new: 'חדש',
-    published: 'מנוסם',
-    graded: 'נבדק',
-    draft: 'מסודה',
-    backToTools: 'חזרה לכלים',
-    examSaveToMaterials: 'Save to Materials',
-    useExistingMaterials: 'Use Existing Materials',
-    useExistingMaterialsDesc: 'Import content from your saved materials',
-    uploadContent: 'Upload Content',
-    uploadContentDesc: 'Upload files to extract content for your exam',
-    aiGeneration: 'AI Generation',
-    aiGenerationDesc: 'Generate exam questions with AI assistance',
-    manualCreation: 'Manual Creation',
-    manualCreationDesc: 'Create exam questions from scratch',
-    examInformation: 'Exam Information',
-    examSubject: 'Subject',
-    examGrade: 'Grade',
-    examDuration: 'Duration',
-    minutes: 'minutes',
-    totalPoints: 'Total Points',
-    instructions: 'Instructions',
-    teacherInformation: 'Teacher Information',
-    addQuestions: 'Add Questions',
-    addQuestionManually: 'Add Question Manually',
-    importFromMaterials: 'Import from Materials',
-    examUploadFile: 'Upload File',
-    aiQuestionGenerator: 'AI Question Generator',
-    quickAITemplates: 'Quick AI Templates',
-    generateQuestionsWithAI: 'Generate Questions with AI',
-    processing: 'Processing...',
-    examQuestions: 'Exam Questions',
+    rubricCreator: 'منشئ معايير التقييم',
+    rubricCreatorDesc: 'إنشاء معايير تقييم مفصلة للواجبات والمشاريع',
+    teachingTools: 'أدوات التدريس',
+    new: 'جديد',
+    published: 'منشور',
+    graded: 'مصحح',
+    draft: 'مسودة',
+    backToTools: 'العودة إلى الأدوات',
+    examSaveToMaterials: 'حفظ في المواد',
+    useExistingMaterials: 'استخدام المواد الموجودة',
+    useExistingMaterialsDesc: 'استيراد المحتوى من المواد المحفوظة',
+    uploadContent: 'تحميل المحتوى',
+    uploadContentDesc: 'تحميل الملفات لاستخراج المحتوى للامتحان',
+    aiGeneration: 'إنشاء بالذكاء الاصطناعي',
+    aiGenerationDesc: 'إنشاء أسئلة الامتحان بمساعدة الذكاء الاصطناعي',
+    manualCreation: 'إنشاء يدوي',
+    manualCreationDesc: 'إنشاء أسئلة الامتحان من البداية',
+    examInformation: 'معلومات الامتحان',
+    examSubject: 'المادة',
+    examGrade: 'الصف',
+    examDuration: 'المدة',
+    minutes: 'دقائق',
+    totalPoints: 'مجموع النقاط',
+    instructions: 'التعليمات',
+    teacherInformation: 'معلومات المعلم',
+    addQuestions: 'إضافة أسئلة',
+    addQuestionManually: 'إضافة سؤال يدويًا',
+    importFromMaterials: 'استيراد من المواد',
+    examUploadFile: 'تحميل ملف',
+    aiQuestionGenerator: 'منشئ الأسئلة بالذكاء الاصطناعي',
+    quickAITemplates: 'قوالب الذكاء الاصطناعي السريعة',
+    generateQuestionsWithAI: 'إنشاء أسئلة باستخدام الذكاء الاصطناعي',
+    processing: 'جاري المعالجة...',
+    examQuestions: 'أسئلة الامتحان',
     noQuestionsYet: 'No questions added yet',
     useToolsToAddQuestions: 'Use the tools above to add questions',
     pleaseEnterTitle: 'Please enter a title for the exam',
     pleaseAddQuestions: 'Please add at least one question',
-    examSavedSuccess: 'Exam saved to materials successfully',
-    failedToSaveExam: 'Failed to save exam to materials',
-    pdfDownloadStarted: 'PDF download has started',
-    pdfGenerationFailed: 'Failed to generate PDF',
-    true: 'True',
-    false: 'False',
-    goodLuck: 'Good luck!',
-    points: 'points',
-    questionType: 'Question Type',
-    questionText: 'Question Text',
-    answer: 'Answer',
-    explanation: 'Explanation',
-    options: 'Options',
-    difficulty: 'Difficulty',
-    easy: 'Easy',
-    medium: 'Medium',
-    hard: 'Hard',
-    materialLoadedAsContext: 'Material loaded as context for AI generation',
-    textExtractedFromFile: 'Text extracted from file and added as context',
-    goodMorning: 'בוקר טוב',
-    goodAfternoon: 'צהריים טובים',
-    goodEvening: 'ערב טוב',
-    timezone: 'מזעור זמן',
-    currentTime: 'זמן נוכחי',
-    localizationSettings: 'הגדרות מקומיות',
-    contactSupportToChangeEmail: 'צור קשר עם התמיכה כדי לשנות את כתובת הדוא"ל שלך',
-    classLevels: 'רמות כיתה',
-    addClass: 'הוסף כיתה',
-    enterClassLevel: 'הזן רמת כיתה (לדוגמה, כיתה ז, פיזיקה מתקדמת)',
-    quickAdd: 'הוספה מהירה',
-    getStarted: 'התחל',
-    newTeacherWelcome: 'ברוך הבא למורה חדש',
-    personalizeSparkMessage: 'בואו נתאים את ספארק עבורך! השלם את השלבים למטה כדי להתחיל.',
-    completeStepsBelow: 'השלם שלבים אלה כדי להגדיר את סביבת ההוראה שלך ולהפיק את המרב מספארק.',
-    start: 'התחל',
+    examSavedSuccess: 'تم حفظ الامتحان في المواد بنجاح',
+    failedToSaveExam: 'فشل في حفظ الامتحان في المواد',
+    pdfDownloadStarted: 'بدأ تحميل ملف PDF',
+    pdfGenerationFailed: 'فشل في إنشاء ملف PDF',
+    true: 'صحيح',
+    false: 'خطأ',
+    goodLuck: 'حظًا موفقًا!',
+    points: 'نقاط',
+    questionType: 'نوع السؤال',
+    questionText: 'نص السؤال',
+    answer: 'الإجابة',
+    explanation: 'الشرح',
+    options: 'الخيارات',
+    difficulty: 'مستوى الصعوبة',
+    subject: 'المادة',
+    easy: 'سهل',
+    medium: 'متوسط',
+    hard: 'صعب',
+    materialLoadedAsContext: 'تم تحميل المادة كسياق للإنشاء بالذكاء الاصطناعي',
+    textExtractedFromFile: 'تم استخراج النص من الملف وإضافته كسياق',
+    goodMorning: 'صباح الخير',
+    goodAfternoon: 'مساء الخير',
+    goodEvening: 'مساء الخير',
+    timezone: 'منطقة زمنية',
+    currentTime: 'الوقت الحالي',
+    localizationSettings: 'إعدادات الموقع',
+    contactSupportToChangeEmail: 'اتصل بالدعم لتغيير عنوان بريدك الإلكتروني',
+    classLevels: 'مستويات الصف',
+    addClass: 'إضافة صف',
+    enterClassLevel: 'أدخل مستوى الصف (مثل، الصف السابع، الفيزياء المتقدمة)',
+    quickAdd: 'إضافة سريعة',
+    getStarted: 'ابدأ',
+    newTeacherWelcome: 'مرحبًا بالمعلم الجديد',
+    personalizeSparkMessage: 'دعنا نخصص سبارك لك! أكمل الخطوات أدناه للبدء.',
+    completeStepsBelow: 'أكمل هذه الخطوات لإعداد بيئة التدريس الخاصة بك والاستفادة القصوى من سبارك.',
+    start: 'ابدأ',
     
     // Tasks related translations
-    createTasksDescription: 'צור משימות למעקב אחר המטלות שלך',
-    whatDoYouNeedToDo: 'מה עליך לעשות?',
-    category: 'קטגוריה',
-    categoryDescription: 'בחר קטגוריה למשימה שלך',
-    task: 'משימה',
-    grading: 'ציון',
-    call: 'מكالمה',
-    callMeeting: 'מקלמה/אגטמאל',
-    priority: 'עדיפות',
-    priorityDescription: 'קבע את רמת העדיפות למשימה זו',
-    dueDateDescription: 'מתי צריך להשלים את המשימה הזו?',
-    addTask: 'הוסף משימה',
-    addNewTask: 'הוסף משימה חדשה',
-    tasks: 'משימות',
-    completedTasks: 'משימות שהושלמו',
-    activeTasks: 'משימות פעילות',
+    createTasksDescription: 'إنشاء مهام لتتبع مهامك',
+    whatDoYouNeedToDo: 'ما الذي تحتاج إلى القيام به؟',
+    category: 'الفئة',
+    categoryDescription: 'اختر فئة للمهمة الخاصة بك',
+    task: 'مهمة',
+    grading: 'تصحيح',
+    call: 'مكالمة',
+    callMeeting: 'مكالمة/اجتماع',
+    priority: 'الأولوية',
+    priorityDescription: 'حدد مستوى الأولوية لهذه المهمة',
+    dueDateDescription: 'متى يجب إكمال هذه المهمة؟',
+    addTask: 'إضافة مهمة',
+    addNewTask: 'إضافة مهمة جديدة',
+    tasks: 'المهام',
+    completedTasks: 'المهام المكتملة',
+    activeTasks: 'المهام النشطة',
     allTasks: 'All Tasks',
-    clearCompleted: 'נקה משימות שהושלמו',
-    clearCompletedTasksConfirm: 'האם אתה בטוח שברצונך לנקות את כל המשימות שהושלמו?',
-    noCompletedTasksYet: 'אין עדיין משימות שהושלמו',
-    created: 'נוצר',
-    markAsIncomplete: 'סמן כלא הושלם',
-    markAsComplete: 'סמן כהושלם',
-    deleteTask: 'מחק משימה',
+    clearCompleted: 'مسح المكتملة',
+    clearCompletedTasksConfirm: 'هل أنت متأكد أنك تريد مسح جميع المهام المكتملة؟',
+    noCompletedTasksYet: 'لا توجد مهام مكتملة بعد',
+    created: 'تم إنشاؤها',
+    markAsIncomplete: 'وضع علامة كغير مكتمل',
+    markAsComplete: 'وضع علامة كمكتمل',
+    deleteTask: 'حذف المهمة',
     noTasksFound: 'No tasks found',
-    callsMeetings: 'שיחות/פגישות',
-    general: 'כללי',
-    whenCompletedTasks: 'כאשר תשלים משימות, הן יופיעו כאן',
-    addFirstTask: 'הוסף את המשימה הראשונה שלך כדי להתחיל',
+    callsMeetings: 'المكالمات/الاجتماعات',
+    general: 'عام',
+    whenCompletedTasks: 'عندما تكمل المهام، ستظهر هنا',
+    addFirstTask: 'أضف مهمتك الأولى للبدء',
 
-    signInToYourAccount: 'התחבר לחשבונך',
-    emailAddress: 'כתובת אימייל',
-    password: 'סיסמה',
-    rememberMe: 'זכור אותי',
-    forgotYourPassword: 'שכחת את הסיסמה?',
-    signIn: 'התחברות',
-    or: 'או',
-    createNewAccount: 'צור חשבון חדש',
-    alreadyHaveAccount: 'כבר יש לך חשבון?',
-    confirmPassword: 'אימות סיסמה',
-    createAccount: 'צור חשבון',
-    pleaseCompleteAllFields: 'נא למלא את כל השדות',
-    passwordsDontMatch: 'הסיסמאות אינן תואמות',
-    registrationSuccessful: 'ההרשמה הצליחה!',
-    registrationFailed: 'ההרשמה נכשלה',
-    pleaseEnterEmailAndPassword: 'נא להזין אימייל וסיסמה',
-    loginSuccessful: 'ההתחברות הצליחה!',
-    loginFailed: 'ההתחברות נכשלה. בדוק את פרטי הכניסה.',
-    enterYourEmailToResetPassword: 'הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה',
-    pleaseEnterYourEmail: 'נא להזין את האימייל שלך',
-    resetLinkSent: 'קישור לאיפוס נשלח',
-    resetLinkSentText: 'לקדנו קישור לאיפוס סיסמה לכתובת האימייל שלך. בדוק את תיבת הדואר הנכנס.',
-    failedToSendResetLink: 'שליחת קישור האיפוס נכשלה',
-    backToLogin: 'חזרה להתחברות',
-    invalidResetToken: 'טוקן איפוס לא חוקי או שפג תוקפו',
-    resetYourPassword: 'אפס את הסיסמה שלך',
-    enterNewPassword: 'הזן את הסיסמה החדשה שלך',
-    newPassword: 'סיסמה חדשה',
-    passwordTooShort: 'הסיסמה חייבת להיות לפחות 8 תווים',
-    passwordResetSuccessfully: 'הסיסמה אופסה בהצלחה',
-    termsOfUse: 'תנאי השימוש',
-    privacyPolicy: 'מדיניות הפרטיות',
-    welcomeBack: 'ברוך הבא',
-    back: 'בחזרה',
-    signInToYourAICopilot: 'התחבר לעוזר הבינה המלאכותית שלך',
-    noCreditCardRequired: 'לא נדרש כרטיס אשראי',
-    dontHaveAccount: "אין לך חשבון?",
-    bySigningInYouAgree: 'בהתחברות, אתה מסכים ל',
-    and: 'ו',
-    invalidToken: 'אסימון לא חוקי',
-    invalidTokenDescription: 'אסימון איפוס הסיסמה אינו חוקי או שפג תוקפו.',
-    requestNewResetLink: 'בקש קישור איפוס חדש',
-    failedToResetPassword: 'فشل في إعادة تعيين كلمة المرور',
-    passwordResetSuccessText: 'تم إعادة تعيين كلمة المرور الخاصة بك بنجاح.',
-    resetPassword: 'إعادة تعيين كلمة المرور',
+    signInToYourAccount: 'تسجيل الدخول إلى حسابك',
+    emailAddress: 'البريد الإلكتروني',
+    password: 'كلمة المرور',
+    rememberMe: 'تذكرني',
+    forgotYourPassword: 'نسيت كلمة المرور؟',
+    signIn: 'تسجيل الدخول',
+    or: 'أو',
+    createNewAccount: 'إنشاء حساب جديد',
+    alreadyHaveAccount: 'لديك حساب بالفعل؟',
+    confirmPassword: 'تأكيد كلمة المرور',
+    createAccount: 'إنشاء حساب',
+    pleaseCompleteAllFields: 'يرجى إكمال جميع الحقول',
+    passwordsDontMatch: 'كلمات المرور غير متطابقة',
+    registrationSuccessful: 'تم التسجيل بنجاح!',
+    registrationFailed: 'فشل التسجيل',
+    pleaseEnterEmailAndPassword: 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
+    loginSuccessful: 'تم تسجيل الدخول بنجاح!',
+    loginFailed: 'فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك.',
+    enterYourEmailToResetPassword: 'أدخل عنوان بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور',
+    pleaseEnterYourEmail: 'يرجى إدخال بريدك الإلكتروني',
+    resetLinkSent: 'تم إرسال رابط إعادة التعيين',
+    resetLinkSentText: 'لقد أرسلنا رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك.',
+    failedToSendResetLink: 'فشل في إرسال رابط إعادة التعيين',
+    backToLogin: 'العودة إلى تسجيل الدخول',
+    invalidResetToken: 'رمز إعادة التعيين غير صالح أو منتهي الصلاحية',
+    resetYourPassword: 'إعادة تعيين كلمة المرور الخاصة بك',
+    enterNewPassword: 'أدخل كلمة المرور الجديدة',
+    newPassword: 'كلمة المرور الجديدة',
+    passwordTooShort: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
+    passwordResetSuccessfully: 'تم إعادة تعيين كلمة المرور بنجاحيين كلمة المرور بنجاح',
+    termsOfUse: 'شروط الاستخدام',
+    privacyPolicy: 'سياسة الخصوصية',
+    welcomeBack: 'مرحبًا بعودتك',
+    back: 'مجددًا',
+    signInToYourAICopilot: 'تسجيل الدخول إلى مساعدك الذكي',
+    noCreditCardRequired: 'لا حاجة لبطاقة ائتمان',
+    dontHaveAccount: "Don't have an account?",
+    bySigningInYouAgree: 'By signing in, you agree to the',
+    and: 'and',
+    invalidToken: 'Invalid Token',
+    invalidTokenDescription: 'The password reset token is invalid or has expired.',
+    requestNewResetLink: 'Request a new reset link',
 
-    orSignIn: 'أو لديك حساب بالفعل؟',
+    orSignIn: 'Or already have an account?',
 
-    signUp: 'التسجيل',
+    signUp: 'Sign up',
 
-    byRegistering: 'بالتسجيل، فإنك توافق على',
+    byRegistering: 'By registering, you agree to our',
 
+    iAmA: 'I am a',
+    schoolVerification: 'School Verification',
+    studentVerificationDescription: 'Enter your school code to verify your enrollment',
+    enterSchoolCode: 'Enter school code',
+    verify: 'Verify',
+    verified: 'Verified',
+    schoolName: 'School name',
+    subjectTaught: 'Subject taught',
+    creatingAccount: 'Creating account...',
+    alreadyMember: 'Already a member?',
+    classLevel: 'Class level',
+    yourUltimateClassroomAICopilot: 'Your ultimate classroom AI copilot',
+    yourClassroomAICopilot: 'Your classroom AI copilot',
+    student: 'Student',
+    createEngagingPresentations: 'Create engaging presentations and visual aids in seconds',
+  
+    
+    // Class levels
+    college: 'College',
+    
+    verifying: 'Verifying...',
+
+    signingIn: 'Signing in...',
+
+    // Add these translations to the English section
+    comingUp: 'Coming Up',
+
+    completeYourSetup: 'Complete your setup',
+    continueSetup: 'Continue Setup',
+
+    noUpcomingEvents: 'No upcoming events today',
+    viewSchedule: 'View Schedule',
+
+    chatWithSpark: 'Chat with Spark',
+    getTeachingAssistance: 'Get teaching assistance from your AI assistant',
+
+    manageYourClassRoster: 'Manage your class roster',
  
-    iAmA: 'أنا',
-    schoolVerification: 'التحقق من المدرسة',
-    studentVerificationDescription: 'أدخل رمز مدرستك للتحقق من تسجيلك',
-    enterSchoolCode: 'أدخل رمز المدرسة',
-    verify: 'تحقق',
-    verified: 'تم التحقق',
-    schoolName: 'اسم المدرسة',
-    subjectTaught: 'المادة التي تُدرس',
-    creatingAccount: 'جاري إنشاء الحساب...',
-    alreadyMember: 'هل لديك حساب بالفعل؟',
-    classLevel: 'مستوى الصف',
-    yourUltimateClassroomAICopilot: 'مساعدك المثالي بالذكاء الاصطناعي في الفصل الدراسي',
-    yourClassroomAICopilot: 'مساعدك بالذكاء الاصطناعي في الفصل الدراسي',
-    student: 'طالب',
-
-    createEngagingPresentations: 'إنشاء عروض تقديمية جذابة ووسائل بصرية في ثوانٍ',
-
-    
+    generateQuizzesAndAssessments: 'Generate quizzes and assessments',
   
-    college: 'الكلية',
-    
-    verifying: 'جارٍ التحقق...',
+    createLessonPlansWithAI: 'Create lesson plans with AI assistance',
+ 
+    schedule: 'Schedule',
+    notes: 'Notes',
 
-    signingIn: 'جاري تسجيل الدخول...',
+    helpAndSupport: 'Help & Support',
+    superpowers: 'Superpowers',
 
-    // Add Hebrew translations
-    comingUp: 'מתקרב',
-
-    completeYourSetup: 'השלם את ההתקנה שלך',
-    continueSetup: 'המשך הגדרה',
-
-    noUpcomingEvents: 'אין אירועים קרובים היום',
-    viewSchedule: 'צפה בלוח הזמנים',
-
-    chatWithSpark: 'שוחח עם ספארק',
-    getTeachingAssistance: 'קבל סיוע בהוראה מעוזר הבינה המלאכותית שלך',
-
-    manageYourClassRoster: 'נהל את רשימת הכיתה שלך',
-
-    generateQuizzesAndAssessments: 'צור בחנים והערכות',
-
-    createLessonPlansWithAI: 'צור מערכי שיעור בעזרת בינה מלאכותית',
-   
-    schedule: 'לוח זמנים',
-    notes: 'הערות',
-  
-    helpAndSupport: 'עזרה ותמיכה',
-    superpowers: 'כוחות על',
-
-    backToDashboard: 'חזרה ללוח הבקרה',
-    profileUpdatedSuccessfully: 'הפרופיל עודכן בהצלחה',
-    failedToSaveProfile: 'שמירת הפרופיל נכשלה',
-    failedToSaveSettings: 'שמירת ההגדרות נכשלה',
-    selectColorScheme: 'בחר את צבע ההדגשה שלך',
-    emailNotifications: 'התראות אימייל',
-    pushNotifications: 'התראות פוש',
-    smsNotifications: 'התראות SMS',
-    languageChanged: 'השפה שונתה בהצלחה',
+    backToDashboard: 'Back to Dashboard',
+    profileUpdatedSuccessfully: 'Profile updated successfully',
+    failedToSaveProfile: 'Failed to save profile',
+    failedToSaveSettings: 'Failed to save settings',
+    selectColorScheme: 'Choose your accent color',
+    emailNotifications: 'Email Notifications',
+    pushNotifications: 'Push Notifications',
+    smsNotifications: 'SMS Notifications',
+    languageChanged: 'Language changed successfully',
 
     // Time-based greetings
-    morningGreeting: 'בוקר טוב',
-    afternoonGreeting: 'צהריים טובים',
-    eveningGreeting: 'ערב טוב',
+    morningGreeting: 'Good morning',
+    afternoonGreeting: 'Good afternoon',
+    eveningGreeting: 'Good evening',
     
+    // Dashboard sections
 
     
+  
+    createLessonDesc: 'Create lesson plans with AI assistance',
+    createQuiz: 'Create quiz',
+    createQuizDesc: 'Generate quizzes and assessments',
 
-    createLessonDesc: 'צור מערכי שיעור בעזרת בינה מלאכותית',
-    createQuiz: 'צור מבחן',
-    createQuizDesc: 'יצירת מבחנים והערכות',
-
-    addStudentsDesc: 'נהל את רשימת הכיתה שלך',
+    addStudentsDesc: 'Manage your class roster',
     
     // Subject options
-    subjectsHeader: 'מקצועות',
-    addSubject: 'הוסף מקצוע',
+    subjectsHeader: 'Subjects',
+    addSubject: 'Add Subject',
 
     
     // School info
-    schoolLabel: 'בית ספר',
+    schoolLabel: 'School',
     
     // Class levels
-    classLevelsHeader: 'רמות כיתה',
+    classLevelsHeader: 'Class Levels',
 
     // Onboarding
-    completeProfile: 'השלם פרופיל',
-    addProfileDetails: 'הוסף את שמך, בית הספר ופרטי יצירת קשר',
-    addSubjects: 'הוסף מקצועות הוראה',
-    selectTeachingSubjects: 'בחר את המקצועות שאתה מלמד',
-    setupSchedule: 'הגדר לוח זמנים',
-    addYourClassSchedule: 'הוסף את לוח הזמנים שלך להוראה',
-
-    setup: 'הגדרה',
+    completeProfile: 'Complete Profile',
+    addProfileDetails: 'Add your name, school, and contact info',
+    addSubjects: 'Add Teaching Subjects',
+    selectTeachingSubjects: 'Select the subjects you teach',
+    setupSchedule: 'Setup Schedule',
+    addYourClassSchedule: 'Add your teaching schedule',
+   
+    setup: 'Setup',
     
-    // Add to Hebrew translations
-    noProfileToSave: 'אין פרופיל לשמירה',
-    pleaseCompleteRequiredFields: 'אנא מלא את כל השדות הנדרשים',
+    // Subjects selection (from the second image)
+    
+    // Add to English translations
+    noProfileToSave: 'No profile to save',
+    pleaseCompleteRequiredFields: 'Please complete all required fields',
+    
+    // Add in the English translations section
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
 
-    // Add in the Hebrew translations section
-    monday: 'יום שני',
-    tuesday: 'יום שלישי',
-    wednesday: 'יום רביעי',
-    thursday: 'יום חמישי',
-    friday: 'יום שישי',
-    saturday: 'יום שבת',
-    sunday: 'יום ראשון',
-    weekOf: 'שבוע של',
-    tryAdjustingYourSearch: 'נסה להתאים את קריטריוני החיפוש או הסינון',
-    noToolsFound: 'לא נמצאו כלים',
-    planning: 'תכנון',
-    assessment: 'הערכה',
-    feedback: 'משוב',
-    activities: 'פעילויות',
-    resources: 'משאבים',
-    searchTools: 'חיפוש כלים...',
+    // Add these translations to the English section
+    // Schedule page translations
 
-    comingSoon: 'בקרוב',
-    failedToLoadEvents: 'טעינת האירועים נכשלה',
+    day: 'Day',
+    week: 'Week',
+    month: 'Month',
+    year: 'Year',
+    addEvent: 'Add Event',
+    scheduleSettings: 'Settings',
 
+    addYourFirstClass: 'Add Your First Class',
+    time: 'Time',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    eventType: 'Event Type',
+    room: 'Room',
+    color: 'Color',
+
+    recurring: 'Recurring',
+    recurrencePattern: 'Recurrence Pattern',
+    numberOfOccurrences: 'Number of occurrences',
+    until: 'Until',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    workingDays: 'Working Days',
+    workingHours: 'Working Hours',
+    class: 'Class',
+    meeting: 'Meeting',
+    break: 'Break',
+    officeHours: 'Office Hours',
+    other: 'Other',
+  
+    update: 'Update',
+ 
+    deleteConfirmation: 'Are you sure you want to delete this class?',
+    yourSchedule: 'Your Schedule',
+    allEvents: 'All',
+    googleCalendarIntegrationTitle: 'Google Calendar Integration Coming Soon',
+    googleCalendarIntegrationText: 'Soon you\'ll be able to sync your class schedule with Google Calendar and receive reminders!',
+    noClassesScheduled: 'No classes scheduled',
+    actions: 'Actions',
+
+    colorOptions: 'Color Options',
+    blue: 'Blue', 
+    purple: 'Purple',
+    green: 'Green',
+    amber: 'Amber',
+    rose: 'Rose',
+    title: 'Title',
+    description: 'Description',
+    date: 'Date',
+    eventDetails: 'Event Details',
+    repeat: 'Repeat',
+    numberOfStudents: 'Number of Students',
+
+    edited: 'Edited',
+    weekOf: 'Week of',
+
+    loading: 'Loading...',
+
+    continueWork: 'Continue',
+    noRecentTools: 'No recently used tools',
+
+    superpowersDescription: 'Spark superpowers tools to enhance your teaching and save hours of work',
+
+    comingSoon: 'COMING SOON',
+
+    all: 'All',
+    pinned: 'Pinned',
+    archived: 'Archived',
+    addNote: 'Add Note',
+
+    // Add tool name and description translations to the English section
+    // Tool Names and Descriptions
+    GradeWizard: 'GradeWizard',
+    gradeWizardDescription: 'AI-Powered Exam Grading',
+    examGradingDescription: 'Grade exams at superhuman speed with AI assistance and detailed analytics',
+
+    ExamCrafter: 'ExamCrafter',
+    examCrafterDescription: 'Professional Exam Creation',
+    examCreationDescription: 'Craft perfect exams with AI assistance and customizable templates',
+
+    GameMaster: 'GameMaster',
+    gameMasterDescription: 'Interactive Learning Games',
+    gameDescription: 'Create engaging exam games with AI-powered question generation and interactive formats',
+
+    SlideDesigner: 'SlideDesigner',
+    slideDesignerDescription: 'Dynamic Presentations',
+    slideDescription: 'Create captivating slides with AI assistance and beautiful templates',
+
+    AssignmentMaker: 'AssignmentMaker',
+    assignmentMakerDescription: 'Customized Learning Tasks',
+    assignmentDescription: 'Generate customized homework assignments aligned with your lesson objectives',
+
+    FeedbackGenius: 'FeedbackGenius',
+    feedbackGeniusDescription: 'Personalized Student Insights',
+    feedbackDescription: 'Create personalized feedback for students with AI assistance to save time',
+
+    DataVision: 'DataVision',
+    dataVisionDescription: 'Performance Analytics',
+    analyticsDescription: 'Visualize student performance data with actionable insights',
+
+    LessonArchitect: 'LessonArchitect',
+    lessonArchitectDescription: 'Curriculum Planning',
+    lessonDescription: 'Design comprehensive lesson plans aligned with your curriculum standards',
+
+    RubricSmith: 'RubricSmith',
+    rubricSmithDescription: 'Assessment Criteria Builder',
+    rubricDescription: 'Create detailed grading rubrics for assignments and projects',
+
+    // Additional schedule translations
+  
+    tryAdjustingYourSearch: 'Try adjusting your search or filter criteria',
+    noToolsFound: 'No tools found',
+    planning: 'Planning',
+    assessment: 'Assessment',
+    feedback: 'Feedback',
+    activities: 'Activities',
+    resources: 'Resources',
+    searchTools: 'Search tools...',
+  
+    failedToLoadEvents: 'Failed to load events',
+  
+    // Tools page translations
+  
+    // Tool statuses
+
+    
+
+    // Tool actions
+ 
+    workRestored: 'Previous work restored successfully',
+
+    // Add presentation-related translations
+   
+    presentations: 'Presentations',
+    presentationViewer: 'Presentation Viewer',
+    presentationEditor: 'Presentation Editor',
+    createEditPresentation: 'Create and edit your presentation',
+    presentationSaved: 'Presentation saved successfully',
+    presentationPublished: 'Presentation published successfully',
+    slides: 'Slides',
+    slide: 'Slide',
+    template: 'Template',
+    themeSettings: 'Theme Settings',
+    themeUpdated: 'Theme updated successfully',
+    colorChanged: 'Changed primary color to',
+    applyTheme: 'Apply Theme',
+    doubleClickToEdit: 'Double-click any text to edit',
+    currentContent: 'Current Content',
+    currentImage: 'Current Image',
+    pages: 'Pages',
+    aiImage: 'AI Image',
+    aiWriting: 'AI Writing',
+    layout: 'Layout',
+    bold: 'Bold',
+    italic: 'Italic',
+    underline: 'Underline',
+    textColor: 'Text Color',
+    alignLeft: 'Align Left',
+    alignCenter: 'Align Center',
+    font: 'Font',
+    pagesManager: 'Pages Manager',
+    pagesManagerDesc: 'Manage your presentation pages here',
+    layoutOptions: 'Layout Options',
+    layoutOptionsDesc: 'Customize the layout of your current slide',
+    slideType: 'Slide Type',
+    standard: 'Standard (Bullet Points)',
+    textHeavy: 'Text Heavy (Paragraphs)',
+    quote: 'Quote',
+    statistics: 'Statistics',
+    comparison: 'Comparison',
+    timeline: 'Timeline',
+    imageFocus: 'Image Focus',
+    example: 'Example',
+    addNewSlide: 'Add New Slide',
+    duplicateSlide: 'Duplicate Slide',
+    deleteCurrentSlide: 'Delete Current Slide',
+    newSlideAdded: 'New slide added!',
+    slideDuplicated: 'Slide duplicated!',
+    slideDeleted: 'Slide deleted!',
+    publish: 'Publish',
+    aiImageGenerator: 'AI Image Generator',
+    aiImageGeneratorDesc: 'Describe the image you want to generate for this slide',
+    describeImage: 'Describe the image you want (e.g., \'A professional looking pie chart showing market data\')',
+    generating: 'Generating...',
+    generateImage: 'Generate Image',
+    removeImage: 'Remove Image',
+    aiWritingAssistant: 'AI Writing Assistant',
+    aiWritingAssistantDesc: 'Describe how you want to enhance this slide\'s content',
+    describeEnhancement: 'What would you like to add or improve? (e.g., \'Add more detailed statistics about market growth\')',
+    enhancing: 'Enhancing...',
+    // Game Setup
+    gameSetup: {
+      title: 'הגדרת משחק',
+      subject: 'נושא',
+      selectSubject: 'בחר נושא',
+      topic: 'נושא משנה',
+      selectTopic: 'בחר נושא משנה',
+      difficulty: 'רמת קושי',
+      questionCount: 'מספר שאלות',
+      aiGeneration: 'יצירה באמצעות בינה מלאכותית',
+      enterContext: 'הזן הקשר',
+      generateQuestions: 'צור שאלות',
+      howToPlay: 'איך משחקים',
+      leaderboard: 'לו׭ة المتصدرين',
+      difficultyLevels: {
+        easy: 'سهل',
+        medium: 'متوسط',
+        hard: 'صعب'
+      }
+    },
+    game: {
+      selectGameMode: 'בחר מצב משחק',
+      playing: 'משחק',
+      results: 'תוצאות',
+      score: 'ניקוד',
+      time: 'זמן',
+      playAgain: 'שחק שוב',
+      backToDashboard: 'חזרה ללוח הבקרה',
+      gameResults: 'נتائج המשחק',
+      timeTaken: 'זמן שנלקח',
+      correctAnswers: 'תשובות נכונות',
+      wrongAnswers: 'תשובות שגויות',
+      questionsGenerated: 'השאלות נוצרו בהצלחה!',
+      errorGeneratingQuestions: 'שגיאה ביצירת שאלות',
+      raisedHand: 'הרים את היד',
+      isAnswering: 'עונה',
+      typeStudentAnswer: 'הקלד את תשובת התלמיד',
+      correct: 'נכון',
+      incorrect: 'לא נכון',
+      previous: 'הקודם',
+      next: 'הבא',
+      tutorialStep1: 'בחר מצב משחק להתחלה',
+      tutorialStep2: 'ענה על שאלות לצבירת נקודות',
+      tutorialStep3: 'أكمل جميع الأسئلة لرؤية نتائجك',
+      gotIt: 'فهمت!',
+      enterStudentName: 'أدخل اسم الطالب',
+      addStudent: 'إضافة طالب',
+      raiseHand: 'ارفع يدك',
+      question: 'سؤال',
+      generating: 'جاري الإنشاء...'
+    },
+    
+    gameTypes: {
+      quizBattle: 'معركة الاختبار',
+      quizBattleDesc: 'تنافس في مسابقات الاختبارات في الوقت الفعلي مع دعم اللعب الجماعي التفاعلي',
+      quizBattleTag1: '⚡ سريع الوتيرة',
+      quizBattleTag2: '👥 متعدد اللاعبين',
+      
+      flashcardMemory: 'ذاكرة البطاقات',
+      flashcardMemoryDesc: 'اختبر الذاكرة والتذكر مع تمارين البطاقات التفاعلية',
+      flashcardMemoryTag1: '🧠 الذاكرة',
+      flashcardMemoryTag2: '🎯 التركيز',
+      
+      fillBlanks: 'ملء الفراغات',
+      fillBlanksDesc: 'أكمل الجمل والفقرات بالكلمات المفقودة',
+      fillBlanksTag1: '📝 الكتابة',
+      fillBlanksTag2: '✍️ إبداعي',
+      
+      matching: 'لعبة المطابقة',
+      matchingDesc: 'طابق بين أزواج المفاهيم والمصطلحات أو الصور المرتبطة',
+      matchingTag1: '🔄 المطابقة',
+      matchingTag2: '🤝 الإقران',
+      
+      simulation: 'محاكاة تفاعلية',
+      simulationDesc: 'تعلم من خلال المحاكاة التفاعلية والتجارب الافتراضية',
+      simulationTag1: '🎮 تفاعلي',
+      simulationTag2: '🎲 ديناميكي',
+
+      timeline: 'لعبة الخط الزمني',
+      timelineDesc: 'رتب الأحداث التاريخية بالترتيب الزمني لاختبار فهمك للتسلسل التاريخي.',
+      timelineArrangeInOrder: 'رتب الأحداث بالترتيب الزمني',
+      timelineCheckOrder: 'تحقق من الترتيب',
+      timelineResetGame: 'إعادة اللعبة',
+      timelineMoves: 'الحركات',
+      timelineScore: 'النتيجة',
+      timelineTimeLeft: 'الوقت المتبقي',
+      timelineGameOver: 'انتهت اللعبة',
+      timelineFinalScore: 'النتيجة النهائية',
+      timelinePlayAgain: 'العب مرة أخرى',
+      timelineCorrect: 'ترتيب صحيح!',
+      timelineIncorrect: 'حاول مرة أخرى',
+
+      chemicalMixing: 'خلط المواد الكيميائية',
+      chemicalMixingDesc: 'اخلط المواد الكيميائية وراقب التفاعلات في بيئة مختبر افتراضية.',
+      circuitConnection: 'توصيل الدوائر',
+      circuitConnectionDesc: 'قم ببناء واختبار الدوائر الكهربائية لفهم الإلكترونيات.',
+      ballDrop: 'إسقاط الكرة',
+      ballDropDesc: 'تعلم مفاهيم الفيزياء من خلال تجارب إسقاط الكرة التفاعلية.',
+      sequence: 'لعبة التسلسل',
+      sequenceDesc: 'ضع الخطوات أو الأحداث في الترتيب الصحيح.'
+    },
+
+    errors: {
+      invalidGameType: 'نوع اللعبة المحدد غير صالح',
+      gameLoadError: 'خطأ في تحميل مكون اللعبة',
+      unexpectedError: 'حدث خطأ غير متوقع'
+    },
+
+    actionss: {
+      backToSelection: 'العودة إلى اختيار اللعبة',
+      tryAgain: 'حاول مرة أخرى',
+      continue: 'استمر',
+      restart: 'إعادة التشغيل'
+    },
+    timelinee: {
+      arrangeInOrder: 'رتب الأحداث بالترتيب الزمني',
+      checkOrder: 'تحقق من الترتيب',
+      resetGame: 'إعادة اللعبة',
+      moves: 'الحركات',
+      score: 'النتيجة',
+      timeLeft: 'الوقت المتبقي',
+      gameOver: 'انتهت اللعبة',
+      finalScore: 'النتيجة النهائية',
+      playAgain: 'العب مرة أخرى',
+      correct: 'ترتيب صحيح!',
+      incorrect: 'حاول مرة أخرى',
+    }
   }
 };
+
+export { translations };
 
 // Update the translation function to handle nested objects
 const LanguageContext = createContext<LanguageContextType>({

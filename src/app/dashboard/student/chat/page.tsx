@@ -304,9 +304,9 @@ export default function ChatPage() {
             <TrashIcon className="w-6 h-6" />
           </button>
           <button className="p-2 text-black hover:bg-indigo-50 rounded-xl">
-            <Cog6ToothIcon className="w-6 h-6" />
-          </button>
-        </div>
+          <Cog6ToothIcon className="w-6 h-6" />
+        </button>
+      </div>
       </div>
 
       {/* Main chat area */}
@@ -315,7 +315,7 @@ export default function ChatPage() {
           {showHistory && (
             <>
               {/* Mobile backdrop overlay */}
-              <motion.div 
+                <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -325,7 +325,7 @@ export default function ChatPage() {
               />
               
               {/* History panel */}
-              <motion.div 
+                <motion.div
                 initial={{ x: "-100%", opacity: 0.5 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: "-100%", opacity: 0.5 }}
@@ -362,8 +362,8 @@ export default function ChatPage() {
                 )}
               </motion.div>
             </>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
         
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
@@ -373,7 +373,7 @@ export default function ChatPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
-              </div>
+      </div>
               <h2 className="text-xl font-medium text-black mb-2">How can I help you today?</h2>
               <p className="text-gray-600 max-w-md">Ask me anything about your school work, assignments, or any topic you're curious about!</p>
             </div>
@@ -383,10 +383,10 @@ export default function ChatPage() {
                 <div key={index} className={`flex justify-${msg.role === 'assistant' ? 'start' : 'end'} mb-4`}>
                   <div className={`${msg.role === 'assistant' ? 'bg-white text-black' : 'bg-blue-500 text-white'} rounded-lg p-4 max-w-[80%] shadow-sm`}>
                     <div className="whitespace-pre-wrap">{msg.content}</div>
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
+            </div>
+          </div>
+        ))}
+        {isLoading && (
                 <div className="flex justify-start mb-4">
                   <div className="bg-white text-black rounded-lg p-4 max-w-[80%] shadow-sm flex items-center">
                     <div className="flex space-x-2">
@@ -394,9 +394,9 @@ export default function ChatPage() {
                       <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.2s'}}></div>
                       <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.4s'}}></div>
                     </div>
-                  </div>
-                </div>
-              )}
+            </div>
+          </div>
+        )}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -406,31 +406,31 @@ export default function ChatPage() {
       {/* Chat input */}
       <div className="h-16 absolute bottom-0 left-0 right-0 px-4 pb-2">
         <div className="flex items-center gap-2 bg-white rounded-full p-2 shadow-md border border-gray-200">
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden" 
-            multiple
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              multiple
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
             className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
-          >
-            <PaperClipIcon className="w-5 h-5" />
-          </button>
-          
-          <button
-            onClick={handleVoiceInput}
+            >
+              <PaperClipIcon className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={handleVoiceInput}
             className={`p-2 rounded-full hover:bg-gray-100 ${isListening ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'}`}
           >
             <MicrophoneWaveIcon isListening={isListening} />
-          </button>
-          
-          <input 
+            </button>
+
+          <input
             type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Type your message..."
             className="flex-1 bg-transparent text-black placeholder-gray-500 outline-none px-3 py-1.5 text-base"

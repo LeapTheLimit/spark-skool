@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, FileRejection } from 'react-dropzone';
 import { 
   ChevronLeftIcon, 
   DocumentTextIcon,
@@ -10,21 +10,43 @@ import {
   PlusIcon,
   TrashIcon,
   UserIcon,
-  DocumentIcon
+  DocumentIcon,
+  PhotoIcon,
+  XMarkIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SparkMascot from '@/components/SparkMascot';
 import { MATERIALS_STORAGE_KEY } from '@/lib/constants';
+import { extractTextFromPDF } from '@/services/pdfExtractor';
+import { extractTextFromImage, processImage } from '@/services/ocr';
+import { gradeStudentSubmission, extractQuestionsWithGroq, analyzeExamContext, Question } from '@/services/groq';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { Camera } from '@/components/Camera';
+import { toast } from 'react-hot-toast';
+import { saveAnswerKey, getAnswerKey } from '@/services/storage';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import SaveMaterialButton from '@/components/SaveMaterialButton';
 
-// Adding missing Question type if not imported from services
-interface Question {
-  id: string | number;
-  question: string;
-  answer: string;
-  type?: string;
-  explanation?: string;
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: {
+      head: string[][];
+      body: string[][];
+      startY: number;
+      styles?: {
+        fontSize?: number;
+      };
+      headStyles?: {
+        fillColor?: number[];
+      };
+    }) => void;
+  }
 }
 
 // Student submission type
@@ -34,9 +56,27 @@ interface StudentSubmission {
   file: File;
   timestamp: Date;
   status: 'pending' | 'processing' | 'graded' | 'error';
-  score?: number;
   totalScore?: number;
-  grades?: { questionId: string; score: number }[];
+  grades?: Array<{
+    questionId: string;
+    score: number;
+    answer: string;
+    reasoning: string;
+    feedback: string;
+    isCorrect: boolean;
+    confidence: number;
+  }>;
+}
+
+// Add this type for saved exam data
+interface SavedExamData {
+  questions: Question[];
+  submissions: StudentSubmission[];
+  metadata: {
+    savedAt: string;
+    totalSubmissions: number;
+    averageScore: number;
+  };
 }
 
 // AskSparkHelper component to provide contextual guidance
@@ -118,15 +158,432 @@ function AskSparkHelper({ activeTab, isVisible, setIsVisible }: {
   );
 }
 
+// Update the GradingResultCard component
+const GradingResultCard = ({ result, question, onScoreUpdate }: { 
+  result: { 
+    questionId: number;
+    score: number;
+    answer: string;
+    reasoning: string;
+    feedback: string;
+    confidence: number;
+  };
+  question: Question;
+  onScoreUpdate?: (questionId: number, newScore: number) => void;
+}) => {
+  const [showDetails, setShowDetails] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedScore, setEditedScore] = useState(result.score);
+  
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100 text-green-800';
+    if (score >= 60) return 'bg-blue-100 text-blue-800';
+    return 'bg-red-100 text-red-800';
+  };
+  
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.8) return 'High';
+    if (confidence >= 0.5) return 'Medium';
+    return 'Low';
+  };
+  
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 hover:shadow-sm transition-shadow">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-3">
+          <h4 className="font-medium text-gray-900">Question {result.questionId}</h4>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(result.score)}`}>
+            Score: {result.score}%
+          </span>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700`}>
+            Confidence: {getConfidenceLabel(result.confidence)}
+          </span>
+        </div>
+        {onScoreUpdate && (
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editedScore}
+                  onChange={(e) => setEditedScore(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="w-16 px-2 py-1 border rounded text-sm"
+                />
+                <button
+                  onClick={() => {
+                    onScoreUpdate(result.questionId, editedScore);
+                    setIsEditing(false);
+                  }}
+                  className="px-2 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedScore(result.score);
+                  }}
+                  className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                Edit Score
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-sm font-medium text-gray-700 mb-1">Question:</p>
+          <p className="text-gray-900">{question.question}</p>
+        </div>
+
+        <div className="bg-blue-50 rounded-lg p-3">
+          <p className="text-sm font-medium text-blue-700 mb-1">Student's Answer:</p>
+          <p className="text-blue-900">{result.answer || 'No answer provided'}</p>
+        </div>
+
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+        >
+          {showDetails ? 'Hide' : 'Show'} Grading Details
+          <ChevronLeftIcon className={`w-4 h-4 transform transition-transform ${
+            showDetails ? 'rotate-90' : '-rotate-90'
+          }`} />
+        </button>
+
+        {showDetails && (
+          <div className="space-y-3">
+            <div className="bg-purple-50 rounded-lg p-3">
+              <p className="text-sm font-medium text-purple-700 mb-1">Grading Reasoning:</p>
+              <p className="text-sm text-purple-900">{result.reasoning}</p>
+            </div>
+
+            {result.feedback && (
+              <div className="bg-yellow-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-yellow-700 mb-1">Feedback:</p>
+                <p className="text-sm text-yellow-900">{result.feedback}</p>
+              </div>
+            )}
+
+            <div className="bg-green-50 rounded-lg p-3">
+              <p className="text-sm font-medium text-green-700 mb-1">Correct Answer:</p>
+              <p className="text-sm text-green-900">{question.answer}</p>
+              {question.reasoning && (
+                <>
+                  <p className="text-sm font-medium text-green-700 mt-2 mb-1">Answer Explanation:</p>
+                  <p className="text-sm text-green-900">{question.reasoning}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Update the StudentDetailsModal component
+const StudentDetailsModal = ({ 
+  submission,
+  questions,
+  onClose,
+  onUpdateGrades,
+  setSelectedSubmission,
+  studentSubmissions,
+  setStudentSubmissions
+}: { 
+  submission: StudentSubmission;
+  questions: Question[];
+  onClose: () => void;
+  onUpdateGrades?: (submissionId: string, updatedGrades: StudentSubmission['grades']) => void;
+  setSelectedSubmission: (submission: StudentSubmission | null) => void;
+  studentSubmissions: StudentSubmission[];
+  setStudentSubmissions: React.Dispatch<React.SetStateAction<StudentSubmission[]>>;
+}) => {
+  if (!submission.grades) return null;
+
+  const handleScoreUpdate = (questionId: number, newScore: number) => {
+    if (!onUpdateGrades || !submission.grades) return;
+
+    // Update the specific grade
+    const updatedGrades = submission.grades.map(grade => 
+      grade.questionId === questionId.toString() ? { ...grade, score: newScore } : grade
+    );
+
+    // Calculate new total score based on points per question
+    const totalPoints = questions.reduce((sum, q) => sum + (q.points || 10), 0);
+    const earnedPoints = updatedGrades.reduce((sum, grade) => {
+      const question = questions.find(q => q.id.toString() === grade.questionId);
+      const questionPoints = question?.points || 10;
+      return sum + ((grade.score / 100) * questionPoints);
+    }, 0);
+
+    const newTotalScore = Math.round((earnedPoints / totalPoints) * 100);
+
+    // Update both grades and total score
+    onUpdateGrades(submission.id, updatedGrades);
+    
+    // Update the submission's total score and grades in the parent component
+    const updatedSubmission = {
+      ...submission,
+      grades: updatedGrades,
+      totalScore: newTotalScore
+    };
+    setSelectedSubmission(updatedSubmission);
+
+    // Update the submission in the main submissions list
+    const updatedSubmissions = studentSubmissions.map(s =>
+      s.id === submission.id ? updatedSubmission : s
+    );
+    setStudentSubmissions(updatedSubmissions);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-medium text-gray-900">{submission.studentName}</h2>
+            <p className="text-sm text-gray-500">
+              Submitted on {submission.timestamp.toLocaleDateString()}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {submission.grades.map((grade) => {
+            const question = questions.find(q => q.id.toString() === grade.questionId);
+            if (!question) return null;
+            
+            return (
+              <GradingResultCard 
+                key={grade.questionId} 
+                result={{
+                  ...grade,
+                  questionId: parseInt(grade.questionId)
+                }}
+                question={question}
+                onScoreUpdate={handleScoreUpdate}
+              />
+            );
+          })}
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Update the ExportButton component
+const ExportButton = ({ 
+  submissions,
+  questions,
+  format 
+}: { 
+  submissions: StudentSubmission[];
+  questions: Question[];
+  format: 'csv' | 'pdf';
+}) => {
+  const generateCSV = () => {
+    try {
+      // Prepare headers
+      const headers = [
+        'Student Name',
+        'Submission Date',
+        'Total Score',
+        'Percentage',
+        ...questions.map(q => `Q${q.id} Score`),
+        ...questions.map(q => `Q${q.id} Feedback`)
+      ];
+
+      // Prepare data rows
+      const rows = submissions.map(submission => {
+        const grades = submission.grades || [];
+        const totalScore = submission.totalScore || 0;
+        const percentage = totalScore;
+
+        const row = [
+          submission.studentName || 'Unknown',
+          submission.timestamp.toLocaleDateString(),
+          totalScore.toString(),
+          percentage.toFixed(1) + '%'
+        ];
+
+        // Add individual question scores and feedback
+        questions.forEach(q => {
+          const grade = grades.find(g => g.questionId === q.id.toString());
+          row.push(grade?.score.toString() || '0');
+          row.push(grade?.feedback || '');
+        });
+
+        return row;
+      });
+
+      // Convert to CSV format
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => {
+          // Escape commas and quotes in cell content
+          const cellStr = String(cell);
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(','))
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `exam-results-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('CSV file exported successfully');
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      toast.error('Failed to generate CSV file');
+    }
+  };
+
+  const generatePDF = async (submission: StudentSubmission) => {
+    try {
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.text('Exam Grading Report', 20, 20);
+      doc.setFontSize(12);
+      
+      // Add date and basic info
+      const date = new Date().toLocaleDateString();
+      doc.text(`Date: ${date}`, 20, 30);
+      doc.text(`Student: ${submission.studentName || 'Unknown'}`, 20, 40);
+      doc.text(`Total Score: ${submission.totalScore || 0}%`, 20, 50);
+      
+      // Calculate statistics
+      const grades = submission.grades || [];
+      
+      // Add summary
+      doc.setFontSize(14);
+      doc.text('Summary', 20, 70);
+      doc.setFontSize(12);
+      doc.text(`Total Score: ${submission.totalScore || 0}%`, 20, 80);
+      doc.text(`Questions: ${grades.length}`, 20, 90);
+      
+      // Add questions and answers
+      doc.setFontSize(14);
+      doc.text('Detailed Results', 20, 110);
+      doc.setFontSize(12);
+      
+      let yPos = 120;
+      grades.forEach((grade, index) => {
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        const question = questions.find(q => q.id.toString() === grade.questionId);
+        if (!question) return;
+        
+        // Question
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Question ${index + 1}:`, 20, yPos);
+        doc.setFont('helvetica', 'normal');
+        const questionLines = doc.splitTextToSize(question.question || 'No question provided', 170);
+        doc.text(questionLines, 30, yPos + 5);
+        yPos += (questionLines.length * 7) + 10;
+        
+        // Answer
+        doc.setFont('helvetica', 'bold');
+        doc.text('Answer:', 20, yPos);
+        doc.setFont('helvetica', 'normal');
+        const answerLines = doc.splitTextToSize(grade.answer || 'No answer provided', 170);
+        doc.text(answerLines, 30, yPos + 5);
+        yPos += (answerLines.length * 7) + 10;
+        
+        // Score
+        doc.text(`Score: ${grade.score}%`, 20, yPos);
+        yPos += 10;
+        
+        // Feedback
+        if (grade.feedback) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Feedback:', 20, yPos);
+          doc.setFont('helvetica', 'normal');
+          const feedbackLines = doc.splitTextToSize(grade.feedback, 170);
+          doc.text(feedbackLines, 30, yPos + 5);
+          yPos += (feedbackLines.length * 7) + 15;
+        }
+        
+        yPos += 10;
+      });
+      
+      // Save the PDF
+      doc.save(`exam-report-${submission.studentName || 'unknown'}-${date.replace(/\//g, '-')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF report');
+    }
+  };
+
+  return (
+    <button
+      onClick={() => {
+        if (format === 'csv') {
+          generateCSV();
+        } else {
+          generatePDF(submissions[0]);
+        }
+      }}
+      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+    >
+      <DocumentArrowDownIcon className="w-5 h-5" />
+      Export as {format.toUpperCase()}
+    </button>
+  );
+};
+
 export default function ExamGradingPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const isRTL = language === 'ar' || language === 'he';
   
+  // Add userId state
+  const [userId, setUserId] = useState<string>('default_user');
+  
   const [activeTab, setActiveTab] = useState<'answerKey' | 'submissions' | 'grades'>('answerKey');
   const [examContext, setExamContext] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [processingFile, setProcessingFile] = useState(false);
+  const [processingStage, setProcessingStage] = useState('');
   
   // Add missing state variables
   const [showMaterialSelector, setShowMaterialSelector] = useState(false);
@@ -142,6 +599,19 @@ export default function ExamGradingPage() {
   
   // Add this new state to control the visibility of the helper
   const [showHelper, setShowHelper] = useState(true);
+  
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [showCamera, setShowCamera] = useState(false);
+  
+  const [answerKeySaved, setAnswerKeySaved] = useState(false);
+  const [answerKeyId, setAnswerKeyId] = useState<string | null>(null);
+  
+  // Add state for the details modal
+  const [selectedSubmission, setSelectedSubmission] = useState<StudentSubmission | null>(null);
+  
+  // Add state for edit modal
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   // Load materials when modal opens
   useEffect(() => {
@@ -161,36 +631,157 @@ export default function ExamGradingPage() {
     }
   }, [showMaterialSelector]);
   
+  // Handle file processing for answer key
+  const handleFileUpload = async (file: File) => {
+    setProcessingFile(true);
+    setProcessingStage('Processing file...');
+
+    try {
+      let extractedText = '';
+      
+      // Extract text from file
+      if (file.type.includes('pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        extractedText = await extractTextFromPDF(buffer);
+      } else if (file.type.includes('image')) {
+        extractedText = await extractTextFromImage(file);
+      } else {
+        throw new Error('Unsupported file type. Please upload a PDF or image file.');
+      }
+
+      if (!extractedText || extractedText.trim().length < 10) {
+        throw new Error('No text could be extracted from the file. Please ensure the file contains readable text.');
+      }
+
+      setProcessingStage('Analyzing content...');
+      
+      // Extract questions using Groq
+      const extractedQuestions = await extractQuestionsWithGroq(extractedText);
+      
+      if (!extractedQuestions || extractedQuestions.length === 0) {
+        throw new Error('No questions could be identified in the text. Please check the file content.');
+      }
+
+      // Process and format questions
+      const formattedQuestions = extractedQuestions.map((q, index) => ({
+        id: index + 1,
+        type: q.type || 'short_answer',
+        question: q.question,
+        answer: q.answer,
+        explanation: q.explanation || '',
+        points: q.points || 10,
+        difficulty: q.difficulty || 'medium',
+        options: q.type === 'multiple_choice' ? q.options : undefined,
+        matchingItems: q.type === 'matching' ? q.matchingItems : undefined,
+        imageUrl: q.imageUrl,
+        formula: q.formula,
+        hasLargeText: q.hasLargeText
+      }));
+
+      setQuestions(formattedQuestions);
+      setFile(file);
+      toast.success(`Successfully processed ${formattedQuestions.length} questions`);
+
+      // Try to extract exam context
+      try {
+        const context = await analyzeExamContext(extractedText);
+        if (context) {
+          setExamContext(context);
+        }
+      } catch (error) {
+        console.error('Error analyzing exam context:', error);
+        // Don't throw here - context is optional
+      }
+
+      return extractedText;
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw error;
+    } finally {
+      setProcessingFile(false);
+      setProcessingStage('');
+    }
+  };
+  
   // File upload handling for answer key
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const selectedFile = acceptedFiles[0];
-      setFile(selectedFile);
-      
-      // Show processing UI
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    const file = acceptedFiles[0];
       setProcessingFile(true);
+    setProcessingStage('Processing file...');
+
+    try {
+      // Extract text from file
+      let extractedText = '';
+      if (file.type.includes('pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        extractedText = await extractTextFromPDF(buffer);
+      } else if (file.type.includes('image')) {
+        extractedText = await extractTextFromImage(file);
+      } else {
+        throw new Error('Unsupported file type. Please upload a PDF or image file.');
+      }
+
+      if (!extractedText || extractedText.trim().length < 10) {
+        throw new Error('No text could be extracted from the file. Please ensure the file contains readable text.');
+      }
+
+      setProcessingStage('Analyzing content...');
       
-      // Simulate processing (in a real app, you'd process the file here)
-      setTimeout(() => {
-        setProcessingFile(false);
-        
-        // Simulate extracted questions
-        setQuestions([
-          { id: 1, question: "What is the capital of France?", answer: "Paris", type: "short answer" },
-          { id: 2, question: "Who wrote Romeo and Juliet?", answer: "William Shakespeare", type: "short answer" },
-          { id: 3, question: "What is 2+2?", answer: "4", type: "short answer" }
-        ]);
-      }, 2000);
+      // Extract questions using Groq
+      const extractedQuestions = await extractQuestionsWithGroq(extractedText);
+      
+      if (!extractedQuestions || extractedQuestions.length === 0) {
+        throw new Error('No questions could be identified in the text. Please check the file content.');
+      }
+
+      // Process and format questions
+      const formattedQuestions = extractedQuestions.map((q, index) => ({
+        id: index + 1,
+        type: q.type || 'short_answer',
+        question: q.question,
+        answer: q.answer,
+        explanation: q.explanation || '',
+        points: q.points || 10,
+        difficulty: q.difficulty || 'medium',
+        options: q.type === 'multiple_choice' ? q.options : undefined,
+        matchingItems: q.type === 'matching' ? q.matchingItems : undefined,
+        imageUrl: q.imageUrl,
+        formula: q.formula,
+        hasLargeText: q.hasLargeText
+      }));
+
+      setQuestions(formattedQuestions);
+      toast.success(`Successfully processed ${formattedQuestions.length} questions`);
+
+    } catch (error) {
+      console.error('Error processing file:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process file');
+    } finally {
+      setProcessingFile(false);
+      setProcessingStage('');
     }
   }, []);
   
+  // Update the useDropzone configuration
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg']
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']
     },
-    maxFiles: 1
+    maxFiles: 1,
+    maxSize: 10485760, // 10MB
+    onDropRejected: (rejectedFiles: FileRejection[]) => {
+      const errors = rejectedFiles.map(rejection => {
+        if (rejection.file.size > 10485760) return 'File is too large. Maximum size is 10MB.';
+        return 'Invalid file type. Please upload a PDF or image file.';
+      });
+      toast.error(errors[0]);
+    }
   });
   
   // File upload handling for student submissions
@@ -231,16 +822,14 @@ export default function ExamGradingPage() {
     }
   };
   
-  // Grade a student submission
+  // Handle student submission grading
   const handleGradeSubmission = async (id: string) => {
     if (!questions.length) {
-      console.error("No answer key available to grade against");
+      toast.error('No answer key available. Please upload an answer key first.');
       return;
     }
     
     setGradingStudent(id);
-    
-    // Find submission to grade
     const submissionIndex = studentSubmissions.findIndex(s => s.id === id);
     if (submissionIndex === -1) return;
     
@@ -251,84 +840,62 @@ export default function ExamGradingPage() {
       setStudentSubmissions(updatedSubmissions);
       
       const submission = studentSubmissions[submissionIndex];
-      
-      // Extract text from student submission
       let extractedText = '';
-      if (submission.file) {
-        try {
+
+      // Extract text from submission
           if (submission.file.type.includes('pdf')) {
-            // For a real implementation, this would use a PDF extraction service
-            // extractedText = await extractTextFromPDF(submission.file);
-            extractedText = "This is simulated text from a PDF file for grading purposes.";
+        const arrayBuffer = await submission.file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        extractedText = await extractTextFromPDF(buffer);
           } else if (submission.file.type.includes('image')) {
-            // For a real implementation, this would use an OCR service
-            // extractedText = await extractTextFromImage(submission.file);
-            extractedText = "This is simulated text from an image file for grading purposes.";
-          }
-        } catch (error) {
-          console.error('Error extracting text from submission:', error);
-          updatedSubmissions[submissionIndex].status = 'error';
-          setStudentSubmissions([...updatedSubmissions]);
-          return;
-        }
+        extractedText = await extractTextFromImage(submission.file);
+      } else {
+        throw new Error('Unsupported file type');
       }
-      
-      // Simulated grading results
-      // In a real implementation, this would use an AI grading service
-      // const gradingResults = await gradeStudentSubmission(extractedText, questions, examContext || undefined);
-      
-      // Generate simulated grading results
-      const gradingResults = questions.map(question => {
-        // Generate a random score between 0 and 100
-        const score = Math.floor(Math.random() * 101);
-        // More likely to be correct than not
-        const isCorrect = score >= 70;
-        
-        return {
-          questionId: question.id,
-          score,
-          feedback: isCorrect 
-            ? "Good job! The answer matches the expected response." 
-            : "Your answer needs improvement. Please review the material.",
-          isCorrect,
-          confidence: Math.random() * 0.3 + 0.7, // Between 0.7 and 1.0
-          matchType: score > 90 ? "exact" : score > 70 ? "semantic" : "partial"
-        };
-      });
+
+      if (!extractedText || extractedText.trim().length < 10) {
+        throw new Error('No text could be extracted from the submission');
+      }
+
+      // Grade the submission
+      const gradingResults = await gradeStudentSubmission(questions, extractedText);
       
       // Calculate total score
-      const totalPossiblePoints = questions.length * 100;
-      const earnedPoints = gradingResults.reduce((sum, result) => sum + result.score, 0);
+      const totalPossiblePoints = questions.reduce((sum, q) => sum + q.points, 0);
+      const earnedPoints = gradingResults.reduce((sum, result) => {
+        // Convert percentage score to points
+        const questionPoints = questions.find(q => q.id === result.questionId)?.points || 0;
+        return sum + (result.score / 100 * questionPoints);
+      }, 0);
+      
       const totalScore = Math.round((earnedPoints / totalPossiblePoints) * 100);
       
-      // Update the submission with grades
-      updatedSubmissions[submissionIndex].status = 'graded';
-      // Convert questionId to string to match the expected type
-      const formattedGrades = gradingResults.map(result => ({
-        ...result,
-        questionId: result.questionId.toString()
-      }));
-      updatedSubmissions[submissionIndex].grades = formattedGrades;
-      updatedSubmissions[submissionIndex].totalScore = totalScore;
-      
-      // Update state
+      // Update submission with grades
+      updatedSubmissions[submissionIndex] = {
+        ...updatedSubmissions[submissionIndex],
+        status: 'graded',
+        grades: gradingResults.map(result => ({
+          questionId: result.questionId.toString(),
+          score: result.score,
+          answer: result.answer,
+          reasoning: result.reasoning,
+          feedback: result.feedback,
+          isCorrect: result.isCorrect,
+          confidence: result.confidence
+        })),
+        totalScore
+      };
+
       setStudentSubmissions([...updatedSubmissions]);
-      setGradingStudent(null);
-      
-      // If there are any graded submissions, automatically switch to grades tab after a delay
-      if (updatedSubmissions.some(s => s.status === 'graded')) {
-        setTimeout(() => {
-          setActiveTab('grades');
-        }, 1500);
-      }
+      toast.success('Grading completed successfully');
       
     } catch (error) {
       console.error('Error grading submission:', error);
-      
-      // Update status to error
       const errorSubmissions = [...studentSubmissions];
       errorSubmissions[submissionIndex].status = 'error';
       setStudentSubmissions(errorSubmissions);
+      toast.error(error instanceof Error ? error.message : 'Failed to grade submission');
+    } finally {
       setGradingStudent(null);
     }
   };
@@ -373,6 +940,416 @@ export default function ExamGradingPage() {
   const saveExamToMaterials = () => {
     // This is a placeholder implementation
     alert('Exam saved to materials');
+  };
+
+  // Mobile camera capture component
+  const CameraCapture = () => {
+    if (!isMobile) return null;
+
+    return (
+      <div className="mt-4">
+        <button
+          onClick={() => setShowCamera(true)}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"
+        >
+          <PhotoIcon className="w-5 h-5" />
+          Take Photo of Exam
+        </button>
+
+        {showCamera && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-lg">
+              <div className="p-4 border-b flex justify-between items-center">
+                <h3 className="text-lg font-medium text-black">Take Photo</h3>
+                <button onClick={() => setShowCamera(false)} className="text-gray-500">
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+              <Camera
+                onCapture={async (blob) => {
+                  const file = new File([blob], 'exam-capture.jpg', { type: 'image/jpeg' });
+                  setShowCamera(false);
+                  await handleFileUpload(file);
+                }}
+                onClose={() => setShowCamera(false)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Update the file upload area to include camera option on mobile
+  const renderFileUpload = () => (
+    <div>
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed ${
+          isDragActive ? 'border-teal-400 bg-teal-50' : 'border-gray-300 bg-gray-50'
+        } rounded-xl p-8 hover:bg-gray-100 transition-colors cursor-pointer`}
+      >
+        <input {...getInputProps()} />
+        <div className="flex flex-col items-center justify-center text-center">
+          {processingFile ? (
+            <>
+              <div className="mb-4 bg-teal-100 p-3 rounded-full animate-pulse">
+                <svg className="w-8 h-8 text-teal-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+              <h4 className="text-lg font-medium text-gray-900 mb-1">Processing your file...</h4>
+              <p className="text-sm text-gray-600">{processingStage || 'This will just take a moment'}</p>
+            </>
+          ) : (
+            <>
+              <div className="mb-4 bg-teal-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+              <h4 className="text-lg font-medium text-gray-900 mb-1">
+                {isDragActive ? 'Drop your file here' : 'Drag and drop your answer key file, or click to select'}
+              </h4>
+              <p className="text-sm text-gray-600 mb-4">PDF or Image files accepted</p>
+              <label 
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  }}
+                />
+                Select File
+              </label>
+            </>
+          )}
+        </div>
+      </div>
+      {isMobile && <CameraCapture />}
+    </div>
+  );
+
+  // Update the save answer key function
+  const handleSaveAnswerKey = async () => {
+    if (!questions.length) {
+      toast.error('No questions to save');
+      return;
+    }
+
+    try {
+      // Add metadata and validation
+      const answerKeyData = {
+        id: Date.now().toString(),
+        questions: questions.map(q => ({
+          ...q,
+          points: Number(q.points) || 10,
+          type: q.type || 'short_answer'
+        })),
+        examContext,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          questionCount: questions.length,
+          totalPoints: questions.reduce((sum, q) => sum + (Number(q.points) || 10), 0),
+          types: [...new Set(questions.map(q => q.type))],
+          languages: ['eng', 'ara', 'heb']
+        }
+      };
+
+      await saveAnswerKey(answerKeyData);
+      setAnswerKeySaved(true);
+      setAnswerKeyId(answerKeyData.id);
+      
+      toast.success('Answer key saved successfully');
+      
+      // Show success message with guidance
+      toast((t) => (
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Answer key saved!</p>
+          <button 
+            onClick={() => {
+              setActiveTab('submissions');
+              toast.dismiss(t.id);
+            }}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 transition-colors"
+          >
+            Start Adding Student Submissions
+          </button>
+        </div>
+      ), { duration: 5000 });
+
+      // Automatically navigate to submissions tab after a short delay
+      setTimeout(() => {
+        setActiveTab('submissions');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Error saving answer key:', error);
+      toast.error('Failed to save answer key. Please try again.');
+    }
+  };
+
+  // Update the submissions tab check
+  const showSubmissionsContent = activeTab === 'submissions' && (answerKeySaved || file);
+
+  // Add answer key retrieval function
+  const loadAnswerKey = async (id: string) => {
+    try {
+      const answerKey = await getAnswerKey(id);
+      if (answerKey && answerKey.questions) {
+        setQuestions(answerKey.questions);
+        setExamContext(answerKey.examContext || '');
+        toast.success('Answer key loaded successfully');
+      }
+    } catch (error) {
+      console.error('Error loading answer key:', error);
+      toast.error('Failed to load answer key');
+    }
+  };
+
+  // Add edit question functionality
+  const handleEditQuestion = async (questionId: number) => {
+    const question = questions.find(q => q.id === questionId);
+    if (!question) return;
+
+    try {
+      const updatedQuestions = [...questions];
+      const index = updatedQuestions.findIndex(q => q.id === questionId);
+      
+      if (index === -1) return;
+
+      // Show edit modal with current question data
+      setEditingQuestion(question);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Error editing question:', error);
+      toast.error('Failed to edit question');
+    }
+  };
+
+  // Add question edit modal
+  const QuestionEditModal = ({ question, onSave, onClose }: any) => {
+    const [editedQuestion, setEditedQuestion] = useState(question);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-medium text-black">Edit Question</h2>
+            <button onClick={onClose} className="text-gray-900 hover:text-gray-700">
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">Question Text</label>
+              <textarea
+                value={editedQuestion.question}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, question: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 text-black"
+                rows={4}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">Answer</label>
+              <textarea
+                value={editedQuestion.answer}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, answer: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 text-black"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-black mb-1">Points</label>
+              <input
+                type="number"
+                value={editedQuestion.points}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, points: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 text-black"
+                min={1}
+              />
+            </div>
+
+            {editedQuestion.type === 'multiple_choice' && (
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">Options</label>
+                {editedQuestion.options?.map((option: string, index: number) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const newOptions = [...(editedQuestion.options || [])];
+                        newOptions[index] = e.target.value;
+                        setEditedQuestion({ ...editedQuestion, options: newOptions });
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 text-black"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border rounded-lg text-black hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                onSave(editedQuestion);
+                onClose();
+              }}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add handler for saving edited question
+  const handleSaveEditedQuestion = (editedQuestion: Question) => {
+    const updatedQuestions = questions.map(q =>
+      q.id === editedQuestion.id ? editedQuestion : q
+    );
+    setQuestions(updatedQuestions);
+    toast.success('Question updated successfully');
+  };
+
+  const calculateAverageScore = () => {
+    if (!studentSubmissions.length) return 0;
+    const totalScore = studentSubmissions.reduce((sum, sub) => sum + (sub.totalScore || 0), 0);
+    return Math.round((totalScore / studentSubmissions.length) * 100) / 100;
+  };
+
+  const handleSaveSuccess = () => {
+    toast.success('Exam results saved to materials successfully!');
+  };
+
+  // Update the handleBatchGrading function
+  const handleBatchGrading = async () => {
+    const pendingSubmissions = studentSubmissions.filter((submission: StudentSubmission) => 
+      submission.status === 'pending' || submission.status === 'error'
+    );
+    
+    if (pendingSubmissions.length === 0) {
+      toast.success('No pending submissions to grade');
+      return;
+    }
+
+    if (!questions.length) {
+      toast.error('No answer key available. Please upload an answer key first.');
+      return;
+    }
+
+    let completedCount = 0;
+    const totalCount = pendingSubmissions.length;
+
+    try {
+      // Update UI to show progress
+      toast((t) => (
+        <div>
+          <div className="font-medium">Grading submissions...</div>
+          <div className="text-sm mt-1">{completedCount} of {totalCount} complete</div>
+        </div>
+      ), { duration: 5000 });
+
+      // Process submissions in parallel with a limit
+      const batchSize = 3;
+      for (let i = 0; i < pendingSubmissions.length; i += batchSize) {
+        const batch = pendingSubmissions.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (submission: StudentSubmission) => {
+          try {
+            // Update status to processing
+            setStudentSubmissions((prev: StudentSubmission[]) => prev.map((s: StudentSubmission): StudentSubmission => 
+              s.id === submission.id ? { ...s, status: 'processing' as const } : s
+            ));
+
+            // Extract text from submission
+            let extractedText = '';
+            if (submission.file.type.includes('pdf')) {
+              const arrayBuffer = await submission.file.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              extractedText = await extractTextFromPDF(buffer);
+            } else if (submission.file.type.includes('image')) {
+              extractedText = await extractTextFromImage(submission.file);
+            }
+
+            if (!extractedText || extractedText.trim().length < 10) {
+              throw new Error('No text could be extracted from the submission');
+            }
+
+            // Grade the submission
+            const gradingResults = await gradeStudentSubmission(questions, extractedText);
+
+            // Calculate total score
+            const totalPossiblePoints = questions.reduce((sum, q) => sum + (q.points || 10), 0);
+            const earnedPoints = gradingResults.reduce((sum, result) => {
+              const questionPoints = questions.find(q => q.id === result.questionId)?.points || 10;
+              return sum + (result.score / 100 * questionPoints);
+            }, 0);
+            
+            const totalScore = Math.round((earnedPoints / totalPossiblePoints) * 100);
+
+            // Update submission with grades
+            setStudentSubmissions((prev: StudentSubmission[]) => prev.map((s: StudentSubmission): StudentSubmission => 
+              s.id === submission.id ? {
+                ...s,
+                status: 'graded' as const,
+                grades: gradingResults.map(result => ({
+                  questionId: result.questionId.toString(),
+                  score: result.score,
+                  answer: result.answer,
+                  reasoning: result.reasoning,
+                  feedback: result.feedback,
+                  isCorrect: result.isCorrect,
+                  confidence: result.confidence
+                })),
+                totalScore
+              } : s
+            ));
+
+            completedCount++;
+            
+            // Update progress toast
+            toast((t) => (
+              <div>
+                <div className="font-medium">Grading submissions...</div>
+                <div className="text-sm mt-1">{completedCount} of {totalCount} complete</div>
+              </div>
+            ), { duration: 5000 });
+
+          } catch (error) {
+            console.error('Error grading submission:', error);
+            setStudentSubmissions((prev: StudentSubmission[]) => prev.map((s: StudentSubmission): StudentSubmission => 
+              s.id === submission.id ? { ...s, status: 'error' as const } : s
+            ));
+          }
+        }));
+      }
+
+      toast.success(`Completed grading ${completedCount} submissions`);
+    } catch (error) {
+      console.error('Error in batch grading:', error);
+      toast.error('Error during batch grading');
+    }
   };
 
   return (
@@ -459,78 +1436,7 @@ export default function ExamGradingPage() {
                 </div>
                 
                 {/* File upload area with functional dropzone */}
-                {file && !processingFile ? (
-                  <div className="border-2 border-green-300 rounded-xl p-6 bg-green-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-green-100 p-2 rounded-full">
-                          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-medium text-green-800">{file.name}</p>
-                          <p className="text-sm text-green-600">{(file.size / 1024).toFixed(1)} KB</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setFile(null)}
-                          className="px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-lg text-sm hover:bg-red-50 transition-colors"
-                        >
-                          Remove
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('submissions')}
-                          className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 transition-colors"
-                        >
-                          Continue
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    {...getRootProps()} 
-                    className={`border-2 border-dashed ${isDragActive ? 'border-teal-400 bg-teal-50' : 'border-gray-300 bg-gray-50'} 
-                      rounded-xl p-8 hover:bg-gray-100 transition-colors cursor-pointer ${processingFile ? 'opacity-50 pointer-events-none' : ''}`}
-                  >
-                    <input {...getInputProps()} />
-                    <div className="flex flex-col items-center justify-center text-center">
-                      {processingFile ? (
-                        <>
-                          <div className="mb-4 bg-teal-100 p-3 rounded-full animate-pulse">
-                            <svg className="w-8 h-8 text-teal-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          </div>
-                          <h4 className="text-lg font-medium text-gray-900 mb-1">Processing your file...</h4>
-                          <p className="text-sm text-gray-600">This will just take a moment</p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="mb-4 bg-teal-100 p-3 rounded-full">
-                            <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                          </div>
-                          <h4 className="text-lg font-medium text-gray-900 mb-1">
-                            {isDragActive ? 'Drop your file here' : 'Drag and drop your answer key file, or click to select'}
-                          </h4>
-                          <p className="text-sm text-gray-600 mb-4">PDF or Image files accepted</p>
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
-                          >
-                            Select File
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {renderFileUpload()}
                 
                 {/* Display extracted questions if available */}
                 {questions.length > 0 && (
@@ -539,7 +1445,10 @@ export default function ExamGradingPage() {
                       <h4 className="font-medium text-gray-900">
                         Questions ({questions.length})
                       </h4>
-                      <button className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm">
+                      <button 
+                        onClick={handleSaveAnswerKey}
+                        className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 transition-colors"
+                      >
                         Save Answer Key
                       </button>
                     </div>
@@ -555,7 +1464,8 @@ export default function ExamGradingPage() {
                               {question.type || 'Question ' + question.id}
                             </span>
                             <button
-                              className="text-blue-600 hover:text-blue-800"
+                              onClick={() => handleEditQuestion(question.id)}
+                              className="text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
                             >
                               Edit
                             </button>
@@ -581,16 +1491,16 @@ export default function ExamGradingPage() {
             
             {activeTab === 'submissions' && (
               <div>
-                {!file ? (
+                {!answerKeySaved && !file ? (
                   // If no answer key uploaded yet
                   <div className="text-center py-8">
                     <div className="inline-block bg-teal-100 p-3 rounded-full mb-3">
                       <ClipboardDocumentCheckIcon className="w-8 h-8 text-teal-600" />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Upload an answer key first</h3>
-                    <p className="text-gray-600 mb-6">Upload an answer key first to start accepting student submissions</p>
+                    <p className="text-gray-600 mb-6">Save your answer key to start accepting student submissions</p>
                     <button 
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium"
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
                       onClick={() => setActiveTab('answerKey')}
                     >
                       Go to Answer Key
@@ -765,10 +1675,10 @@ export default function ExamGradingPage() {
                                     Score: {(submission.totalScore || 0).toFixed(1)}%
                                   </span>
                                   <button
-                                    onClick={() => setActiveTab('grades')}
-                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition-colors"
+                                    onClick={() => setSelectedSubmission(submission)}
+                                    className="px-3 py-1 text-blue-600 hover:text-blue-800 font-medium"
                                   >
-                                    View
+                                    View Details
                                   </button>
                                 </>
                               )}
@@ -821,15 +1731,31 @@ export default function ExamGradingPage() {
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-semibold text-gray-900">Grades Dashboard</h3>
                       <div className="flex gap-2">
-                        <button 
-                          onClick={saveExamToMaterials}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                        >
-                          Save to Materials
-                        </button>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                          Export Grades
-                        </button>
+                        <SaveMaterialButton
+                          content={{
+                            questions,
+                            submissions: studentSubmissions,
+                            metadata: {
+                              savedAt: new Date().toISOString(),
+                              totalSubmissions: studentSubmissions.length,
+                              averageScore: calculateAverageScore()
+                            }
+                          }}
+                          type="exam_results"
+                          userId={userId}
+                          onSaveSuccess={handleSaveSuccess}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                        />
+                        <ExportButton 
+                          submissions={studentSubmissions} 
+                          questions={questions}
+                          format="csv" 
+                        />
+                        <ExportButton 
+                          submissions={studentSubmissions} 
+                          questions={questions}
+                          format="pdf" 
+                        />
                       </div>
                     </div>
                     
@@ -875,7 +1801,7 @@ export default function ExamGradingPage() {
                           const questionResults = studentSubmissions
                             .filter(s => s.status === 'graded')
                             .flatMap(s => s.grades || [])
-                            .filter(g => g.questionId === question.id);
+                            .filter(g => g.questionId === question.id.toString());
                           
                           const correctCount = questionResults.filter(g => g.score >= 80).length;
                           const totalCount = Math.max(1, questionResults.length);
@@ -970,7 +1896,10 @@ export default function ExamGradingPage() {
                               </td>
                               <td className="px-4 py-3 text-sm">
                                 {submission.status === 'graded' && (
-                                  <button className="px-3 py-1 text-blue-600 hover:text-blue-800 font-medium">
+                                  <button 
+                                    onClick={() => setSelectedSubmission(submission)}
+                                    className="px-3 py-1 text-blue-600 hover:text-blue-800 font-medium"
+                                  >
                                     View Details
                                   </button>
                                 )}
@@ -1088,6 +2017,36 @@ export default function ExamGradingPage() {
           border-width: 2px;
         }
       `}</style>
+      
+      {/* Add edit modal */}
+      {showEditModal && editingQuestion && (
+        <QuestionEditModal
+          question={editingQuestion}
+          onSave={handleSaveEditedQuestion}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingQuestion(null);
+          }}
+        />
+      )}
+      
+      {/* Student details modal */}
+      {selectedSubmission && (
+        <StudentDetailsModal
+          submission={selectedSubmission}
+          questions={questions}
+          onClose={() => setSelectedSubmission(null)}
+          onUpdateGrades={(submissionId, updatedGrades) => {
+            const updatedSubmissions = studentSubmissions.map(s =>
+              s.id === submissionId ? { ...s, grades: updatedGrades } : s
+            );
+            setStudentSubmissions(updatedSubmissions);
+          }}
+          setSelectedSubmission={setSelectedSubmission}
+          studentSubmissions={studentSubmissions}
+          setStudentSubmissions={setStudentSubmissions}
+        />
+      )}
     </div>
   );
 } 

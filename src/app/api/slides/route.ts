@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
+    
     // This would be where you'd integrate with an actual slide generation service
     // For now, just return a success response with some dummy data
     const dummyResponse = {
@@ -58,8 +58,8 @@ export async function POST(req: Request) {
         imageUrl: `https://source.unsplash.com/random/800x600?${encodeURIComponent(prompt)}&slide=${i}`,
       }))
     };
-
-    return NextResponse.json({
+      
+      return NextResponse.json({ 
       status: 'success',
       presentation: dummyResponse
     });

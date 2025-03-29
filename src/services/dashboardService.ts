@@ -1,33 +1,43 @@
 // Helper function to trigger updates
-export const triggerDashboardUpdate = () => {
-  // Dispatch custom event to update all components
-  window.dispatchEvent(new CustomEvent('localDataUpdate'));
+export const triggerDashboardUpdate = async () => {
+  try {
+    // Clear any cached data
+    if (typeof window !== 'undefined') {
+      // Clear localStorage cache
+      localStorage.removeItem('dashboardData');
+      // Clear sessionStorage cache
+      sessionStorage.removeItem('dashboardData');
+      // Force a page reload to fetch fresh data
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error('Error triggering dashboard update:', error);
+  }
 };
 
 // Helper function to save grades
 export const saveGrade = async (grade: any) => {
   try {
-    // Get existing grades
-    const grades = JSON.parse(localStorage.getItem('gradedExams') || '[]');
-    
-    // Add new grade
-    grades.push({
-      id: Date.now(),
-      student: grade.student,
-      title: grade.title,
-      grade: grade.score,
-      gradedAt: new Date()
+    const response = await fetch('/api/grades/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(grade),
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to save grade');
+    }
+
+    const data = await response.json();
     
-    // Save back to localStorage
-    localStorage.setItem('gradedExams', JSON.stringify(grades));
+    // Trigger a cache invalidation
+    await triggerDashboardUpdate();
     
-    // Trigger dashboard update
-    triggerDashboardUpdate();
-    
-    return true;
+    return data;
   } catch (error) {
-    console.error('Failed to save grade:', error);
+    console.error('Error saving grade:', error);
     throw error;
   }
 }; 

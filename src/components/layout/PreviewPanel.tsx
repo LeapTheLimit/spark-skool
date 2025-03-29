@@ -129,15 +129,15 @@ export default function PreviewPanel({
               <XMarkIcon className="h-5 w-5 text-gray-500" />
             </button>
           )}
-        </div>
-      )}
-      
+                        </div>
+                      )}
+
       {/* Display empty state if no chat history */}
       {chatHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center h-full p-4">
           <ClockIcon className="h-10 w-10 text-gray-400 mb-2" />
           <p className="text-gray-500 text-sm">{t('noChatHistory')}</p>
-        </div>
+                    </div>
       ) : (
         <div className={`space-y-2 ${compactMode ? 'mt-2' : ''} overflow-y-auto flex-1`}>
           {/* Show chat history */}
