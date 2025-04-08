@@ -10,3 +10,24 @@ body {
 * {
   box-sizing: inherit;
 }
+
+/* Add RTL support for sidebar */
+html[dir="rtl"] .teacher-sidebar-container {
+  right: auto;
+  left: 0;
+}
+
+html[dir="rtl"] .rtl-sidebar {
+  right: auto !important;
+  left: 0 !important;
+}
+
+html[dir="rtl"] .ml-\[70px\] {
+  margin-left: 0;
+  margin-right: 70px;
+}
+
+html[dir="rtl"] .ml-\[280px\] {
+  margin-left: 0;
+  margin-right: 280px;
+}

@@ -69,10 +69,10 @@ export default function ChatHistory() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search chat history..."
-            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
           />
           <svg
-            className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+            className="w-5 h-5 text-black absolute left-3 top-1/2 -translate-y-1/2"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -90,7 +90,7 @@ export default function ChatHistory() {
       <div className="flex-1 overflow-y-auto p-4">
         {filteredCategories.map((category) => (
           <div key={category.title} className="mb-8">
-            <h2 className="text-sm font-medium text-gray-500 mb-4">{category.title}</h2>
+            <h2 className="text-sm font-medium text-black mb-4">{category.title}</h2>
             <div className="space-y-3">
               {category.chats.map((chat) => (
                 <div
@@ -98,15 +98,15 @@ export default function ChatHistory() {
                   className="p-4 bg-white rounded-xl hover:bg-gray-50 cursor-pointer transition-all border border-gray-200"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-gray-900">{chat.title}</h3>
-                    <span className="text-sm text-gray-500">{chat.date}</span>
+                    <h3 className="font-medium text-black">{chat.title}</h3>
+                    <span className="text-sm text-black">{chat.date}</span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-3">{chat.preview}</p>
+                  <p className="text-sm text-black mb-3">{chat.preview}</p>
                   <div className="flex gap-2">
                     {chat.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full"
+                        className="text-xs px-2 py-1 bg-gray-100 text-black rounded-full"
                       >
                         {tag}
                       </span>

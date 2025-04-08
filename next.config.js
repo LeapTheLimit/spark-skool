@@ -9,7 +9,7 @@ const nextConfig = {
       },
     ],
     unoptimized: true,
-    domains: ['example.com', 'your-image-domain.com'],
+    domains: ['example.com', 'your-image-domain.com', 'spark-skool-beta.vercel.app'],
   },
   experimental: {
     typedRoutes: true,

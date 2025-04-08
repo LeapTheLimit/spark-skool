@@ -120,13 +120,13 @@ export default function PreviewPanel({
       {/* Header with title and new chat button */}
       {!compactMode && (
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">{t('chatHistory')}</h2>
+          <h2 className="text-lg font-semibold text-black">{t('chatHistory')}</h2>
           {onNewChat && (
             <button 
               onClick={onNewChat}
               className="p-1 rounded-md hover:bg-gray-100"
             >
-              <XMarkIcon className="h-5 w-5 text-gray-500" />
+              <XMarkIcon className="h-5 w-5 text-black" />
             </button>
           )}
                         </div>
@@ -135,8 +135,8 @@ export default function PreviewPanel({
       {/* Display empty state if no chat history */}
       {chatHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center h-full p-4">
-          <ClockIcon className="h-10 w-10 text-gray-400 mb-2" />
-          <p className="text-gray-500 text-sm">{t('noChatHistory')}</p>
+          <ClockIcon className="h-10 w-10 text-black mb-2" />
+          <p className="text-black text-sm">{t('noChatHistory')}</p>
                     </div>
       ) : (
         <div className={`space-y-2 ${compactMode ? 'mt-2' : ''} overflow-y-auto flex-1`}>
@@ -164,14 +164,14 @@ export default function PreviewPanel({
                     : 'hover:bg-gray-50 border border-transparent'
                 }`}
               >
-                <div className="font-medium text-gray-800 text-sm">{title}</div>
+                <div className="font-medium text-black text-sm">{title}</div>
                 <div className="flex justify-between items-center mt-1">
-                  <div className="text-xs text-gray-500 flex items-center">
+                  <div className="text-xs text-black flex items-center">
                     <ClockIcon className="h-3 w-3 mr-1" />
                     {date}
                   </div>
                   {!compactMode && (
-                    <span className="text-xs text-gray-500">{chat.messages.length} msgs</span>
+                    <span className="text-xs text-black">{chat.messages.length} msgs</span>
                   )}
                 </div>
               </button>

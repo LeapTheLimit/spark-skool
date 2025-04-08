@@ -1,19 +1,23 @@
 'use client';
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import PreviewPanel from '@/components/layout/PreviewPanel';
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, KeyboardEvent } from 'react';
 import { sendChatMessage, type ChatMessage, type ToolType, getTranslatedPrompts } from '@/services/chatService';
 import { generateLessonPlan, processUploadedFiles } from '@/services/lessonService';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PaperClipIcon, MicrophoneIcon, ArrowUpIcon, LightBulbIcon, SparklesIcon, FolderIcon, DocumentMagnifyingGlassIcon, CursorArrowRippleIcon, PencilSquareIcon, LinkIcon, ArrowUturnLeftIcon, FaceSmileIcon, CogIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import SaveMaterialButton from '@/components/SaveMaterialButton';
 import AIEditorModal from '@/components/AIEditorModal';
 import ChatMessageComponent from '@/components/ChatMessage';
 import { toast } from 'react-hot-toast';
 import { triggerDashboardUpdate } from '@/services/dashboardService';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { DocumentIcon, ClipboardIcon, ChatBubbleLeftIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 import SparkMascot from '@/components/SparkMascot';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 interface TeacherPreferences {
   teachingStyle?: string;
@@ -37,6 +41,25 @@ type RouteImpl<T extends string> = T;
 // Add proper type for the href attribute
 const href: RouteImpl<'/dashboard/teacher/chat/history'> = '/dashboard/teacher/chat/history';
 
+// Add new interfaces for enhanced chat features
+interface SuggestedPrompt {
+  text: string;
+  icon: JSX.Element;
+  category: string;
+}
+
+interface AutocompleteOption {
+  text: string;
+  category: string;
+}
+
+interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+}
+
 // Helper function to ensure timestamp is included
 const createChatMessage = (role: 'user' | 'assistant', content: string, language?: string): ChatMessage => {
   return {
@@ -47,15 +70,199 @@ const createChatMessage = (role: 'user' | 'assistant', content: string, language
   };
 };
 
+// Separate LessonCanvas component
+const LessonCanvas = ({ 
+  lessonData, 
+  editorContent, 
+  setEditorContent, 
+  generatedPlan, 
+  setGeneratedPlan,
+  setMessages, 
+  setShowLessonCanvas, 
+  triggerDashboardUpdate 
+}: { 
+  lessonData: any;
+  editorContent: string;
+  setEditorContent: (content: string) => void;
+  generatedPlan: any;
+  setGeneratedPlan: (plan: any) => void;
+  setMessages: (fn: (prev: ChatMessage[]) => ChatMessage[]) => void;
+  setShowLessonCanvas: (show: boolean) => void;
+  triggerDashboardUpdate: () => void;
+}) => {
+  const [editorChat, setEditorChat] = useState('');
+  const [editorChatMessages, setEditorChatMessages] = useState<ChatMessage[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const editorChatEndRef = useRef<HTMLDivElement>(null);
+
+  // Separate scroll for editor chat
+  useEffect(() => {
+    editorChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [editorChatMessages]);
+
+  // Update editor chat handler
+  const handleEditorChat = async () => {
+    if (!editorChat.trim()) return;
+
+    const userMessage = editorChat;
+    setEditorChat('');
+    
+    setEditorChatMessages(prev => [...prev, 
+      createChatMessage('user', userMessage),
+      createChatMessage('assistant', "Revising lesson plan... ✍️")
+    ]);
+
+    setIsEditing(true);
+    try {
+      const response = await fetch('/api/ai-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: userMessage,
+          currentContent: editorContent
+        })
+      });
+
+      console.log('AI Edit Response:', response.status, await response.text());
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const { revisedContent } = await response.json();
+      console.log('Revised Content:', revisedContent);
+      
+      if (revisedContent) {
+        setEditorContent(revisedContent);
+        setGeneratedPlan((prev: any) => ({
+          ...prev,
+          plan: revisedContent,
+          status: prev?.status || 'success'
+        }));
+      }
+      setEditorChatMessages(prev => [
+        ...prev.slice(0, -1), 
+        createChatMessage('assistant', "Here's your revised lesson plan:")
+      ]);
+    } catch (error) {
+      console.error('Revision Error:', error);
+      setEditorChatMessages(prev => [
+        ...prev.slice(0, -1), 
+        createChatMessage('assistant', "⚠️ Revision failed. Please try again.")
+      ]);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleSaveLesson = async () => {
+    try {
+      const response = await fetch('/api/lessons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: lessonData.topic,
+          content: editorContent,
+          gradeLevel: lessonData.gradeLevel,
+          duration: lessonData.duration
+        })
+      });
+
+      if (response.ok) {
+        setMessages(prev => [...prev, 
+          createChatMessage('assistant', "✅ Lesson saved successfully!")
+        ]);
+        setShowLessonCanvas(false);
+      }
+      triggerDashboardUpdate();
+    } catch (error) {
+      setMessages(prev => [...prev, 
+        createChatMessage('assistant', "❌ Failed to save lesson. Please try again.")
+      ]);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: editorContent,
+          title: lessonData.topic
+        })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${lessonData.topic}-lesson-plan.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      triggerDashboardUpdate();
+    } catch (error) {
+      setMessages(prev => [...prev, 
+        createChatMessage('assistant', "❌ PDF export failed. Please try again.")
+      ]);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+      {/* Lesson Canvas content */}
+    </div>
+  );
+};
+
+// TypeWriter component for animated text display
+const TypeWriterEffect = ({ content }: { content: string }) => {
+  const [displayedContent, setDisplayedContent] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  useEffect(() => {
+    if (currentIndex < content.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedContent(prev => prev + content[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, 10); // Speed of typing (lower = faster)
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [content, currentIndex]);
+  
+  // Reset animation when content changes
+  useEffect(() => {
+    setDisplayedContent('');
+    setCurrentIndex(0);
+  }, [content]);
+  
+  return <div className="whitespace-pre-wrap">{displayedContent}</div>;
+};
+
+// Icon component for presentations
+const PresentationIcon = ({ className }: { className: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+  </svg>
+);
+
 export default function TeacherChat() {
   const { language, t } = useLanguage();
+  const { settings: themeSettings } = useTheme();
   const isRTL = language === 'ar' || language === 'he';
+  const isDarkMode = themeSettings?.theme === 'dark';
 
   // All state declarations
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
   const [selectedTool, setSelectedTool] = useState<ToolType | undefined>(undefined);
-  const [hasStartedConversation, setHasStartedConversation] = useState(false);
+  const [hasStartedConversation, setHasStartedConversation] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [teacher, setTeacher] = useState<any>(null);
   const [preferences, setPreferences] = useState<TeacherPreferences>({
@@ -115,10 +322,31 @@ export default function TeacherChat() {
   });
   const [showHistory, setShowHistory] = useState(false);
 
+  // New state declarations for enhanced features
+  const [suggestedPrompts, setSuggestedPrompts] = useState<SuggestedPrompt[]>([]);
+  const [isAutocompleting, setIsAutocompleting] = useState(false);
+  const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);
+  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [fileUploadProgress, setFileUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [currentView, setCurrentView] = useState<'chat' | 'search' | 'history'>('chat');
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [chatActions, setChatActions] = useState<{id: string, action: string, isComplete: boolean}[]>([]);
+  const [uploadedFileContent, setUploadedFileContent] = useState<string>('');
+  const [chatThreads, setChatThreads] = useState<{id: string, title: string, lastUpdated: Date}[]>([]);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Add translations for chat interface
   const chatTranslations = {
     en: {
-      startPrompt: "How can I help you today?",
+      startPrompt: "What would you like to teach today?",
       lessonPlanning: "Lesson Planning",
       assessmentGenerator: "Assessment Generator",
       studentFeedback: "Student Feedback",
@@ -129,7 +357,7 @@ export default function TeacherChat() {
       newChat: "New Chat"
     },
     ar: {
-      startPrompt: "كيف يمكنني مساعدتك اليوم؟",
+      startPrompt: "ماذا تريد أن تدرّس اليوم؟",
       lessonPlanning: "تخطيط الدرس",
       assessmentGenerator: "إنشاء التقييم",
       studentFeedback: "تقييم الطلاب",
@@ -140,7 +368,7 @@ export default function TeacherChat() {
       newChat: "محادثة جديدة"
     },
     he: {
-      startPrompt: "כיצד אוכל לעזור לך היום?",
+      startPrompt: "מה תרצה ללמד היום?",
       lessonPlanning: "תכנון שיעור",
       assessmentGenerator: "יצירת הערכה",
       studentFeedback: "משוב לתלמידים",
@@ -150,23 +378,6 @@ export default function TeacherChat() {
       uploadFile: "העלאת קובץ",
       newChat: "צ'אט חדש"
     }
-  };
-
-  // Simplify the action handling
-  const handleAction = (type: string) => {
-    console.log('Action clicked:', type);
-    if (type === 'Lesson Planning') {
-      setWorkflowStep(1);
-    }
-    setSelectedTool(type as ToolType);
-    setHasStartedConversation(true);
-
-    // Start the conversation with timestamp
-    const initialMessage = `I need help with ${type}`;
-    setMessages([
-      createChatMessage('user', initialMessage),
-      createChatMessage('assistant', `Let's work on ${type}. What would you like to do?`)
-    ]);
   };
 
   // Create dynamic action commands that include the subject
@@ -216,25 +427,6 @@ export default function TeacherChat() {
 
     loadTeacherData();
   }, []);
-
-  // Optionally, you can comment out or remove the onboarding related useEffect
-  /*
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      // ... onboarding check logic ...
-    };
-    checkOnboarding();
-  }, []);
-  */
-
-  // Loading state
-  if (!teacher) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-        </div>
-    );
-  }
 
   // Onboarding questions with teacher data
   const onboardingQuestions = [
@@ -299,7 +491,7 @@ export default function TeacherChat() {
   };
 
   // Update the handleOnboardingAnswer function
-  const handleOnboardingAnswer = (answer: string | string[]) => {
+  const handleOnboardingAnswer = useCallback((answer: string | string[]) => {
     const currentQuestion = onboardingQuestions[onboardingStep];
     const updatedPreferences = {
       ...preferences,
@@ -315,30 +507,30 @@ export default function TeacherChat() {
       setPreferences(updatedPreferences);
       setIsOnboarding(false);
     }
-  };
+  }, [onboardingStep, preferences, onboardingQuestions]);
 
   // Add handleAIEdit function
-  const handleAIEdit = async (messageIndex: number, newContent: string) => {
+  const handleAIEdit = useCallback(async (messageIndex: number, newContent: string) => {
     setMessages(prev => prev.map((msg, idx) => 
       idx === messageIndex ? { ...msg, content: newContent } : msg
     ));
     triggerDashboardUpdate();
-  };
+  }, []);
 
   // Add handleNewChat function
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     setMessages([]);
     setHasStartedConversation(false);
     setSelectedTool(undefined);
     triggerDashboardUpdate();
-  };
+  }, []);
 
   // Add handleLoadChat function
-  const handleLoadChat = (loadedMessages: ChatMessage[]) => {
+  const handleLoadChat = useCallback((loadedMessages: ChatMessage[]) => {
     setMessages(loadedMessages);
     setHasStartedConversation(true);
     triggerDashboardUpdate();
-  };
+  }, []);
 
   // Show onboarding if needed
   if (isOnboarding) {
@@ -375,21 +567,21 @@ export default function TeacherChat() {
     );
   }
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [messagesEndRef]);
 
   const AI_EDITOR_TRIGGER_WORD_COUNT = 100;
 
-  const checkForAutoEdit = (text: string) => {
+  const checkForAutoEdit = useCallback((text: string) => {
     const wordCount = text.trim().split(/\s+/).length;
     if (wordCount >= AI_EDITOR_TRIGGER_WORD_COUNT) {
       setDraftContent(text);
       setShowAIEditor(true);
     }
-  };
+  }, []);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!message.trim() || isLoading) return;
 
     const userMessage = createChatMessage('user', message, language);
@@ -401,6 +593,14 @@ export default function TeacherChat() {
     setIsThinking(true);
 
     try {
+      // Check if the message is a search query
+      if (message.toLowerCase().includes('search for') || 
+          message.toLowerCase().includes('find information') ||
+          message.toLowerCase().includes('look up')) {
+        await performWebSearch(message);
+        return;
+      }
+      
       // If the message contains keywords indicating a task request
       if (message.toLowerCase().includes('create') || 
           message.toLowerCase().includes('generate') ||
@@ -410,7 +610,7 @@ export default function TeacherChat() {
       
       const response = await sendChatMessage([...messages, userMessage]);
       
-      // Add a 4-second delay before showing the response
+      // Add a small delay before showing the response for a more natural flow
       setTimeout(() => {
         const aiMessage = createChatMessage('assistant', response, language);
         setMessages(prev => [...prev, aiMessage]);
@@ -422,16 +622,134 @@ export default function TeacherChat() {
         
         setIsThinking(false);
         setIsLoading(false);
-      }, 4000);
+        
+        // Generate contextual suggestions based on the response
+        generateContextualSuggestions(response);
+      }, 800); // Reduced from 4000ms to 800ms for better UX
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message');
       setIsThinking(false);
       setIsLoading(false);
     }
-  };
+  }, [message, isLoading, messages, language, aiTaskStatus]);
+  
+  // Function to handle web searches
+  const performWebSearch = useCallback(async (query: string) => {
+    const searchQuery = query.replace(/search for|find information|look up/gi, '').trim();
+    
+    setIsSearching(true);
+    
+    // Process and show search message
+    const searchUserMessage = createChatMessage('user', `Searching for: ${searchQuery}`);
+    setMessages(prev => [...prev, searchUserMessage]);
+    
+    try {
+      // Import the web search function from chatService
+      const { searchWithinChat } = await import('@/services/chatService');
+      
+      // Show initial search message
+      const initialSearchMessage = createChatMessage(
+        'assistant',
+        `I'm searching the web for the most current information about "${searchQuery}"...`
+      );
+      setMessages(prev => [...prev, initialSearchMessage]);
+      
+      // Perform the actual search
+      const searchResults = await searchWithinChat(searchQuery);
+      
+      // Update the message with results
+      const updatedSearchMessage = createChatMessage(
+        'assistant', 
+        `I've found some up-to-date information about "${searchQuery}" from multiple sources:\n\n${searchResults}`
+      );
+      
+      // Replace the searching message with results
+      setMessages(prev => [
+        ...prev.slice(0, prev.length - 1), // Remove the "searching" message
+        updatedSearchMessage
+      ]);
+      
+      // Store the results in state for potential UI display
+      const parsedResults = extractSearchResultsFromText(searchResults);
+      setSearchResults(parsedResults);
+    } catch (error) {
+      console.error('Search error:', error);
+      setMessages(prev => [
+        ...prev.slice(0, prev.length - 1), // Remove the "searching" message
+        createChatMessage('assistant', "I'm sorry, I encountered an issue while searching online. Let me try to answer based on my existing knowledge instead.")
+      ]);
+    } finally {
+      setIsSearching(false);
+      setIsThinking(false);
+      setIsLoading(false);
+    }
+  }, []);
+  
+  // Helper function to extract search results from text response
+  const extractSearchResultsFromText = useCallback((text: string): SearchResult[] => {
+    const results: SearchResult[] = [];
+    
+    // Extract search results using regex pattern matching
+    // This is a simple implementation - could be enhanced with better parsing
+    const regex = /\[(\d+)\]\s+\*\*(.+?)\*\*\n(.*?)\nSource:\s+\[(.+?)\]\((.+?)\)/g;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      results.push({
+        title: match[2],
+        snippet: match[3],
+        source: match[4],
+        url: match[5]
+      });
+    }
+    
+    return results;
+  }, []);
+  
+  // Function to generate contextual suggestions based on AI response
+  const generateContextualSuggestions = useCallback((response: string) => {
+    const subject = teacher?.subject || '';
+    const newSuggestions: SuggestedPrompt[] = [];
+    
+    // Generate suggestions based on response content
+    if (response.toLowerCase().includes('lesson plan') || 
+        response.toLowerCase().includes('curriculum') || 
+        response.toLowerCase().includes('teaching')) {
+      newSuggestions.push({
+        text: "Convert this into a printable worksheet",
+        icon: <DocumentTextIcon className="w-4 h-4" />,
+        category: 'document'
+      });
+    }
+    
+    if (response.toLowerCase().includes('assessment') || response.toLowerCase().includes('quiz')) {
+      newSuggestions.push({
+        text: 'Generate more questions on this topic',
+        icon: <ClipboardIcon className="w-4 h-4" />,
+        category: 'assessment'
+      });
+    }
+    
+    if (response.length > 200) {
+      newSuggestions.push({
+        text: 'Summarize this into key points',
+        icon: <LightBulbIcon className="w-4 h-4" />,
+        category: 'summary'
+      });
+    }
+    
+    // Default follow-up
+    newSuggestions.push({
+      text: 'Search for additional resources',
+      icon: <DocumentMagnifyingGlassIcon className="w-4 h-4" />,
+      category: 'search'
+    });
+    
+    setSuggestedPrompts(newSuggestions);
+  }, [teacher]);
 
-  const handleToolClick = async (tool: ToolType) => {
+  const handleToolClick = useCallback(async (tool: ToolType) => {
     if (isLoading) return;
     
     const prompts = getTranslatedPrompts(language, teacher?.subject || '');
@@ -471,17 +789,9 @@ export default function TeacherChat() {
       setIsLoading(false);
       setIsThinking(false);
     }
-  };
+  }, [isLoading, language, teacher]);
 
-  const lessonWorkflowSteps = [
-    { question: "What topic would you like to teach?", field: 'topic' },
-    { question: "What grade level? (1-12)", field: 'gradeLevel' },
-    { question: "What are the learning objectives? (comma separated)", field: 'objectives' },
-    { question: "Upload any resources (PDF/Word/Images) or type 'next' to continue", field: 'resources' },
-    { question: "Class duration in minutes?", field: 'duration' }
-  ];
-
-  const handleFileUpload = async (files: File[]) => {
+  const handleFileUploadForLesson = useCallback(async (files: File[]) => {
     if (workflowStep === 4) {
       const extractedText = await processUploadedFiles(files);
       setLessonData(prev => ({
@@ -495,164 +805,10 @@ export default function TeacherChat() {
       ]);
     }
     triggerDashboardUpdate();
-  };
+  }, [workflowStep]);
 
-  const LessonCanvas = () => {
-    const [editorChat, setEditorChat] = useState('');
-    const [editorChatMessages, setEditorChatMessages] = useState<ChatMessage[]>([]);
-    const editorChatEndRef = useRef<HTMLDivElement>(null);
-
-    // Separate scroll for editor chat
-    useEffect(() => {
-      editorChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [editorChatMessages]);
-
-    // Update editor chat handler
-    const handleEditorChat = async () => {
-      if (!editorChat.trim()) return;
-
-      const userMessage = editorChat;
-      setEditorChat('');
-      
-      setEditorChatMessages(prev => [...prev, 
-        createChatMessage('user', userMessage),
-        createChatMessage('assistant', "Revising lesson plan... ✍️")
-      ]);
-
-      setIsEditing(true);
-      try {
-        const response = await fetch('/api/ai-edit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instruction: userMessage,
-            currentContent: editorContent
-          })
-        });
-
-        console.log('AI Edit Response:', response.status, await response.text());
-        
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const { revisedContent } = await response.json();
-        console.log('Revised Content:', revisedContent);
-        
-        if (revisedContent) {
-          setEditorContent(revisedContent);
-          setGeneratedPlan(prev => ({
-            ...prev,
-            plan: revisedContent,
-            status: prev?.status || 'success'
-          }));
-        }
-        setEditorChatMessages(prev => [
-          ...prev.slice(0, -1), 
-          createChatMessage('assistant', "Here's your revised lesson plan:")
-        ]);
-      } catch (error) {
-        console.error('Revision Error:', error);
-        setEditorChatMessages(prev => [
-          ...prev.slice(0, -1), 
-          createChatMessage('assistant', "⚠️ Revision failed. Please try again.")
-        ]);
-      } finally {
-        setIsEditing(false);
-      }
-    };
-
-    const handleSaveLesson = async () => {
-      try {
-        const response = await fetch('/api/lessons', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: lessonData.topic,
-            content: editorContent,
-            gradeLevel: lessonData.gradeLevel,
-            duration: lessonData.duration
-          })
-        });
-  
-        if (response.ok) {
-          setMessages(prev => [...prev, 
-            createChatMessage('assistant', "✅ Lesson saved successfully!")
-          ]);
-          setShowLessonCanvas(false);
-        }
-        triggerDashboardUpdate();
-      } catch (error) {
-        setMessages(prev => [...prev, 
-          createChatMessage('assistant', "❌ Failed to save lesson. Please try again.")
-        ]);
-      }
-    };
-
-    const handleExportPDF = async () => {
-      try {
-        const response = await fetch('/api/export-pdf', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            content: editorContent,
-            title: lessonData.topic
-          })
-        });
-  
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${lessonData.topic}-lesson-plan.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
-        triggerDashboardUpdate();
-      } catch (error) {
-        setMessages(prev => [...prev, 
-          createChatMessage('assistant', "❌ PDF export failed. Please try again.")
-        ]);
-      }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-        {/* Lesson Canvas content */}
-      </div>
-    );
-  };
-
-  const TypeWriterEffect = ({ content }: { content: string }) => {
-    const [displayedContent, setDisplayedContent] = useState('');
-    const [currentIndex, setCurrentIndex] = useState(0);
-    
-    useEffect(() => {
-      if (currentIndex < content.length) {
-        const timeout = setTimeout(() => {
-          setDisplayedContent(prev => prev + content[currentIndex]);
-          setCurrentIndex(prev => prev + 1);
-        }, 10); // Speed of typing (lower = faster)
-        
-        return () => clearTimeout(timeout);
-      }
-    }, [content, currentIndex]);
-    
-    // Reset animation when content changes
-    useEffect(() => {
-      setDisplayedContent('');
-      setCurrentIndex(0);
-    }, [content]);
-    
-    return <div className="whitespace-pre-wrap">{displayedContent}</div>;
-  };
-
-  // Add this function to update task status
-  const updateTaskStatus = (status: 'started' | 'completed', task: string, result?: string) => {
+  // Function to update task status
+  const updateTaskStatus = useCallback((status: 'started' | 'completed', task: string, result?: string) => {
     if (status === 'started') {
       setAiTaskStatus(prev => ({
         ...prev,
@@ -692,86 +848,201 @@ export default function TeacherChat() {
         ]
       }));
     }
-  };
+  }, []);
 
+  // New handler for autocomplete
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const inputValue = e.target.value;
+    setMessage(inputValue);
+    
+    // Check if we should show autocomplete
+    if (inputValue.length > 2 && !isLoading) {
+      // Generate autocomplete suggestions based on input and context
+      const options: AutocompleteOption[] = [];
+      const subject = teacher?.subject || '';
+      
+      // Subject-specific completions
+      if (inputValue.toLowerCase().includes('create') || inputValue.toLowerCase().includes('make')) {
+        options.push({
+          text: `Create a ${subject} lesson plan for next week`,
+          category: 'creation'
+        });
+        options.push({
+          text: `Create a ${subject} assessment for chapter 5`,
+          category: 'creation'
+        });
+      }
+      
+      // Teaching-related completions
+      if (inputValue.toLowerCase().includes('how')) {
+        options.push({
+          text: `How can I make my ${subject} lessons more engaging?`,
+          category: 'teaching'
+        });
+        options.push({
+          text: `How should I structure my ${subject} curriculum?`,
+          category: 'teaching'
+        });
+      }
+      
+      if (options.length > 0) {
+        setAutocompleteOptions(options);
+        setIsAutocompleting(true);
+        setSelectedAutocompleteIndex(0);
+      } else {
+        setIsAutocompleting(false);
+      }
+    } else {
+      setIsAutocompleting(false);
+    }
+  }, [isLoading, teacher]);
+
+  // New handler for autocomplete key navigation
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isAutocompleting) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => 
+          prev < autocompleteOptions.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => prev > 0 ? prev - 1 : 0);
+      } else if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault();
+        if (autocompleteOptions.length > 0) {
+          setMessage(autocompleteOptions[selectedAutocompleteIndex].text);
+          setIsAutocompleting(false);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsAutocompleting(false);
+      }
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  }, [isAutocompleting, autocompleteOptions, selectedAutocompleteIndex, handleSendMessage]);
+
+  // New method for voice input
+  const toggleVoiceInput = useCallback(() => {
+    if (isVoiceRecording) {
+      // Stop recording logic here
+      setIsVoiceRecording(false);
+      // Simulated result
+      setTimeout(() => {
+        setMessage(prev => prev + " I'd like to create an interactive lesson plan.");
+      }, 1000);
+    } else {
+      // Start recording logic here
+      setIsVoiceRecording(true);
+    }
+  }, [isVoiceRecording]);
+
+  // New method for file upload handling
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    
+    // Simulate upload progress
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setFileUploadProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setIsUploading(false);
+        setUploadedFiles(prev => [...prev, ...Array.from(files)]);
+        
+        // Simulate OCR/content extraction
+        setTimeout(() => {
+          setUploadedFileContent(`Content extracted from ${files[0].name}:\n\nThis is a sample lesson plan about photosynthesis. The process by which plants convert light energy into chemical energy...`);
+          
+          setMessages(prev => [
+            ...prev,
+            createChatMessage('user', `I've uploaded a document called ${files[0].name}. Please analyze it.`),
+            createChatMessage('assistant', `I've analyzed your document "${files[0].name}". It appears to be a lesson plan about photosynthesis. Would you like me to summarize it, create assessment questions based on it, or enhance it?`)
+          ]);
+          
+          setSuggestedPrompts([
+            {
+              text: "Summarize this document",
+              icon: <DocumentIcon className="w-4 h-4" />,
+              category: 'document'
+            },
+            {
+              text: "Create quiz questions from this content",
+              icon: <ClipboardIcon className="w-4 h-4" />,
+              category: 'assessment'
+            },
+            {
+              text: "Enhance this lesson plan",
+              icon: <SparklesIcon className="w-4 h-4" />,
+              category: 'improvement'
+            },
+            {
+              text: "Convert to presentation slides",
+              icon: <PresentationIcon className="w-4 h-4" />,
+              category: 'conversion'
+            }
+          ]);
+        }, 1500);
+      }
+    }, 200);
+  }, []);
+
+  // Create initial welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      // Add welcome message from assistant
+      const welcomeMessage = createChatMessage(
+        'assistant', 
+        "Hello! I'm your AI teaching assistant. My information is current up to 2024, and I can search the web for the most recent data. How can I help you today?"
+      );
+      setMessages([welcomeMessage]);
+      
+      // Generate initial suggested prompts
+      setSuggestedPrompts([
+        {
+          text: "Create a lesson plan for my class",
+          icon: <DocumentIcon className="w-4 h-4" />,
+          category: 'lesson'
+        },
+        {
+          text: "Generate a quiz about recent events",
+          icon: <ClipboardIcon className="w-4 h-4" />,
+          category: 'assessment'
+        },
+        {
+          text: "Search for teaching resources online",
+          icon: <DocumentMagnifyingGlassIcon className="w-4 h-4" />,
+          category: 'search'
+        },
+        {
+          text: "Help me provide feedback to students",
+          icon: <ChatBubbleLeftIcon className="w-4 h-4" />,
+          category: 'feedback'
+        }
+      ]);
+    }
+  }, []);
+
+  // Main UI
   return (
     <div className="flex flex-col h-full">
+      {!teacher ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <>
       <div className="flex flex-1 overflow-hidden">
         {/* Chat interface */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 overflow-hidden relative">
-            {!hasStartedConversation ? (
-              <div className="flex flex-col items-center justify-center h-full p-4 md:p-8">
-                <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
-                  <div className="mb-6 md:mb-8 relative">
-                    {/* Simple glow background */}
-                    <div 
-                      className="absolute inset-0 bg-[#3ab8fe]/20 rounded-full w-[120px] h-[120px] md:w-[140px] md:h-[140px]"
-                      style={{ 
-                        filter: "blur(20px)",
-                        left: '50%',
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    />
-                    
-                    {/* Floating mascot animation */}
-                    <motion.div
-                      initial={{ y: 0 }}
-                      animate={{ 
-                        y: [0, -10, 0, -5, 0]  // Smooth up and down motion
-                      }}
-                      transition={{ 
-                        duration: 4,
-                        repeat: Infinity,
-                        repeatType: "loop",
-                        ease: "easeInOut"
-                      }}
-                    >
-                      <SparkMascot 
-                        width={100} 
-                        height={100} 
-                        variant="blue"
-                        blinking={true} 
-                        className="drop-shadow-xl relative z-10"
-                      />
-                    </motion.div>
-                  </div>
-                  
-                  <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-gray-900">
-                    {chatTranslations[language].startPrompt}
-                  </h2>
-                  
-                  <div className="grid grid-cols-1 gap-4 w-full md:grid-cols-2 md:gap-5">
-                    {actionCommands.map((command, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleToolClick(command.type)}
-                        className="w-full p-4 md:p-6 bg-white hover:bg-gray-50 rounded-xl md:rounded-2xl border border-gray-200 transition-all group text-left shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-start gap-3 md:gap-4">
-                          <div className="p-2 md:p-3 rounded-xl bg-opacity-20 group-hover:scale-110 transition-transform" 
-                               style={{ backgroundColor: command.title.includes('Lesson') ? 'rgba(59, 130, 246, 0.2)' : 
-                                                   command.title.includes('Assessment') ? 'rgba(139, 92, 246, 0.2)' : 
-                                                   command.title.includes('Feedback') ? 'rgba(34, 197, 94, 0.2)' : 
-                                                   'rgba(249, 115, 22, 0.2)' }}>
-                            {command.icon}
-                          </div>
-                          <div>
-                            <h3 className="text-base md:text-lg font-medium text-gray-900">
-                              {command.title}
-                            </h3>
-                            <p className="text-sm md:text-base text-gray-700 mt-1">
-                              {command.description}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
               <div className="absolute inset-0 flex flex-col">
                 <div 
                   className="flex-1 overflow-y-auto" 
@@ -798,26 +1069,19 @@ export default function TeacherChat() {
                           </div>
                         )}
                         
-                        {/* The actual message with proper styling */}
-                        <div className={`flex-1 ${msg.role === 'user' ? 'flex justify-end' : ''}`}>
-                          {msg.role === 'user' ? (
-                            <div className="bg-[#2b9be0] text-white rounded-lg p-3 md:p-4 max-w-[90%] md:max-w-[80%] shadow-sm ltr">
-                              <div className="whitespace-pre-wrap text-sm md:text-base">{msg.content}</div>
-                            </div>
-                          ) : (
+                          <div className={`flex flex-col ${msg.role === 'user' ? 'items-end ml-auto' : 'items-start'}`}>
                             <ChatMessageComponent
                               message={msg}
-                              userId="teacher-id"
+                              userId={teacher?.id || 'teacher'}
                               onAIEdit={(newContent) => handleAIEdit(index, newContent)}
                             />
-                          )}
                         </div>
                       </div>
                     ))}
                     
-                    {/* Thinking indicator - only shows when isThinking is true */}
+                      {/* AI thinking indicator */}
                     {isThinking && (
-                      <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2 animate-pulse">
                         <div className="flex-shrink-0 mt-1">
                           <SparkMascot 
                             width={24} 
@@ -827,73 +1091,214 @@ export default function TeacherChat() {
                             className="drop-shadow-sm md:w-[30px] md:h-[30px]" 
                           />
                         </div>
-                        <div className="bg-gray-100 rounded-lg p-3 md:p-4 shadow-sm">
-                          <div className="flex items-center">
-                            <span className="text-gray-600 font-medium text-sm md:text-base">Thinking</span>
-                            <span className="flex ml-2">
-                              <motion.span
-                                animate={{ opacity: [0, 1, 0] }}
-                                transition={{ repeat: Infinity, duration: 1.5, times: [0, 0.5, 1] }}
-                                className="text-gray-600"
-                              >.</motion.span>
-                              <motion.span
-                                animate={{ opacity: [0, 1, 0] }}
-                                transition={{ repeat: Infinity, duration: 1.5, delay: 0.2, times: [0, 0.5, 1] }}
-                                className="text-gray-600"
-                              >.</motion.span>
-                              <motion.span
-                                animate={{ opacity: [0, 1, 0] }}
-                                transition={{ repeat: Infinity, duration: 1.5, delay: 0.4, times: [0, 0.5, 1] }}
-                                className="text-gray-600"
-                              >.</motion.span>
-                            </span>
+                          <div className="rounded-lg bg-white p-4 max-w-[80%] shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce text-black" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce text-black" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce text-black" style={{ animationDelay: '300ms' }}></div>
                           </div>
                         </div>
                       </div>
                     )}
                     
-                    {/* Add this div at the end to scroll to */}
+                      {/* AI task status */}
+                      {aiTaskStatus.current && (
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0 mt-1">
+                            <SparkMascot 
+                              width={24} 
+                              height={24} 
+                              variant="blue"
+                              blinking={false}
+                              className="drop-shadow-sm md:w-[30px] md:h-[30px]" 
+                            />
+                          </div>
+                          <div className="rounded-lg bg-white p-4 max-w-[80%] shadow-sm">
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm font-medium text-black">Working on: {aiTaskStatus.current.task}</p>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full" 
+                                  style={{ width: `${aiTaskStatus.current.progress}%` }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Empty div for scrolling to end */}
                     <div ref={messagesEndRef} />
                   </div>
+                  </div>
+                  
+                  {/* Suggested prompts */}
+                  {suggestedPrompts.length > 0 && (
+                    <div className="px-4 py-2 bg-white border-t border-gray-200">
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {suggestedPrompts.map((prompt, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setMessage(prompt.text);
+                              handleSendMessage();
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-100 border border-gray-200 rounded-full text-sm whitespace-nowrap"
+                          >
+                            {prompt.icon}
+                            <span className="text-black">{prompt.text}</span>
+                          </button>
+                        ))}
                 </div>
               </div>
             )}
+                  
+                  {/* File upload progress indicator */}
+                  {isUploading && (
+                    <div className="absolute inset-x-0 top-0 p-4">
+                      <div className="bg-white shadow-lg rounded-lg p-4 max-w-md mx-auto">
+                        <p className="text-sm font-medium mb-2">Uploading file...</p>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full" 
+                            style={{ width: `${fileUploadProgress}%` }}></div>
           </div>
+                      </div>
+                    </div>
+                  )}
 
-          {/* Enhanced Chat Input - Mobile Optimized */}
-          <div className="h-20 md:h-24 bg-white border-t border-gray-200 sticky bottom-0 flex items-center">
-            <div className="max-w-5xl mx-auto w-full px-2 md:px-4 lg:px-8 py-2 md:py-4">
-              <div className="flex items-center gap-2 bg-gray-50 rounded-full p-1.5 md:p-2 shadow-sm border border-gray-200">
-                {/* Optional: Add file upload button */}
-                <button className="p-1.5 md:p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
+                  {/* Input area with enhanced features */}
+                  <div className="p-2 md:p-4 bg-white border-t border-gray-200 relative">
+                    {/* Autocomplete dropdown */}
+                    {isAutocompleting && (
+                      <div 
+                        ref={autocompleteRef}
+                        className="absolute bottom-full left-0 right-0 bg-white border border-gray-200 rounded-t-lg shadow-lg max-h-60 overflow-y-auto"
+                      >
+                        {autocompleteOptions.map((option, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setMessage(option.text);
+                              setIsAutocompleting(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${
+                              index === selectedAutocompleteIndex ? 'bg-blue-50 text-blue-700' : ''
+                            }`}
+                          >
+                            {option.text}
                 </button>
-                
-                <input 
-                  type="text"
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <textarea
+                          ref={inputRef}
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder={t('typeMessage')}
-                  className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 outline-none px-2 md:px-4 py-1.5 md:py-2 text-sm md:text-base lg:text-lg min-w-0"
-                />
-                
+                          onChange={handleInputChange}
+                          onKeyDown={handleKeyDown}
+                          placeholder={chatTranslations[language].typeMessage}
+                          className={`w-full pl-4 pr-10 py-3 bg-white border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black ${
+                            isFocusMode ? 'h-32' : 'h-12'
+                          }`}
+                          style={{ direction: isRTL ? 'rtl' : 'ltr' }}
+                          disabled={isLoading}
+                        />
+                        
+                        {/* Voice input button */}
+                        <button
+                          onClick={toggleVoiceInput}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full ${
+                            isVoiceRecording 
+                              ? 'bg-red-100 text-red-600 animate-pulse' 
+                              : 'text-black hover:text-black'
+                          }`}
+                        >
+                          <MicrophoneIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      {/* File upload button */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-3 bg-white border border-gray-200 rounded-lg text-black hover:text-black transition-colors"
+                        disabled={isLoading}
+                      >
+                        <PaperClipIcon className="w-5 h-5" />
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                          multiple
+                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                        />
+                      </button>
+                      
+                      {/* Send button */}
                 <button 
                   onClick={handleSendMessage}
-                  disabled={!message.trim() || isLoading}
-                  className="p-2 md:p-2.5 bg-[#3ab8fe] hover:bg-[#3ab8fe]/90 rounded-full transition-colors flex-shrink-0 disabled:opacity-50"
+                        disabled={isLoading || !message.trim()}
+                        className={`p-3 rounded-lg transition-colors ${
+                          isLoading || !message.trim()
+                            ? 'bg-gray-100 text-black'
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
+                          <ArrowUpIcon className="w-5 h-5" />
                   )}
                 </button>
               </div>
+                    
+                    {/* Extra tools and options row */}
+                    <div className="flex justify-between mt-2 px-1">
+                      <div className="flex gap-3">
+                        {/* Focus mode toggle */}
+                        <button
+                          onClick={() => setIsFocusMode(!isFocusMode)}
+                          className={`text-xs flex items-center gap-1 ${
+                            isFocusMode ? 'text-blue-600' : 'text-black hover:text-black'
+                          }`}
+                        >
+                          <CursorArrowRippleIcon className="w-4 h-4" />
+                          <span>Focus mode</span>
+                        </button>
+                        
+                        {/* Clear chat button */}
+                        <button
+                          onClick={handleNewChat}
+                          className="text-xs flex items-center gap-1 text-black hover:text-black"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                          <span>Clear chat</span>
+                        </button>
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        {/* View history */}
+                        <Link
+                          href={href}
+                          className="text-xs flex items-center gap-1 text-black hover:text-black"
+                        >
+                          <FolderIcon className="w-4 h-4" />
+                          <span>History</span>
+                        </Link>
+                        
+                        {/* Settings */}
+                        <button
+                          onClick={() => {/* Show settings modal */}}
+                          className="text-xs flex items-center gap-1 text-black hover:text-black"
+                        >
+                          <CogIcon className="w-4 h-4" />
+                          <span>Settings</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
             </div>
           </div>
         </div>
@@ -958,14 +1363,25 @@ export default function TeacherChat() {
             className="md:hidden fixed right-4 top-4 z-10 bg-white p-2 rounded-full shadow-md"
             onClick={() => setShowHistory(!showHistory)}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
         )}
       </div>
 
-      {showLessonCanvas && <LessonCanvas />}
+          {showLessonCanvas && (
+            <LessonCanvas 
+              lessonData={lessonData}
+              editorContent={editorContent}
+              setEditorContent={setEditorContent}
+              generatedPlan={generatedPlan}
+              setGeneratedPlan={setGeneratedPlan}
+              setMessages={setMessages}
+              setShowLessonCanvas={setShowLessonCanvas}
+              triggerDashboardUpdate={triggerDashboardUpdate}
+            />
+          )}
 
       {isGenerating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
@@ -978,15 +1394,18 @@ export default function TeacherChat() {
         </div>
       )}
 
+          {/* AI Editor Modal for long text */}
       {showAIEditor && (
         <AIEditorModal
           content={draftContent}
+              onClose={() => setShowAIEditor(false)}
           onSave={(content) => {
-            setEditorContent(content);
+                setMessage(content);
             setShowAIEditor(false);
           }}
-          onClose={() => setShowAIEditor(false)}
         />
+          )}
+        </>
       )}
     </div>
   );

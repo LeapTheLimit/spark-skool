@@ -162,7 +162,7 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
               className={`p-1.5 rounded-lg transition-colors ${
                 feedback === 'like' 
                   ? 'bg-green-100 text-green-600' 
-                  : 'text-gray-400 hover:text-black'
+                  : 'text-black hover:text-black'
               }`}
             >
               <HandThumbUpIcon className="w-5 h-5" />
@@ -172,7 +172,7 @@ export default function ChatMessage({ message, userId, onAIEdit }: ChatMessagePr
               className={`p-1.5 rounded-lg transition-colors ${
                 feedback === 'dislike' 
                   ? 'bg-red-100 text-red-600' 
-                  : 'text-gray-400 hover:text-black'
+                  : 'text-black hover:text-black'
               }`}
             >
               <HandThumbDownIcon className="w-5 h-5" />

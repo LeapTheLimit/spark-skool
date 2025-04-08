@@ -43,10 +43,11 @@ interface TeacherSidebarProps {
     subject: string;
     avatar?: string;
   };
+  onCollapse?: (collapsed: boolean) => void;
 }
 
-export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarProps) {
-  const { t } = useLanguage();
+export default function TeacherSidebar({ teacher: propTeacher, onCollapse }: TeacherSidebarProps) {
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -68,6 +69,17 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
       console.error('Failed to load teacher data:', error);
     }
   }, []);
+
+  // Handle sidebar collapse
+  const handleCollapseToggle = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    
+    // Notify parent component if callback is provided
+    if (onCollapse) {
+      onCollapse(newCollapsedState);
+    }
+  };
 
   const handleLogout = () => {
     // Clear user data from localStorage
@@ -173,16 +185,72 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
         </svg>
       )
+    },
+    {
+      id: 'settings',
+      title: t('settings'),
+      href: '/dashboard/teacher/settings',
+      icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
     }
   ];
 
+  // Update the useEffect to set the active tab based on the current path
+  useEffect(() => {
+    // Check if we're on the settings page
+    const isOnSettings = window.location.pathname.includes('/dashboard/teacher/settings');
+    
+    if (isOnSettings) {
+      setActiveTab('settings');
+      return;
+    }
+    
+    // For all other pages, match the path
+    const path = window.location.pathname;
+    const currentTab = menuItems.find(item => path.startsWith(item.href))?.id || 'dashboard';
+    setActiveTab(currentTab);
+  }, [menuItems]);
+
+  // Add RTL support
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // Get the current language
+      const currentLang = localStorage.getItem('language');
+      const isRtl = currentLang === 'ar' || currentLang === 'he';
+      
+      // Update any RTL-specific styling for the sidebar
+      const sidebarContainer = document.querySelector('.teacher-sidebar-container');
+      if (sidebarContainer) {
+        if (isRtl) {
+          sidebarContainer.classList.add('rtl-sidebar');
+        } else {
+          sidebarContainer.classList.remove('rtl-sidebar');
+        }
+      }
+    };
+
+    // Call once on mount
+    handleLanguageChange();
+
+    // Listen for language changes
+    window.addEventListener('languageChange', handleLanguageChange);
+    
+    return () => {
+      window.removeEventListener('languageChange', handleLanguageChange);
+    };
+  }, []);
+
   // Desktop sidebar (unchanged)
   return (
-    <div className={`${isCollapsed ? 'w-[70px]' : 'w-[280px]'} bg-[#111827] flex flex-col h-full transition-all duration-300 relative`}>
-      {/* Collapse/Expand Button positioned at the edge */}
+    <div className={`${isCollapsed ? 'w-[70px]' : 'w-[280px]'} bg-[#111827] flex flex-col h-full transition-all duration-300 teacher-sidebar-container`}>
+      {/* Collapse/Expand Button positioned at the edge - adjusted for RTL */}
       <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 p-1.5 bg-[#3ab8fe] rounded-full text-white shadow-md hover:bg-[#3ab8fe]/80 transition-colors z-10"
+        onClick={handleCollapseToggle}
+        className={`absolute ${language === 'ar' || language === 'he' ? 'left-[-12px]' : 'right-[-12px]'} top-20 p-1.5 bg-[#3ab8fe] rounded-full text-white shadow-md hover:bg-[#3ab8fe]/80 transition-colors z-10`}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <svg 
@@ -190,7 +258,7 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
           viewBox="0 0 24 24" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg"
-          style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          style={{ transform: isCollapsed ? (language === 'ar' || language === 'he' ? 'rotate(0deg)' : 'rotate(180deg)') : (language === 'ar' || language === 'he' ? 'rotate(180deg)' : 'rotate(0deg)') }}
         >
           <path 
             d="M15 6L9 12L15 18" 
@@ -293,6 +361,7 @@ export default function TeacherSidebar({ teacher: propTeacher }: TeacherSidebarP
               </div>
               <Link 
                 href="/dashboard/teacher/settings" 
+                onClick={() => setActiveTab('settings')}
                 className="p-2 hover:bg-white/10 rounded-full text-[#3ab8fe] hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">

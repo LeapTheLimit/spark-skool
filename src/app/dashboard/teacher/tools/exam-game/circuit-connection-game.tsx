@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
@@ -102,6 +102,11 @@ export default function CircuitConnectionGame({
     }
   ];
 
+  const handleGameOver = useCallback(() => {
+    setGameOver(true);
+    onGameComplete(score);
+  }, [onGameComplete, score]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (!gameOver && timeLeft > 0) {
@@ -112,7 +117,7 @@ export default function CircuitConnectionGame({
       handleGameOver();
     }
     return () => clearInterval(timer);
-  }, [timeLeft, gameOver]);
+  }, [timeLeft, gameOver, handleGameOver, score]);
 
   const handleComponentSelect = (componentId: string) => {
     if (!selectedComponent) {
@@ -179,11 +184,6 @@ export default function CircuitConnectionGame({
     path.push(start);
     dfs(start);
     return path;
-  };
-
-  const handleGameOver = () => {
-    setGameOver(true);
-    onGameComplete(score);
   };
 
   return (

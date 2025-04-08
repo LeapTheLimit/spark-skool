@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
@@ -61,13 +61,12 @@ export default function ChemicalMixingGame({
   onLeaderboardUpdate
 }: ChemicalMixingGameProps) {
   const { t } = useLanguage();
-  const [score, setScore] = useState(0);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
   const [timeLeft, setTimeLeft] = useState(questions[0]?.timeLimit || 60);
+  const [score, setScore] = useState(0);
   const [selectedChemicals, setSelectedChemicals] = useState<Chemical[]>([]);
   const [showReaction, setShowReaction] = useState(false);
   const [reactionResult, setReactionResult] = useState<string | null>(null);
-  const [gameOver, setGameOver] = useState(false);
 
   // Sample chemicals data
   const chemicals: Chemical[] = [
@@ -96,6 +95,11 @@ export default function ChemicalMixingGame({
     // Add more chemicals as needed
   ];
 
+  const handleGameOver = useCallback(() => {
+    setGameOver(true);
+    onGameComplete(score);
+  }, [onGameComplete, score]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (!gameOver && timeLeft > 0) {
@@ -106,7 +110,7 @@ export default function ChemicalMixingGame({
       handleGameOver();
     }
     return () => clearInterval(timer);
-  }, [timeLeft, gameOver]);
+  }, [timeLeft, gameOver, handleGameOver, score]);
 
   const handleChemicalSelect = (chemical: Chemical) => {
     if (selectedChemicals.length < 2) {
@@ -141,11 +145,6 @@ export default function ChemicalMixingGame({
       setSelectedChemicals([]);
       setReactionResult(null);
     }, 2000);
-  };
-
-  const handleGameOver = () => {
-    setGameOver(true);
-    onGameComplete(score);
   };
 
   return (

@@ -337,16 +337,16 @@ export default function SchedulePage() {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Function to get classes for a specific day
-  const getClassesForDay = (day: string) => {
+  const getClassesForDay = useCallback((day: string) => {
     return classes.filter(cls => cls.day === day);
-  };
+  }, [classes]);
 
   // Function to get classes for a specific date
-  const getClassesForDate = (date: Date) => {
+  const getClassesForDate = useCallback((date: Date) => {
     return classes.filter(cls => 
       isSameDay(new Date(cls.date), date)
     );
-  };
+  }, [classes]);
 
   // Remove the dayRangeOptions and handleDayRangeChange function
   // Instead, add this function to toggle individual days

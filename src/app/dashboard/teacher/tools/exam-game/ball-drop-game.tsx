@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
@@ -78,34 +78,41 @@ export default function BallDropGame({
   const BOUNCE_FACTOR = 0.7;
   const FRICTION = 0.99;
 
-  // Sample platforms
-  const initialPlatforms: Platform[] = [
+  // Use useMemo for initialPlatforms
+  const initialPlatforms = useMemo((): Platform[] => [
     {
       id: 1,
-      position: { x: 0, y: 400 },
-      width: 800,
+      position: { x: 100, y: 400 },
+      width: 200,
       height: 20,
       type: 'normal'
     },
     {
       id: 2,
-      position: { x: 200, y: 300 },
+      position: { x: 400, y: 300 },
       width: 200,
       height: 20,
       type: 'bouncy'
     },
     {
       id: 3,
-      position: { x: 400, y: 200 },
+      position: { x: 600, y: 200 },
       width: 200,
       height: 20,
       type: 'breakable'
     }
-  ];
+  ], []);
+
+  // Use useCallback for handleGameOver
+  const handleGameOver = useCallback(() => {
+    setGameOver(true);
+    setIsPlaying(false);
+    onGameComplete(score);
+  }, [onGameComplete, score]);
 
   useEffect(() => {
     setPlatforms(initialPlatforms);
-  }, []);
+  }, [initialPlatforms]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -117,7 +124,7 @@ export default function BallDropGame({
       handleGameOver();
     }
     return () => clearInterval(timer);
-  }, [timeLeft, gameOver]);
+  }, [timeLeft, gameOver, handleGameOver]);
 
   useEffect(() => {
     let animationFrame: number;
@@ -198,12 +205,6 @@ export default function BallDropGame({
         color: '#FF6B6B'
       }
     ]);
-  };
-
-  const handleGameOver = () => {
-    setGameOver(true);
-    setIsPlaying(false);
-    onGameComplete(score);
   };
 
   return (

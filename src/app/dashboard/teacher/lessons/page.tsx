@@ -16,21 +16,21 @@ export default function LessonsPage() {
       title: 'Introduction to Newton\'s Laws',
       subject: 'Physics',
       lastEdited: '2 days ago',
-      thumbnail: '/thumbnails/physics.jpg',
+      thumbnail: '/images/thumbnails/physics.jpg',
     },
     {
       id: 'les-002',
       title: 'Chemical Reactions and Equations',
       subject: 'Chemistry',
       lastEdited: 'Yesterday',
-      thumbnail: '/thumbnails/chemistry.jpg',
+      thumbnail: '/images/thumbnails/chemistry.jpg',
     },
     {
       id: 'les-003',
       title: 'Cell Structure and Function',
       subject: 'Biology',
       lastEdited: '1 week ago',
-      thumbnail: '/thumbnails/biology.jpg',
+      thumbnail: '/images/thumbnails/biology.jpg',
     }
   ];
 
